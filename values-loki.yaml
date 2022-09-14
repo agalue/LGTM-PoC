@@ -68,6 +68,7 @@ monitoring:
     labels:
       release: monitor
   dashboards:
+    namespace: observability
     labels:
       release: monitor
       grafana_dashboard: "1"
