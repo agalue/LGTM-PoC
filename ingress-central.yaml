@@ -1,13 +1,59 @@
 ---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: observability
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: monitor-ca
+  namespace: observability
+spec:
+  isCA: true
+  commonName: monitor-system
+  secretName: monitor-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  subject:
+    organizations:
+    - LGTM-PoC
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+  usages:
+  - cert sign
+  - crl sign
+  - server auth
+  - client auth
+
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: monitor-issuer
+  namespace: observability
+spec:
+  ca:
+    secretName: monitor-ca
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: grafana-ingress
   namespace: observability
   annotations:
-    ingress.kubernetes.io/affinity: 'cookie'
-    ingress.kubernetes.io/session-cookie-name: 'route'
-    ingress.kubernetes.io/session-cookie-hash: 'sha1'
+    cert-manager.io/issuer: monitor-issuer
+    ingress.kubernetes.io/affinity: cookie
+    ingress.kubernetes.io/session-cookie-name: route
+    ingress.kubernetes.io/session-cookie-hash: sha1
     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
     nginx.ingress.kubernetes.io/service-upstream: 'true'
 spec:
@@ -23,3 +69,7 @@ spec:
             name: monitor-grafana
             port:
               name: http-web
+  tls:
+  - hosts:
+    - grafana.example.com
+    secretName: grafana.example.com

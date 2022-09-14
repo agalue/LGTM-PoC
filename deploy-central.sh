@@ -35,12 +35,17 @@ expect eof
 EOF
 
 echo "Updating Helm Repositories"
+helm repo add jetstack https://charts.jetstack.io
 helm repo add linkerd https://helm.linkerd.io/stable
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add minio https://charts.min.io/
 helm repo update
+
+echo "Deploying Cert-Manager"
+helm upgrade --install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace --set installCRDs=true --wait
 
 echo "Deploying Linkerd"
 DOMAIN=$DOMAIN CERT_ISSUER_ID=issuer-central ./deploy-linkerd.sh
