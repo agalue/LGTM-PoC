@@ -56,8 +56,8 @@ helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
   --set clusterDomain=$DOMAIN \
   --set collector.enabled=false \
   --set jaeger.enabled=false \
-  --set webhook.collectorSvcAddr=tempo-distributor.observability.svc:55678 \
-  --set webhook.collectorSvcAccount=tempo \
+  --set webhook.collectorSvcAddr=tempo-distributor.tempo.svc:55678 \
+  --set webhook.collectorSvcAccount=tempo-sa \
   --wait
 
 echo "Setting up namespaces"
