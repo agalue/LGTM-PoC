@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: observability
+  annotations:
+    ingress.kubernetes.io/affinity: 'cookie'
+    ingress.kubernetes.io/session-cookie-name: 'route'
+    ingress.kubernetes.io/session-cookie-hash: 'sha1'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/service-upstream: 'true'
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: grafana.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: monitor-grafana
+            port:
+              name: http-web

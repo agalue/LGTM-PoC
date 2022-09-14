@@ -1,0 +1,223 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tns-app
+  namespace: tns
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tns-db
+  namespace: tns
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tns-loadgen
+  namespace: tns
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: tns
+  labels:
+    name: app
+spec:
+  selector:
+    name: app
+  ports:
+  - name: http
+    port: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: tns
+  labels:
+    name: db
+spec:
+  selector:
+    name: db
+  ports:
+  - name: http
+    port: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadgen
+  namespace: tns
+  labels:
+    name: loadgen
+spec:
+  selector:
+    name: loadgen
+  ports:
+  - name: http
+    port: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: tns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: app
+  template:
+    metadata:
+      labels:
+        name: app
+    spec:
+      serviceAccountName: tns-app
+      containers:
+      - name: app
+        image: grafana/tns-app:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - -log.level=debug
+        - http://db
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: grafana-agent.observability.svc
+        - name: JAEGER_TAGS
+          value: cluster=tns,namespace=tns
+        - name: JAEGER_SAMPLER_TYPE
+          value: const
+        - name: JAEGER_SAMPLER_PARAM
+          value: '1'
+        ports:
+        - name: http
+          containerPort: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: tns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: db
+  template:
+    metadata:
+      labels:
+        name: db
+    spec:
+      serviceAccountName: tns-db
+      containers:
+      - name: db
+        image: grafana/tns-db:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - -log.level=debug
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: grafana-agent.observability.svc
+        - name: JAEGER_TAGS
+          value: cluster=tns,namespace=tns
+        - name: JAEGER_SAMPLER_TYPE
+          value: const
+        - name: JAEGER_SAMPLER_PARAM
+          value: '1'
+        ports:
+        - name: http
+          containerPort: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: tns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: loadgen
+  template:
+    metadata:
+      labels:
+        name: loadgen
+    spec:
+      serviceAccountName: tns-loadgen
+      containers:
+      - name: loadgen
+        image: grafana/tns-loadgen:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - -log.level=debug
+        - http://app
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: grafana-agent.observability.svc
+        - name: JAEGER_TAGS
+          value: cluster=tns,namespace=tns
+        - name: JAEGER_SAMPLER_TYPE
+          value: const
+        - name: JAEGER_SAMPLER_PARAM
+          value: '1'
+        ports:
+        - name: http
+          containerPort: 80
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: app
+  namespace: tns
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      name: app
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: db
+  namespace: tns
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      name: db
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: loadgen
+  namespace: tns
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      name: loadgen

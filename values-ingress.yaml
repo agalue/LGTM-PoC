@@ -1,0 +1,25 @@
+---
+controller:
+  replicaCount: 2
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: ingress-nginx
+      additionalLabels:
+        release: monitor
+  podAnnotations:
+    linkerd.io/inject: enabled
+    config.linkerd.io/skip-inbound-ports: "80,443"
+  admissionWebhooks:
+    annotations:
+      linkerd.io/inject: disabled
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  service:
+    externalTrafficPolicy: Local
+  config:
+    enable-opentracing: "true"
+    zipkin-collector-host: tempo-distributor.tempo.svc
+    zipkin-service-name: nginx-internal

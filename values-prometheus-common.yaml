@@ -1,0 +1,228 @@
+# Warning: there won't be any resource requests/limits for any container
+---
+nameOverride: monitor
+fullnameOverride: monitor
+cleanPrometheusOperatorObjectNames: true
+
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeScheduler: false
+
+kubeControllerManager:
+  enabled: false
+
+kubeEtcd:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+alertmanager: # Required to be notified on alerts managed by Prometheus
+  alertmanagerSpec:
+    resources: null
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+
+prometheusOperator:
+  admissionWebhooks:
+    patch:
+      podAnnotations:
+        linkerd.io/inject: 'disabled'
+  prometheusConfigReloader:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 50Mi
+      limits:
+        cpu: 25m
+        memory: 50Mi
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 30s
+    retention: 30d
+    resources: null
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    additionalScrapeConfigs: # Linkerd Integration
+    - job_name: linkerd-controller
+      scrape_interval: 10s # To avoid issues with Linkerd dashboards
+      scrape_timeout: 10s
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - linkerd
+          - linkerd-viz
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        action: keep
+        regex: admin-http
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        action: replace
+        target_label: component
+    - job_name: linkerd-service-mirror
+      scrape_interval: 10s # To avoid issues with Linkerd dashboards
+      scrape_timeout: 10s
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels:
+        - __meta_kubernetes_pod_label_component
+        - __meta_kubernetes_pod_container_port_name
+        action: keep
+        regex: linkerd-service-mirror;admin-http$
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        action: replace
+        target_label: component
+    - job_name: linkerd-proxy
+      scrape_interval: 10s # To avoid issues with Linkerd dashboards
+      scrape_timeout: 10s
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels:
+        - __meta_kubernetes_pod_container_name
+        - __meta_kubernetes_pod_container_port_name
+        - __meta_kubernetes_pod_label_linkerd_io_control_plane_ns
+        action: keep
+        regex: ^linkerd-proxy;linkerd-admin;linkerd$
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_label_linkerd_io_proxy_job]
+        action: replace
+        target_label: k8s_job
+      - action: labeldrop
+        regex: __meta_kubernetes_pod_label_linkerd_io_proxy_job
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_linkerd_io_proxy_(.+)
+      - action: labeldrop
+        regex: __meta_kubernetes_pod_label_linkerd_io_proxy_(.+)
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_linkerd_io_(.+)
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+        replacement: __tmp_pod_label_$1
+      - action: labelmap
+        regex: __tmp_pod_label_linkerd_io_(.+)
+        replacement:  __tmp_pod_label_$1
+      - action: labeldrop
+        regex: __tmp_pod_label_linkerd_io_(.+)
+      - action: labelmap
+        regex: __tmp_pod_label_(.+)
+
+grafana:
+  adminPassword: Adm1nAdm1n
+  resources: null
+  deploymentStrategy:
+    type: Recreate # Required when using a PVC
+  persistence:
+    type: pvc
+    enabled: true
+    accessModes: ["ReadWriteOnce"]
+    size: 1Gi
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      # Linkerd Dashboards
+      # All these charts are hosted at https://grafana.com/grafana/dashboards/{id}
+      # All of them tested on Grafana 7.1 and need a scrape interval of 10 seconds.
+      top-line:
+        gnetId: 15474
+        revision: 3
+        datasource: prometheus
+      health:
+        gnetId: 15486
+        revision: 2
+        datasource: prometheus
+      kubernetes:
+        gnetId: 15479
+        revision: 2
+        datasource: prometheus
+      namespace:
+        gnetId: 15478
+        revision: 2
+        datasource: prometheus
+      deployment:
+        gnetId: 15475
+        revision: 5
+        datasource: prometheus
+      pod:
+        gnetId: 15477
+        revision: 2
+        datasource: prometheus
+      service:
+        gnetId: 15480
+        revision: 2
+        datasource: prometheus
+      route:
+        gnetId: 15481
+        revision: 2
+        datasource: prometheus
+      authority:
+        gnetId: 15482
+        revision: 2
+        datasource: prometheus
+      cronjob:
+        gnetId: 15483
+        revision: 2
+        datasource: prometheus
+      job:
+        gnetId: 15487
+        revision: 2
+        datasource: prometheus
+      daemonset:
+        gnetId: 15484
+        revision: 2
+        datasource: prometheus
+      replicaset:
+        gnetId: 15491
+        revision: 2
+        datasource: prometheus
+      statefulset:
+        gnetId: 15493
+        revision: 2
+        datasource: prometheus
+      replicationcontroller:
+        gnetId: 15492
+        revision: 2
+        datasource: prometheus
+      prometheus:
+        gnetId: 15489
+        revision: 2
+        datasource: prometheus
+      prometheus-benchmark:
+        gnetId: 15490
+        revision: 2
+        datasource: prometheus
+      multicluster:
+        gnetId: 15488
+        revision: 2
+        datasource: prometheus

@@ -1,0 +1,56 @@
+---
+rootUser: "root"
+rootPassword: "I,@m,R00t;"
+
+mode: standalone
+
+persistence:
+  size: 20Gi
+
+resources:
+  requests:
+    memory: 512Mi
+
+users:
+- accessKey: admin
+  secretKey: Adm1nAdm1n
+  policy: consoleAdmin
+- accessKey: remote_user
+  secretKey: R3m0t3us3r
+  policy: readwrite
+
+buckets:
+- name: loki-data
+  policy: none
+  purge: false
+  versioning: false
+- name: loki-ruler
+  policy: none
+  purge: false
+  versioning: false
+- name: tempo-data
+  policy: none
+  purge: false
+  versioning: false
+- name: mimir-data
+  policy: none
+  purge: false
+  versioning: false
+
+makeUserJob:
+  podAnnotations:
+    linkerd.io/inject: 'disabled'
+
+makeBucketJob:
+  podAnnotations:
+    linkerd.io/inject: 'disabled'
+
+customCommandJob:
+  podAnnotations:
+    linkerd.io/inject: 'disabled'
+
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: monitor

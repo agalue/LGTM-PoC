@@ -1,0 +1,158 @@
+# Warning: there won't be any resource requests/limits for any Mimir-related container
+---
+fullnameOverride: mimir
+
+serviceAccount: # There is no way to set an account per component
+  name: mimir-sa
+
+global:
+  extraEnv:
+  - name: JAEGER_ENDPOINT
+    value: 'http://tempo-distributor.tempo.svc:14268/api/traces'
+  - name: JAEGER_SAMPLER_TYPE
+    value: 'const'
+  - name: JAEGER_SAMPLER_PARAM
+    value: '1'
+
+mimir:
+  structuredConfig:
+    multitenancy_enabled: true
+    server:
+      grpc_server_max_concurrent_streams: 200
+    distributor:
+      instance_limits:
+        max_ingestion_rate: 10000 # Per-distributor rate limit
+        max_inflight_push_requests: 250
+    ingester:
+      ring:
+        num_tokens: 512
+        unregister_on_shutdown: false
+    frontend:
+      log_queries_longer_than: 1m
+    limits:
+      ingestion_rate: 10000 # Per-user rate limit
+      max_global_series_per_user: 1000000 # To accomodate one big tenant
+      max_global_series_per_metric: 100000
+    blocks_storage:
+      backend: s3
+      s3:
+        endpoint: minio.storage.svc:9000
+        bucket_name: mimir-data
+        access_key_id: remote_user
+        secret_access_key: R3m0t3us3r
+        insecure: true
+
+runtimeConfig:
+  ingester_limits:
+    max_inflight_push_requests: 250
+    max_ingestion_rate: 10000
+    max_series: 1000000
+
+nginx:
+  enabled: false
+
+ruler:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
+minio:
+  enabled: false
+
+overrides_exporter:
+  resources: null
+
+distributor:
+  replicas: 2
+  resources: null
+  affinity: null
+
+ingester:
+  replicas: 3
+  persistentVolume:
+    size: 20Gi
+  resources: null
+  affinity: null
+
+compactor:
+  replicas: 2
+  persistentVolume:
+    size: 10Gi
+  resources: null
+  affinity: null
+
+querier:
+  replicas: 3
+  resources: null
+  affinity: null
+  initContainers:
+  - name: wait
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 2; done']
+
+query_frontend:
+  replicas: 2
+  resources: null
+  affinity: null
+  initContainers:
+  - name: wait
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 2; done']
+
+store_gateway:
+  replicas: 3
+  persistentVolume:
+    size: 10Gi
+  resources: null
+  affinity: null
+  initContainers:
+  - name: wait
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 2; done']
+
+chunks-cache:
+  enabled: true
+  replicas: 3
+  allocatedMemory: 1024
+  resources:
+    requests:
+      cpu: 25m
+  affinity: null
+
+index-cache:
+  enabled: true
+  replicas: 3
+  allocatedMemory: 768
+  resources:
+    requests:
+      cpu: 25m
+  affinity: null
+
+metadata-cache:
+  enabled: true
+  replicas: 1
+  allocatedMemory: 384
+  resources:
+    requests:
+      cpu: 25m
+  affinity: null
+
+results-cache:
+  enabled: true
+  replicas: 2
+  allocatedMemory: 512
+  resources:
+    requests:
+      cpu: 25m
+  affinity: null
+
+metaMonitoring:
+  serviceMonitor:
+    enabled: true
+    clusterLabel: null
+    labels:
+      release: monitor

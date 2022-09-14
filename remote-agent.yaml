@@ -1,0 +1,135 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-agent
+  namespace: observability
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-agent
+  namespace: observability
+  labels:
+    name: grafana-agent
+spec:
+  ports:
+  - name: http-metrics
+    port: 80
+  - name: thrift-compact
+    port: 6831
+    protocol: UDP
+  - name: thrift-binary
+    port: 6832
+    protocol: UDP
+  - name: thrift-http
+    port: 14268
+  - name: thrift-grpc
+    port: 14250
+  - name: opencensus
+    port: 55678
+  selector:
+    name: grafana-agent
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-agent
+  namespace: observability
+data:
+  agent.yaml: |
+    server:
+      log_level: debug
+    traces:
+      configs:
+      - name: kubernetes-traces
+        receivers:
+          jaeger:
+            protocols:
+              grpc:
+              thrift_binary:
+              thrift_compact:
+              thrift_http:
+          opencensus:
+          otlp:
+            protocols:
+              grpc:
+        remote_write:
+        - endpoint: tempo-distributor-lgtm-central.tempo.svc:55680
+          insecure: true
+          retry_on_failure:
+            enabled: true
+          headers:
+            X-Scope-OrgID: remote01
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-agent
+  namespace: observability
+spec:
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      name: grafana-agent
+  template:
+    metadata:
+      labels:
+        name: grafana-agent
+    spec:
+      serviceAccountName: grafana-agent
+      containers:
+      - name: grafana-agent
+        image: grafana/agent:v0.24.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/agent
+        args:
+        - -config.file=/etc/agent/agent.yaml
+        - -server.http.address=0.0.0.0:80
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        ports:
+        - containerPort: 80
+          name: http-metrics
+        - containerPort: 6831
+          name: thrift-compact
+          protocol: UDP
+        - containerPort: 6832
+          name: thrift-binary
+          protocol: UDP
+        - containerPort: 14268
+          name: thrift-http
+        - containerPort: 14250
+          name: thrift-grpc
+        - containerPort: 55678
+          name: opencensus
+        volumeMounts:
+        - mountPath: /etc/agent
+          name: grafana-agent
+      volumes:
+      - configMap:
+          name: grafana-agent
+        name: grafana-agent
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grafana-agent
+  namespace: observability
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: http-metrics
+  selector:
+    matchLabels:
+      name: grafana-agent

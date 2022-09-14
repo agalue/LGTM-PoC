@@ -1,0 +1,141 @@
+---
+prometheus:
+  prometheusSpec:
+    remoteWrite:
+    - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
+      headers:
+        X-Scope-OrgID: _local
+
+grafana:
+  grafana.ini:
+    feature_toggles:
+      enable: tempoSearch tempoBackendSearch
+    server:
+      domain: grafana.example.com # Ensure to use the correct domain / Will be used for Ingress
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Tempo Remote
+        type: tempo
+        uid: tempo_remote_ds
+        access: proxy
+        url: http://tempo-query-frontend.tempo.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          lokiSearch:
+            datasourceUid: loki_remote_ds
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir_remote_ds
+          tracesToLogs:
+            datasourceUid: loki_remote_ds
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote01
+      - name: Loki Remote
+        type: loki
+        uid: remote_loki_ds
+        access: proxy
+        url: http://loki-read.loki.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          derivedFields:
+          - name: TraceID
+            datasourceUid: remote_tempo_ds # Might not work
+            matcherRegex: 'traceID=(\w+)'
+            url: '${__value.raw}'
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote01
+      - name: Mimir Remote
+        type: prometheus
+        uid: remote_mimir_ds
+        isDefault: false
+        editable: true
+        access: proxy
+        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote01
+      - name: Tempo Local
+        type: tempo
+        uid: tempo_ds
+        access: proxy
+        url: http://tempo-query-frontend.tempo.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          lokiSearch:
+            datasourceUid: loki_ds
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir_ds
+          tracesToLogs:
+            datasourceUid: loki_ds
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: _local
+      - name: Loki Local
+        type: loki
+        uid: loki_ds
+        access: proxy
+        url: http://loki-read.loki.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          derivedFields:
+          - name: TraceID
+            datasourceUid: tempo_ds # Might not work
+            matcherRegex: 'traceID=(\w+)'
+            url: '${__value.raw}'
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: _local
+      - name: Mimir Local
+        type: prometheus
+        uid: mimir_ds
+        isDefault: false
+        editable: true
+        access: proxy
+        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: _local
+  dashboards:
+    default:
+      # Mimir Dashboards
+      writes:
+        gnetId: 16026
+        revision: 3
+        datasource: prometheus
+      reads:
+        gnetId: 16016
+        revision: 3
+        datasource: prometheus
+      object-store:
+        gnetId: 16011
+        revision: 3
+        datasource: prometheus
+      tenants:
+        gnetId: 16021
+        revision: 3
+        datasource: prometheus

@@ -1,0 +1,14 @@
+---
+config:
+  clients:
+  - url: http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push
+    tenant_id: remote01
+
+tolerations:
+- effect: NoSchedule
+  operator: Exists
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitor

@@ -1,0 +1,69 @@
+# Warning: there won't be any resource requests/limits for any Tempo-related container
+---
+fullnameOverride: tempo
+
+serviceAccount: # There is no way to set an account per component
+  name: tempo-sa
+
+search:
+  enabled: true
+
+multitenancyEnabled: true
+
+traces:
+  jaeger:
+    thriftHttp: # For local Mimir (port 14268)
+      enabled: true
+    grpc: # For remote Grafana Agent (port 14250)
+      enabled: true
+  opencensus: # For local Linkerd (port 55678)
+    enabled: true
+  zipkin: # For local Nginx Ingress (port 9411)
+    enabled: true
+  otlp:
+    grpc:
+      enabled: true # For remote Grafana Agent (port 55680)
+
+global_overrides:
+  max_search_bytes_per_trace: 10000
+
+gateway:
+  enabled: false
+
+ingester:
+  affinity: '{}'
+
+distributor:
+  replicas: 2
+  affinity: '{}'
+
+queryFrontend:
+  replicas: 2
+  affinity: '{}'
+
+querier:
+  replicas: 3
+  affinity: '{}'
+
+compactor:
+  affinity: '{}'
+
+memcached:
+  replicas: 2
+  affinity: '{}'
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      endpoint: minio.storage.svc:9000
+      bucket: tempo-data
+      access_key: remote_user
+      secret_key: R3m0t3us3r
+      insecure: true
+      forcepathstyle: true
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitor
