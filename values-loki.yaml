@@ -25,6 +25,8 @@ loki:
         type: s3
         s3:
           bucketnames: loki-ruler
+          insecure: true
+          s3forcepathstyle: true
     common:
       path_prefix: /var/loki
       storage:
