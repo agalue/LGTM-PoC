@@ -20,6 +20,16 @@ For MetalLB, the Central cluster will use segment `x.x.x.201-210`, and the Remot
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
+## Requirements
+
+* [Minikube](https://minikube.sigs.k8s.io/)
+* [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+* [Helm](https://helm.sh/)
+* [Step CLI](https://smallstep.com/docs/step-cli)
+* [Linkerd CLI](https://linkerd.io/2.12/getting-started/#step-1-install-the-cli)
+
+The solution has been designed and tested on macOS. You might need to change the scripts to run them on a different operating system.
+
 ## Start
 
 * Create anchor and issuer certificates for Linkerd:
