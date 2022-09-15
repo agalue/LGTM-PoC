@@ -120,22 +120,3 @@ grafana:
           manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
-  dashboards:
-    default:
-      # Mimir Dashboards
-      writes:
-        gnetId: 16026
-        revision: 3
-        datasource: prometheus
-      reads:
-        gnetId: 16016
-        revision: 3
-        datasource: prometheus
-      object-store:
-        gnetId: 16011
-        revision: 3
-        datasource: prometheus
-      tenants:
-        gnetId: 16021
-        revision: 3
-        datasource: prometheus
