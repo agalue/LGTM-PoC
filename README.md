@@ -10,7 +10,7 @@ Loki is drastically easier to deploy and manage than the traditional ELK stack, 
 
 We will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`), and another with a sample application, generating metrics, logs, and traces (`lgtm-remote`).
 
-As Zero Trust is becoming more important nowadays, we'll use Linkerd to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
+As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://linkerd.io/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
 
 ![Architecture](architecture-1.png)
 
@@ -19,6 +19,22 @@ We will use Minikube for the clusters, and as the Linkerd Gateway for Multi-Clus
 For MetalLB, the Central cluster will use segment `x.x.x.201-210`, and the Remote cluster will employ `x.x.x.211-220` for the Public IPs extracted from the Minikube IP on each case.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
+
+Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
+
+Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
+
+### Data Sources
+
+The following is the list of Data Sources on the Central Grafana:
+
+* `Mimir Local` to get metrics from the local Mimir (long term). The default DS for Prometheus, can also be used, for short periods.
+* `Tempo Local` to get traces from the local cluster.
+* `Loki Local` to get logs from the local cluster.
+
+* `Mimir Remote` to get metrics from the remote cluster.
+* `Tempo Remote` to get traces from the remote cluster.
+* `Loki Remote` to get logs from the remote cluster.
 
 ## Requirements
 
@@ -38,19 +54,72 @@ The solution has been designed and tested on macOS. You might need to change the
 ./deploy-certs.sh
 ```
 
-* Deploy Central Cluster with LGTM stack:
+* Deploy Central Cluster with LGTM stack (Minikube context: `lgtm-central`):
 
 ```bash
 ./deploy-central.sh
 ```
 
-* Deploy Remote Cluster with sample application linked to the Central Cluster:
+* Deploy Remote Cluster with sample application linked to the Central Cluster (Minikube context: `lgtm-remote`):
 
 ```bash
 ./deploy-remote.sh
 ```
 
-You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP).
+You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
+
+```
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+
+## Validation
+
+The `linkerd` CLI can help to verify if the inter-cluster communication is working. From the `lgtm-remote` cluster, you can do the following:
+
+```bash
+➜  kubectl config use-context lgtm-remote
+Switched to context "lgtm-remote".
+```
+
+```bash
+➜  linkerd mc check
+linkerd-multicluster
+--------------------
+√ Link CRD exists
+√ Link resources are valid
+	* lgtm-central
+√ remote cluster access credentials are valid
+	* lgtm-central
+√ clusters share trust anchors
+	* lgtm-central
+√ service mirror controller has required permissions
+	* lgtm-central
+√ service mirror controllers are running
+	* lgtm-central
+√ all gateway mirrors are healthy
+	* lgtm-central
+√ all mirror services have endpoints
+√ all mirror services are part of a Link
+√ multicluster extension proxies are healthy
+√ multicluster extension proxies are up-to-date
+√ multicluster extension proxies and cli versions match
+
+Status check results are √
+```
+
+```bash
+➜  linkerd mc gateways
+CLUSTER       ALIVE    NUM_SVC      LATENCY
+lgtm-central  True           3          2ms
+```
+
+When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI will use the Kubeconfig from the `lgtm-central` to configure the service mirror controller on the `lgtm-remote` cluster.
+
+You can inspect the runtime kubeconfig as follows:
+
+```bash
+kubectl get secret -n linkerd-multicluster cluster-credentials-lgtm-central -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
+```
 
 ## Shutdown
 
