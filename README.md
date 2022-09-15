@@ -4,13 +4,19 @@ In the Kubernetes world, the best way to monitor the cluster and everything runn
 
 Loki is drastically easier to deploy and manage than the traditional ELK stack, which is why I consider it the best log aggregation solution. For similar reasons, Tempo for traces.
 
-We will have two Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress, and another with a sample application, generating metrics, logs, and traces.
+## Architecture
+
+![Architecture](architecture-0.png)
+
+We will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`), and another with a sample application, generating metrics, logs, and traces (`lgtm-remote`).
 
 As Zero Trust is becoming more important nowadays, we'll use Linkerd to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
 
+![Architecture](architecture-1.png)
+
 We will use Minikube for the clusters, and as the Linkerd Gateway for Multi-Cluster requires a Load Balancer service, we will enable and configure the MetalLB plugin on Minikube, and we'll have different Cluster Domain.
 
-For MetalLB, the Central cluster will use segments 201-210, and the Remote cluster will employ 211-220 for the Public IPs extracted from the Minikube IP on each case.
+For MetalLB, the Central cluster will use segment `x.x.x.201-210`, and the Remote cluster will employ `x.x.x.211-220` for the Public IPs extracted from the Minikube IP on each case.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
