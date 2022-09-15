@@ -62,5 +62,15 @@ helm upgrade --install linkerd-viz linkerd/linkerd-viz \
   --set prometheusUrl=http://monitor-prometheus.observability.svc:9090 \
   --wait
 
+echo "Deploying Linkerd-Jaeger via Grafana Agent"
+helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
+  --namespace linkerd-jaeger --create-namespace \
+  --set clusterDomain=$DOMAIN \
+  --set collector.enabled=false \
+  --set jaeger.enabled=false \
+  --set webhook.collectorSvcAddr=grafana-agent.observability.svc:55678 \
+  --set webhook.collectorSvcAccount=grafana-agent \
+  --wait
+
 echo "Deploying Linkerd Multicluster"
 linkerd mc install | kubectl apply -f -

@@ -8,6 +8,12 @@ Loki is drastically easier to deploy and manage than the traditional ELK stack, 
 
 ![Architecture](architecture-0.png)
 
+We will use Grafana Agent to send traces to Tempo on all environments to have multi-tenancy on traces, deployed as a `Deployment`.
+
+We will use Promtail to send logs to Loki on all environments deployed as a `DaemonSet`.
+
+We will use Prometheus to send metrics to Mimir on all environments.
+
 We will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`), and another with a sample application, generating metrics, logs, and traces (`lgtm-remote`).
 
 As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://linkerd.io/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.

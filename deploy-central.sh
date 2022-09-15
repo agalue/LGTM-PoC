@@ -50,16 +50,6 @@ helm upgrade --install cert-manager jetstack/cert-manager \
 echo "Deploying Linkerd"
 DOMAIN=$DOMAIN CERT_ISSUER_ID=issuer-central ./deploy-linkerd.sh
 
-echo "Deploying Linkerd-Jaeger via Tempo"
-helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
-  --namespace linkerd-jaeger --create-namespace \
-  --set clusterDomain=$DOMAIN \
-  --set collector.enabled=false \
-  --set jaeger.enabled=false \
-  --set webhook.collectorSvcAddr=tempo-distributor.tempo.svc:55678 \
-  --set webhook.collectorSvcAccount=tempo-sa \
-  --wait
-
 echo "Setting up namespaces"
 for ns in observability storage tempo loki mimir; do
   cat <<EOF | kubectl apply -f -
@@ -72,7 +62,7 @@ metadata:
 EOF
 done
 
-echo "Deploying Prometheus"
+echo "Deploying Prometheus (for Local Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml --wait
 
@@ -88,9 +78,13 @@ echo "Deploying Grafana Loki"
 helm upgrade --install loki grafana/loki \
   -n loki -f values-loki.yaml --wait
 
-echo "Deploying Grafana Promtail"
+echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-central.yaml --wait
+
+echo "Deplying Grafana Agent (for Traces)"
+kubectl apply -f remote-agent-config-central.yaml
+kubectl apply -f remote-agent.yaml
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \

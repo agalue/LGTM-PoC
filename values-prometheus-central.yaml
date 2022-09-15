@@ -39,7 +39,7 @@ grafana:
           httpHeaderValue1: remote01
       - name: Loki Remote
         type: loki
-        uid: remote_loki_ds
+        uid: loki_remote_ds
         access: proxy
         url: http://loki-read.loki.svc:3100
         isDefault: false
@@ -47,9 +47,9 @@ grafana:
         jsonData:
           derivedFields:
           - name: TraceID
-            datasourceUid: remote_tempo_ds # Might not work
-            matcherRegex: 'traceID=(\w+)'
-            url: '${__value.raw}'
+            datasourceUid: tempo_remote_ds
+            matcherRegex: traceID=(\w+)
+            url: "${__value.raw}"
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
           manageAlerts: false
@@ -57,7 +57,7 @@ grafana:
           httpHeaderValue1: remote01
       - name: Mimir Remote
         type: prometheus
-        uid: remote_mimir_ds
+        uid: mimir_remote_ds
         isDefault: false
         editable: true
         access: proxy
@@ -100,8 +100,8 @@ grafana:
           derivedFields:
           - name: TraceID
             datasourceUid: tempo_ds # Might not work
-            matcherRegex: 'traceID=(\w+)'
-            url: '${__value.raw}'
+            matcherRegex: traceID=(\w+)
+            url: "${__value.raw}"
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
           manageAlerts: false

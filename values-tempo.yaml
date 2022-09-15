@@ -11,18 +11,9 @@ search:
 multitenancyEnabled: true
 
 traces:
-  jaeger:
-    thriftHttp: # For local Mimir (port 14268)
-      enabled: true
-    grpc: # For remote Grafana Agent (port 14250)
-      enabled: true
-  opencensus: # For local Linkerd (port 55678)
-    enabled: true
-  zipkin: # For local Nginx Ingress (port 9411)
-    enabled: true
   otlp:
     grpc:
-      enabled: true # For remote Grafana Agent (port 55680)
+      enabled: true # For Grafana Agent (port 55680)
 
 global_overrides:
   max_search_bytes_per_trace: 10000

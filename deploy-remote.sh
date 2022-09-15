@@ -40,16 +40,6 @@ DOMAIN=$DOMAIN CERT_ISSUER_ID=issuer-remote ./deploy-linkerd.sh
 echo "Creating link to central cluster"
 linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
 
-echo "Deploying Linkerd-Jaeger via Grafana Agent"
-helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
-  --namespace linkerd-jaeger --create-namespace \
-  --set clusterDomain=$DOMAIN \
-  --set collector.enabled=false \
-  --set jaeger.enabled=false \
-  --set webhook.collectorSvcAddr=grafana-agent.observability.svc:55678 \
-  --set webhook.collectorSvcAccount=grafana-agent \
-  --wait
-
 echo "Setting up namespaces"
 for ns in observability tns mimir tempo loki; do
   cat <<EOF | kubectl apply -f -
@@ -62,15 +52,16 @@ metadata:
 EOF
 done
 
-echo "Deploying Prometheus"
+echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml --wait
 
-echo "Deploying Grafana Promtail"
+echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-remote.yaml --wait
 
-echo "Deplying Grafana Agent"
+echo "Deplying Grafana Agent (for Traces)"
+kubectl apply -f remote-agent-config-remote.yaml
 kubectl apply -f remote-agent.yaml
 
 echo "Deploying TNS application"

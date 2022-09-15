@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-agent
+  namespace: observability
+data:
+  agent.yaml: |
+    server:
+      log_level: debug
+    traces:
+      configs:
+      - name: kubernetes-traces
+        receivers:
+          jaeger:
+            protocols:
+              grpc:
+              thrift_binary:
+              thrift_compact:
+              thrift_http:
+          opencensus:
+          otlp:
+            protocols:
+              grpc:
+        remote_write:
+        - endpoint: tempo-distributor-lgtm-central.tempo.svc:55680
+          insecure: true
+          retry_on_failure:
+            enabled: true
+          headers:
+            X-Scope-OrgID: remote01
