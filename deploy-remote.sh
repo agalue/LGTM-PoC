@@ -18,6 +18,7 @@ echo "Starting minikube"
 minikube start \
   --driver=hyperkit \
   --container-runtime=containerd \
+  --kubernetes-version=v1.24.5 \
   --cpus=2 \
   --memory=4g \
   --addons=metrics-server \
