@@ -1,6 +1,8 @@
 ---
 controller:
   replicaCount: 2
+  ingressClassResource:
+    default: true
   metrics:
     enabled: true
     serviceMonitor:

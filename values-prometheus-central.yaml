@@ -6,7 +6,19 @@ prometheus:
       headers:
         X-Scope-OrgID: _local
 
+prometheusOperator:
+  clusterDomain: lgtm-central.cluster.local
+
 grafana:
+  adminPassword: Adm1nAdm1n
+  resources: null
+  deploymentStrategy:
+    type: Recreate # Required when using a PVC
+  persistence:
+    type: pvc
+    enabled: true
+    accessModes: ["ReadWriteOnce"]
+    size: 1Gi
   grafana.ini:
     feature_toggles:
       enable: tempoSearch tempoBackendSearch
@@ -120,3 +132,92 @@ grafana:
           manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      # Linkerd Dashboards
+      # All these charts are hosted at https://grafana.com/grafana/dashboards/{id}
+      # All of them tested on Grafana 7.1 and need a scrape interval of 10 seconds.
+      top-line:
+        gnetId: 15474
+        revision: 3
+        datasource: prometheus
+      health:
+        gnetId: 15486
+        revision: 2
+        datasource: prometheus
+      kubernetes:
+        gnetId: 15479
+        revision: 2
+        datasource: prometheus
+      namespace:
+        gnetId: 15478
+        revision: 2
+        datasource: prometheus
+      deployment:
+        gnetId: 15475
+        revision: 5
+        datasource: prometheus
+      pod:
+        gnetId: 15477
+        revision: 2
+        datasource: prometheus
+      service:
+        gnetId: 15480
+        revision: 2
+        datasource: prometheus
+      route:
+        gnetId: 15481
+        revision: 2
+        datasource: prometheus
+      authority:
+        gnetId: 15482
+        revision: 2
+        datasource: prometheus
+      cronjob:
+        gnetId: 15483
+        revision: 2
+        datasource: prometheus
+      job:
+        gnetId: 15487
+        revision: 2
+        datasource: prometheus
+      daemonset:
+        gnetId: 15484
+        revision: 2
+        datasource: prometheus
+      replicaset:
+        gnetId: 15491
+        revision: 2
+        datasource: prometheus
+      statefulset:
+        gnetId: 15493
+        revision: 2
+        datasource: prometheus
+      replicationcontroller:
+        gnetId: 15492
+        revision: 2
+        datasource: prometheus
+      prometheus:
+        gnetId: 15489
+        revision: 2
+        datasource: prometheus
+      prometheus-benchmark:
+        gnetId: 15490
+        revision: 2
+        datasource: prometheus
+      multicluster:
+        gnetId: 15488
+        revision: 2
+        datasource: prometheus

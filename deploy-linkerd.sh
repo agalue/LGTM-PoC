@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 for cmd in "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
@@ -51,6 +52,11 @@ helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
   --set identity.issuer.crtExpiry=$CERT_EXPIRY_DATE \
   -f values-linkerd.yaml \
   --wait
+
+echo "Update PodMonitor resources"
+for obj in "controller" "proxy" "service-mirror"; do
+  kubectl label -n linkerd podmonitor/linkerd-$obj release=monitor
+done
 
 echo "Deploying Linkerd-Viz"
 helm upgrade --install linkerd-viz linkerd/linkerd-viz \
