@@ -1,31 +1,32 @@
 #!/bin/bash
 
-set -e
-
-if [[ $OSTYPE != 'darwin'* ]]; then
-  echo 'This script was designed for macOS'
-  exit 1
-fi
+set -euo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 for cmd in "minikube" "kubectl" "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
+DRIVER=${DRIVER-hyperkit}
 DOMAIN=lgtm-central.cluster.local
+CERT_ISSUER_ID=issuer-central
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
-echo "Starting minikube"
-minikube start \
-  --driver=hyperkit \
-  --container-runtime=containerd \
-  --kubernetes-version=v1.24.5 \
-  --cpus=6 \
-  --memory=16g \
-  --addons=metrics-server \
-  --addons=metallb \
-  --dns-domain=$DOMAIN \
-  --embed-certs=true \
-  --profile=lgtm-central
+if minikube status --profile=lgtm-central > /dev/null; then
+  echo "Minikube already running"
+else
+  echo "Starting minikube"
+  minikube start \
+    --driver=$DRIVER \
+    --container-runtime=containerd \
+    --cpus=6 \
+    --memory=16g \
+    --addons=metrics-server \
+    --addons=metallb \
+    --dns-domain=$DOMAIN \
+    --embed-certs=true \
+    --profile=lgtm-central
+fi
 
 MINIKUBE_IP=$(minikube ip -p lgtm-central)
 expect <<EOF
@@ -44,12 +45,16 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add minio https://charts.min.io/
 helm repo update
 
+echo "Deploying Prometheus CRDs"
+. deploy-prometheus-crds.sh
+
 echo "Deploying Cert-Manager"
 helm upgrade --install cert-manager jetstack/cert-manager \
-  --namespace cert-manager --create-namespace --set installCRDs=true --wait
+  --namespace cert-manager --create-namespace \
+  -f values-certmanager.yaml --wait
 
 echo "Deploying Linkerd"
-DOMAIN=$DOMAIN CERT_ISSUER_ID=issuer-central ./deploy-linkerd.sh
+. deploy-linkerd.sh
 
 echo "Setting up namespaces"
 for ns in observability storage tempo loki mimir; do
@@ -111,6 +116,6 @@ kubectl -n tempo label svc/tempo-distributor mirror.linkerd.io/exported=true
 kubectl -n mimir label svc/mimir-distributor mirror.linkerd.io/exported=true
 kubectl -n loki label svc/loki-write mirror.linkerd.io/exported=true
 
-# Update DNS (for macOS)
+# Update DNS
 INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "Remember to add entries to /etc/hosts pointing to $INGRESS_IP to test the Ingress resources"

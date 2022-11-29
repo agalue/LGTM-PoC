@@ -1,31 +1,32 @@
 #!/bin/bash
 
-set -e
-
-if [[ $OSTYPE != 'darwin'* ]]; then
-  echo 'This script was designed for macOS'
-  exit 1
-fi
+set -euo pipefail
+trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 for cmd in "minikube" "kubectl" "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
+DRIVER=${DRIVER-hyperkit}
 DOMAIN=lgtm-remote.cluster.local
+CERT_ISSUER_ID=issuer-remote
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
-echo "Starting minikube"
-minikube start \
-  --driver=hyperkit \
-  --container-runtime=containerd \
-  --kubernetes-version=v1.24.5 \
-  --cpus=2 \
-  --memory=4g \
-  --addons=metrics-server \
-  --addons=metallb \
-  --dns-domain=$DOMAIN \
-  --embed-certs=true \
-  --profile=lgtm-remote
+if minikube status --profile=lgtm-remote > /dev/null; then
+  echo "Minikube already running"
+else
+  echo "Starting minikube"
+  minikube start \
+    --driver=$DRIVER \
+    --container-runtime=containerd \
+    --cpus=2 \
+    --memory=4g \
+    --addons=metrics-server \
+    --addons=metallb \
+    --dns-domain=$DOMAIN \
+    --embed-certs=true \
+    --profile=lgtm-remote
+fi
 
 MINIKUBE_IP=$(minikube ip -p lgtm-remote)
 expect <<EOF
@@ -35,8 +36,11 @@ expect "Enter Load Balancer End IP:" { send "${MINIKUBE_IP%.*}.220\\r" }
 expect eof
 EOF
 
+echo "Deploying Prometheus CRDs"
+. deploy-prometheus-crds.sh
+
 echo "Deploying Linkerd"
-DOMAIN=$DOMAIN CERT_ISSUER_ID=issuer-remote ./deploy-linkerd.sh
+. deploy-linkerd.sh
 
 echo "Creating link to central cluster"
 linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -

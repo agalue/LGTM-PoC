@@ -1,6 +1,12 @@
 # Warning: there won't be any resource requests/limits for any Loki-related container
 ---
+global:
+  clusterDomain: lgtm-central.cluster.local
+
 gateway:
+  enabled: false
+
+test:
   enabled: false
 
 serviceAccount: # There is no way to set an account per component
@@ -60,7 +66,11 @@ monitoring:
     enabled: false
     grafanaAgent:
       installOperator: false
+    lokiCanary:
+      enabled: false
   serviceMonitor:
+    metricsInstance:
+      enabled: false
     labels:
       release: monitor
   rules:

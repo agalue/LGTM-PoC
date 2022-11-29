@@ -13,3 +13,6 @@ proxy:
 
 # The Prometheus URL is hard coded and won't work with an external one.
 disableHeartBeat: true
+
+podMonitor:
+  enabled: true

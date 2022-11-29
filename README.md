@@ -50,7 +50,7 @@ The following is the list of Data Sources on the Central Grafana:
 * [Step CLI](https://smallstep.com/docs/step-cli)
 * [Linkerd CLI](https://linkerd.io/2.12/getting-started/#step-1-install-the-cli)
 
-The solution has been designed and tested on macOS. You might need to change the scripts to run them on a different operating system.
+The solution has been tested on macOS. You might need to change the scripts to run them on a different operating system.
 
 ## Start
 
@@ -75,7 +75,8 @@ The solution has been designed and tested on macOS. You might need to change the
 You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
 
 ```
-kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; echo
 ```
 
 ## Validation
@@ -124,8 +125,27 @@ When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI 
 You can inspect the runtime kubeconfig as follows:
 
 ```bash
-kubectl get secret -n linkerd-multicluster cluster-credentials-lgtm-central -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
+kubectl get secret -n linkerd-multicluster cluster-credentials-lgtm-central \
+  -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
 ```
+
+To see the permissions associated with the `ServiceAccount` on the central cluster:
+
+```bash
+➜  kubectl describe clusterrole linkerd-service-mirror-remote-access-default --context lgtm-central
+Name:         linkerd-service-mirror-remote-access-default
+Labels:       linkerd.io/extension=multicluster
+Annotations:  linkerd.io/created-by: linkerd/cli stable-2.12.0
+PolicyRule:
+  Resources   Non-Resource URLs  Resource Names    Verbs
+  ---------   -----------------  --------------    -----
+  events      []                 []                [create patch]
+  configmaps  []                 [linkerd-config]  [get]
+  endpoints   []                 []                [list get watch]
+  services    []                 []                [list get watch]
+```
+
+> Note that the `ServiceAccount` exists on both cluster.
 
 ## Shutdown
 

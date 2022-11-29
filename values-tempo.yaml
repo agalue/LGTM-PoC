@@ -5,6 +5,9 @@ fullnameOverride: tempo
 serviceAccount: # There is no way to set an account per component
   name: tempo-sa
 
+global:
+  clusterDomain: lgtm-central.cluster.local
+
 search:
   enabled: true
 
@@ -19,6 +22,9 @@ global_overrides:
   max_search_bytes_per_trace: 10000
 
 gateway:
+  enabled: false
+
+minio:
   enabled: false
 
 ingester:
@@ -54,7 +60,8 @@ storage:
       insecure: true
       forcepathstyle: true
 
-serviceMonitor:
-  enabled: true
-  labels:
-    release: monitor
+metaMonitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitor

@@ -4,6 +4,10 @@ rootPassword: "I,@m,R00t;"
 
 mode: standalone
 
+environment:
+  MINIO_PROMETHEUS_JOB_ID: minio
+  MINIO_PROMETHEUS_URL: http://monitor-prometheus.observability.svc:9090
+
 persistence:
   size: 20Gi
 

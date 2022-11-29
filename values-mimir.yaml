@@ -6,6 +6,8 @@ serviceAccount: # There is no way to set an account per component
   name: mimir-sa
 
 global:
+  clusterDomain: lgtm-central.cluster.local
+
   extraEnv:
   - name: JAEGER_ENDPOINT
     value: 'http://grafana-agent.observability.svc:14268/api/traces'
@@ -14,9 +16,14 @@ global:
   - name: JAEGER_SAMPLER_PARAM
     value: '1'
 
+rbac:
+  create: false
+
 mimir:
   structuredConfig:
     multitenancy_enabled: true
+    usage_stats:
+      enabled: false
     server:
       grpc_server_max_concurrent_streams: 1000
     distributor:
@@ -102,6 +109,9 @@ query_frontend:
     image: busybox
     imagePullPolicy: IfNotPresent
     command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 2; done']
+
+query_scheduler:
+  enabled: false
 
 store_gateway:
   replicas: 3
