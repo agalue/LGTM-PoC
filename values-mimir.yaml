@@ -3,6 +3,7 @@
 fullnameOverride: mimir
 
 serviceAccount: # There is no way to set an account per component
+  create: true
   name: mimir-sa
 
 global:
@@ -26,6 +27,14 @@ mimir:
       enabled: false
     server:
       grpc_server_max_concurrent_streams: 1000
+    common:
+      storage:
+        backend: s3
+        s3: # Based on values-minio.yaml
+          endpoint: minio.storage.svc:9000
+          access_key_id: remote_user
+          secret_access_key: R3m0t3us3r
+          insecure: true
     distributor:
       instance_limits:
         max_ingestion_rate: 20000 # Per-distributor rate limit
@@ -42,13 +51,14 @@ mimir:
       max_global_series_per_metric: 100000
       max_label_names_per_series: 100
     blocks_storage:
-      backend: s3
       s3:
-        endpoint: minio.storage.svc:9000
         bucket_name: mimir-data
-        access_key_id: remote_user
-        secret_access_key: R3m0t3us3r
-        insecure: true
+    ruler_storage:
+      s3:
+        bucket_name: mimir-ruler
+    alertmanager_storage:
+      s3:
+        bucket_name: mimir-ruler
 
 runtimeConfig:
   ingester_limits:
@@ -59,17 +69,24 @@ runtimeConfig:
 nginx:
   enabled: false
 
-ruler:
-  enabled: false
-
-alertmanager:
-  enabled: false
-
 minio:
   enabled: false
 
 overrides_exporter:
   resources: null
+
+ruler:
+  resources: null
+  affinity: null
+  initContainers:
+  - name: wait
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 2; done']
+
+alertmanager:
+  resources: null
+  affinity: null
 
 distributor:
   replicas: 2

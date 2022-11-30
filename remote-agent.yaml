@@ -51,7 +51,7 @@ spec:
       serviceAccountName: grafana-agent
       containers:
       - name: grafana-agent
-        image: grafana/agent:v0.24.0
+        image: grafana/agent:v0.29.0
         imagePullPolicy: IfNotPresent
         command:
         - /bin/agent

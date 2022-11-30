@@ -3,14 +3,15 @@
 global:
   clusterDomain: lgtm-central.cluster.local
 
+serviceAccount: # There is no way to set an account per component
+  create: true
+  name: loki-sa
+
 gateway:
   enabled: false
 
 test:
   enabled: false
-
-serviceAccount: # There is no way to set an account per component
-  name: loki-sa
 
 write:
   affinity: null

@@ -63,7 +63,7 @@ helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
-  -n observability -f values-promtail-remote.yaml --wait
+  -n observability -f values-promtail-common.yaml -f values-promtail-remote.yaml --wait
 
 echo "Deplying Grafana Agent (for Traces)"
 kubectl apply -f remote-agent-config-remote.yaml

@@ -1,0 +1,13 @@
+---
+serviceAccount:
+  create: true
+  name: promtail-sa
+
+tolerations:
+- effect: NoSchedule
+  operator: Exists
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitor
