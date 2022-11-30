@@ -19,7 +19,7 @@ else
   minikube start \
     --driver=$DRIVER \
     --container-runtime=containerd \
-    --cpus=6 \
+    --cpus=4 \
     --memory=16g \
     --addons=metrics-server \
     --addons=metallb \
@@ -86,7 +86,7 @@ helm upgrade --install loki grafana/loki \
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
-  -n observability -f values-promtail-central.yaml --wait
+  -n observability -f values-promtail-common.yaml -f values-promtail-central.yaml --wait
 
 echo "Deplying Grafana Agent (for Traces)"
 kubectl apply -f remote-agent-config-central.yaml

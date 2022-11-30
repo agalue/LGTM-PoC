@@ -3,6 +3,7 @@
 fullnameOverride: tempo
 
 serviceAccount: # There is no way to set an account per component
+  create: true
   name: tempo-sa
 
 global:

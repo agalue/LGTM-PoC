@@ -11,6 +11,9 @@ prometheusOperator:
 
 grafana:
   adminPassword: Adm1nAdm1n
+  serviceAccount:
+    create: true
+    name: grafana-sa
   resources: null
   deploymentStrategy:
     type: Recreate # Required when using a PVC

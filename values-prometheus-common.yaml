@@ -20,6 +20,9 @@ kubeScheduler:
   enabled: false
 
 alertmanager: # Required to be notified on alerts managed by Prometheus
+  serviceAccount:
+    create: true
+    name: alertmanager-sa
   alertmanagerSpec:
     resources: null
     storage:
@@ -31,6 +34,9 @@ alertmanager: # Required to be notified on alerts managed by Prometheus
               storage: 1Gi
 
 prometheusOperator:
+  serviceAccount:
+    create: true
+    name: promoperator-sa
   admissionWebhooks:
     patch:
       podAnnotations:
@@ -45,6 +51,9 @@ prometheusOperator:
         memory: 50Mi
 
 prometheus:
+  serviceAccount:
+    create: true
+    name: prometheus-sa
   prometheusSpec:
     scrapeInterval: 30s
     retention: 30d

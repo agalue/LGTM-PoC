@@ -40,6 +40,10 @@ buckets:
   policy: none
   purge: false
   versioning: false
+- name: mimir-ruler
+  policy: none
+  purge: false
+  versioning: false
 
 makeUserJob:
   podAnnotations:
