@@ -50,7 +50,7 @@ The following is the list of Data Sources on the Central Grafana:
 * [Step CLI](https://smallstep.com/docs/step-cli)
 * [Linkerd CLI](https://linkerd.io/2.12/getting-started/#step-1-install-the-cli)
 
-The solution has been tested on macOS. You might need to change the scripts to run them on a different operating system.
+The solution has been designed and tested only on an Intel-based Mac. You might need to change the scripts to run them on a different operating system.
 
 ## Start
 
@@ -72,14 +72,9 @@ The solution has been tested on macOS. You might need to change the scripts to r
 ./deploy-remote.sh
 ```
 
-You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
-
-```
-kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; echo
-```
-
 ## Validation
+
+### Linkerd Multi-Cluster
 
 The `linkerd` CLI can help to verify if the inter-cluster communication is working. From the `lgtm-remote` cluster, you can do the following:
 
@@ -146,6 +141,21 @@ PolicyRule:
 ```
 
 > Note that the `ServiceAccount` exists on both cluster.
+
+### LGTM Stack
+
+You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
+
+```
+kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; echo
+```
+
+Then, access the Grafana WebUI available at `https://grafana.example.com` and accept the warning as the site uses a certificate signed by a self-signed CA.
+
+The password for the `admin` account is defined in [values-prometheus-central.yaml](./values-prometheus-central.yaml) (i.e., `Adm1nAdm1n`). From the Explore tab, you should be able to access the data collected locally and received from the remote location using the data sources described initially.
+
+Within the [dashboards](./dashboards/) subdirectory, you should find some sample Mimir dashboards (although those were created for an older version).
 
 ## Shutdown
 

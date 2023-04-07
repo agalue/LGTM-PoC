@@ -22,6 +22,11 @@ grafana:
     enabled: true
     accessModes: ["ReadWriteOnce"]
     size: 1Gi
+  sidecar:
+    alerts:
+      searchNamespace: ALL
+    dashboards:
+      searchNamespace: ALL
   grafana.ini:
     feature_toggles:
       enable: tempoSearch tempoBackendSearch
@@ -64,7 +69,7 @@ grafana:
           - name: TraceID
             datasourceUid: tempo_remote_ds
             matcherRegex: traceID=(\w+)
-            url: "${__value.raw}"
+            url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
           manageAlerts: false
@@ -116,7 +121,7 @@ grafana:
           - name: TraceID
             datasourceUid: tempo_ds # Might not work
             matcherRegex: traceID=(\w+)
-            url: "${__value.raw}"
+            url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
           manageAlerts: false

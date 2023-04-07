@@ -44,10 +44,10 @@ prometheusOperator:
   prometheusConfigReloader:
     resources:
       requests:
-        cpu: 25m
+        cpu: 50m
         memory: 50Mi
       limits:
-        cpu: 25m
+        cpu: 50m
         memory: 50Mi
 
 prometheus:
@@ -55,6 +55,9 @@ prometheus:
     create: true
     name: prometheus-sa
   prometheusSpec:
+    enableRemoteWriteReceiver: true # For Tempo Metrics Generator
+    enableFeatures:
+    - exemplar-storage
     scrapeInterval: 30s
     retention: 30d
     resources: null

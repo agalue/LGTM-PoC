@@ -12,6 +12,11 @@ global:
 search:
   enabled: true
 
+tempo:
+  structuredConfig:
+    usage_report:
+      reporting_enabled: false
+
 multitenancyEnabled: true
 
 traces:
@@ -21,6 +26,9 @@ traces:
 
 global_overrides:
   max_search_bytes_per_trace: 10000
+  metrics_generator_processors:
+  - service-graphs
+  - span-metrics
 
 gateway:
   enabled: false
@@ -30,25 +38,51 @@ minio:
 
 ingester:
   affinity: '{}'
+  topologySpreadConstraints: null
 
 distributor:
   replicas: 2
   affinity: '{}'
+  topologySpreadConstraints: null
 
 queryFrontend:
   replicas: 2
   affinity: '{}'
+  topologySpreadConstraints: null
 
 querier:
   replicas: 3
   affinity: '{}'
+  topologySpreadConstraints: null
 
 compactor:
   affinity: '{}'
+  topologySpreadConstraints: null
+
+metricsGenerator:
+  enabled: true
+  replicas: 2
+  affinity: '{}'
+  topologySpreadConstraints: null
+  config:
+    processor:
+      service_graphs:
+        dimensions:
+        - user
+      span_metrics:
+        dimensions:
+        - user
+    storage:
+      remote_write:
+      - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
+        send_exemplars: true
+        headers:
+          X-Scope-OrgID: _local
 
 memcached:
   replicas: 2
   affinity: '{}'
+  topologySpreadConstraints: null
 
 storage:
   trace:

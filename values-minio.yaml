@@ -45,15 +45,7 @@ buckets:
   purge: false
   versioning: false
 
-makeUserJob:
-  podAnnotations:
-    linkerd.io/inject: 'disabled'
-
-makeBucketJob:
-  podAnnotations:
-    linkerd.io/inject: 'disabled'
-
-customCommandJob:
+postJob:
   podAnnotations:
     linkerd.io/inject: 'disabled'
 

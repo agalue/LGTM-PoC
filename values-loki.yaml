@@ -18,6 +18,10 @@ write:
 
 read:
   affinity: null
+  legacyReadTarget: false
+
+backend:
+  affinity: null
 
 loki:
   auth_enabled: true
@@ -47,15 +51,15 @@ loki:
   limits_config:
     ingestion_rate_mb: 10
   storage_config:
-    boltdb_shipper:
-      active_index_directory: /var/loki/boltdb-shipper-active
-      cache_location: /var/loki/boltdb-shipper-cache
+    tsdb_shipper:
+      active_index_directory: /var/loki/tsdb-shipper-active
+      cache_location: /var/loki/tsdb-shipper-cache
       cache_ttl: 24h
       shared_store: s3
   schemaConfig:
     configs:
-    - from: '2022-08-01'
-      store: boltdb-shipper
+    - from: '2023-04-01'
+      store: tsdb
       object_store: s3
       schema: v12
       index:
@@ -67,8 +71,8 @@ monitoring:
     enabled: false
     grafanaAgent:
       installOperator: false
-    lokiCanary:
-      enabled: false
+  lokiCanary:
+    enabled: false
   serviceMonitor:
     metricsInstance:
       enabled: false

@@ -76,6 +76,9 @@ nginx:
 minio:
   enabled: false
 
+rollout_operator:
+  enabled: false
+
 overrides_exporter:
   resources: null
 
@@ -83,10 +86,10 @@ ruler:
   resources: null
   affinity: null
   initContainers:
-  - name: wait
+  - name: wait-chunks
     image: busybox
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 2; done']
+    command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 alertmanager:
   resources: null
@@ -103,6 +106,8 @@ ingester:
     size: 20Gi
   resources: null
   affinity: null
+  zoneAwareReplication:
+    enabled: false
 
 compactor:
   replicas: 2
@@ -116,20 +121,20 @@ querier:
   resources: null
   affinity: null
   initContainers:
-  - name: wait
+  - name: wait-metadata
     image: busybox
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 2; done']
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 query_frontend:
   replicas: 2
   resources: null
   affinity: null
   initContainers:
-  - name: wait
+  - name: wait-results
     image: busybox
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 2; done']
+    command: ['sh', '-c', 'until nslookup mimir-results-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 query_scheduler:
   enabled: false
@@ -140,11 +145,17 @@ store_gateway:
     size: 10Gi
   resources: null
   affinity: null
+  zoneAwareReplication:
+    enabled: false
   initContainers:
-  - name: wait
+  - name: wait-metadata
     image: busybox
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 2; done']
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+  - name: wait-chunks
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 chunks-cache:
   enabled: true

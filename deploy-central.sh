@@ -95,8 +95,8 @@ kubectl apply -f remote-agent.yaml
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
   -n mimir -f values-mimir.yaml
-sleep 10
-kubectl wait pod -l app.kubernetes.io/component=distributor --for=condition=Ready --timeout=600s -n mimir
+kubectl rollout status -n mimir deploy/mimir-distributor
+kubectl rollout status -n mimir deploy/mimir-query-frontend
 
 echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
