@@ -101,12 +101,8 @@ kubectl rollout status -n mimir deploy/mimir-query-frontend
 echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   -n ingress-nginx --create-namespace -f values-ingress.yaml
-
-echo "Waiting for Nginx to be ready"
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=120s
+kubectl rollout status -n ingress-nginx deploy/ingress-nginx-controller
+sleep 5 # Give some extra time to avoid issues with ingress webhooks
 
 echo "Create Ingress resources"
 kubectl apply -f ingress-central.yaml
