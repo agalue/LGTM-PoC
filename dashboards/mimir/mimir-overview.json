@@ -35,237 +35,127 @@
             "height": "250px",
             "panels": [
                {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 10,
+                  "content": "The 'Status' panel shows an overview on the cluster health over the time.\nTo investigate failures, see a specific dashboard:\n\n- <a target=\"_blank\" href=\"./d/8280707b8f16e7b87b840fc1cc92d4c5/mimir-writes?${__url_time_range}&${__all_variables}\">Writes</a>\n- <a target=\"_blank\" href=\"./d/e327503188913dc38ad571c647eef643/mimir-reads?${__url_time_range}&${__all_variables}\">Reads</a>\n- <a target=\"_blank\" href=\"./d/631e15d5d85afb2ca8e35d62984eeaa0/mimir-ruler?${__url_time_range}&${__all_variables}\">Rule evaluations</a>\n- <a target=\"_blank\" href=\"./d/b0d38d318bbddd80476246d4930f9e55/mimir-alertmanager?${__url_time_range}&${__all_variables}\">Alerting notifications</a>\n- <a target=\"_blank\" href=\"./d/e1324ee2a434f4158c00a9ee279d3292/mimir-object-store?${__url_time_range}&${__all_variables}\">Object storage</a>\n",
+                  "datasource": null,
+                  "description": "",
                   "id": 1,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
-                  },
-                  "lines": true,
-                  "linewidth": 0,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [ ],
-                  "spaceLength": 10,
-                  "span": 4,
-                  "stack": true,
-                  "steppedLine": false,
-                  "targets": [
-                     {
-                        "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{job=~\"$job\",container=~\"distributor|ingester|mimir-write\"}[$__rate_interval]))",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "CPU",
-                  "tooltip": {
-                     "shared": false,
-                     "sort": 0,
-                     "value_type": "individual"
-                  },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
-                     },
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
-                     }
-                  ]
+                  "mode": "markdown",
+                  "span": 3,
+                  "title": "",
+                  "transparent": true,
+                  "type": "text"
                },
                {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 10,
+                  "fieldConfig": {
+                     "defaults": {
+                        "color": {
+                           "mode": "thresholds"
+                        },
+                        "thresholds": {
+                           "mode": "absolute",
+                           "steps": [
+                              {
+                                 "color": "#7EB26D",
+                                 "value": null
+                              },
+                              {
+                                 "color": "#EAB839",
+                                 "value": 0.01
+                              },
+                              {
+                                 "color": "#E24D42",
+                                 "value": 0.050000000000000003
+                              }
+                           ]
+                        }
+                     }
+                  },
                   "id": 2,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
+                  "options": {
+                     "showValue": "never"
                   },
-                  "lines": true,
-                  "linewidth": 0,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [ ],
-                  "spaceLength": 10,
-                  "span": 4,
-                  "stack": true,
-                  "steppedLine": false,
+                  "span": 6,
                   "targets": [
                      {
-                        "expr": "max by(pod) (container_memory_working_set_bytes{job=~\"$job\",container=~\"distributor|ingester|mimir-write\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "Memory (workingset)",
-                  "tooltip": {
-                     "shared": false,
-                     "sort": 0,
-                     "value_type": "individual"
-                  },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "bytes",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
+                        "datasource": {
+                           "uid": "$datasource"
+                        },
+                        "exemplar": false,
+                        "expr": "(\n    # gRPC errors are not tracked as 5xx but \"error\".\n    sum(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\",status_code=~\"5.*|error\"}[$__rate_interval]))\n    or\n    # Handle the case no failure has been tracked yet.\n    vector(0)\n)\n/\nsum(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"}[$__rate_interval]))\n",
+                        "instant": false,
+                        "legendFormat": "Writes",
+                        "range": true
                      },
                      {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
+                        "datasource": {
+                           "uid": "$datasource"
+                        },
+                        "exemplar": false,
+                        "expr": "(\n    sum(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\",status_code=~\"5.*\"}[$__rate_interval]))\n    or\n    # Handle the case no failure has been tracked yet.\n    vector(0)\n)\n/\nsum(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"}[$__rate_interval]))\n",
+                        "instant": false,
+                        "legendFormat": "Reads",
+                        "range": true
+                     },
+                     {
+                        "datasource": {
+                           "uid": "$datasource"
+                        },
+                        "exemplar": false,
+                        "expr": "(\n  (\n      sum(rate(cortex_prometheus_rule_evaluation_failures_total{job=~\"$job\"}[$__rate_interval]))\n      +\n      # Consider missed evaluations as failures.\n      sum(rate(cortex_prometheus_rule_group_iterations_missed_total{job=~\"$job\"}[$__rate_interval]))\n  )\n  or\n  # Handle the case no failure has been tracked yet.\n  vector(0)\n)\n/\nsum(rate(cortex_prometheus_rule_evaluations_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "instant": false,
+                        "legendFormat": "Rule evaluations",
+                        "range": true
+                     },
+                     {
+                        "datasource": {
+                           "uid": "$datasource"
+                        },
+                        "exemplar": false,
+                        "expr": "(\n  # Failed notifications from ruler to Alertmanager (handling the case the ruler metrics are missing).\n  ((sum(rate(cortex_prometheus_notifications_errors_total{job=~\"$job\"}[$__rate_interval]))\n) or vector(0))\n  +\n  # Failed notifications from Alertmanager to receivers (handling the case the alertmanager metrics are missing).\n  ((sum(cluster_job_integration:cortex_alertmanager_notifications_failed_total:rate5m{job=~\"$job\"})\n) or vector(0))\n)\n/\n(\n  # Total notifications from ruler to Alertmanager (handling the case the ruler metrics are missing).\n  ((sum(rate(cortex_prometheus_notifications_sent_total{job=~\"$job\"}[$__rate_interval]))\n) or vector(0))\n  +\n  # Total notifications from Alertmanager to receivers (handling the case the alertmanager metrics are missing).\n  ((sum(cluster_job_integration:cortex_alertmanager_notifications_total:rate5m{job=~\"$job\"})\n) or vector(0))\n)\n",
+                        "instant": false,
+                        "legendFormat": "Alerting notifications",
+                        "range": true
+                     },
+                     {
+                        "datasource": {
+                           "uid": "$datasource"
+                        },
+                        "exemplar": false,
+                        "expr": "sum(rate(thanos_objstore_bucket_operation_failures_total{job=~\"$job\"}[$__rate_interval]))\n/\nsum(rate(thanos_objstore_bucket_operations_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "instant": false,
+                        "legendFormat": "Object storage",
+                        "range": true
                      }
-                  ]
+                  ],
+                  "title": "Status",
+                  "type": "state-timeline"
                },
                {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 10,
                   "id": 3,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
-                  },
-                  "lines": true,
-                  "linewidth": 0,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [ ],
-                  "spaceLength": 10,
-                  "span": 4,
-                  "stack": true,
-                  "steppedLine": false,
-                  "targets": [
-                     {
-                        "expr": "sum by(pod) (go_memstats_heap_inuse_bytes{job=~\"$job\",container=~\"distributor|ingester|mimir-write\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
+                  "options": {
+                     "alertInstanceLabelFilter": "job=~\"$job\"",
+                     "alertName": "Mimir",
+                     "dashboardAlerts": false,
+                     "maxItems": 100,
+                     "sortOrder": 3,
+                     "stateFilter": {
+                        "error": true,
+                        "firing": true,
+                        "noData": false,
+                        "normal": false,
+                        "pending": false
                      }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "Memory (go heap inuse)",
-                  "tooltip": {
-                     "sort": 2
                   },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "bytes",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
-                     },
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
-                     }
-                  ]
+                  "span": 3,
+                  "title": "Firing alerts",
+                  "type": "alertlist"
                }
             ],
             "repeat": null,
             "repeatIteration": null,
             "repeatRowId": null,
             "showTitle": true,
-            "title": "Summary",
+            "title": "Mimir cluster health",
             "titleSize": "h6"
          },
          {
@@ -273,117 +163,31 @@
             "height": "250px",
             "panels": [
                {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 0,
+                  "content": "These panels show an overview on the write path. \nTo examine the write path in detail, see a specific dashboard:\n\n- <a target=\"_blank\" href=\"./d/8280707b8f16e7b87b840fc1cc92d4c5/mimir-writes?${__url_time_range}&${__all_variables}\">Writes</a>\n- <a target=\"_blank\" href=\"./d/bc9160e50b52e89e0e49c840fea3d379/mimir-writes-resources?${__url_time_range}&${__all_variables}\">Writes resources</a>\n- <a target=\"_blank\" href=\"./d/978c1cb452585c96697a238eaac7fe2d/mimir-writes-networking?${__url_time_range}&${__all_variables}\">Writes networking</a>\n- <a target=\"_blank\" href=\"./d/a9b92d3c4d1af325d872a9e9a7083d71/mimir-overview-resources?${__url_time_range}&${__all_variables}\">Overview resources</a>\n- <a target=\"_blank\" href=\"./d/e15c71d372cc541367a088f10d9fcd92/mimir-overview-networking?${__url_time_range}&${__all_variables}\">Overview networking</a>\n",
+                  "datasource": null,
+                  "description": "",
                   "id": 4,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
-                  },
-                  "lines": true,
-                  "linewidth": 1,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [
-                     {
-                        "alias": "request",
-                        "color": "#FFC000",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     },
-                     {
-                        "alias": "limit",
-                        "color": "#E02F44",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     }
-                  ],
-                  "spaceLength": 10,
-                  "span": 4,
-                  "stack": false,
-                  "steppedLine": false,
-                  "targets": [
-                     {
-                        "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{job=~\"$job\",container=~\"distributor\"}[$__rate_interval]))",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(container_spec_cpu_quota{job=~\"$job\",container=~\"distributor\"} / container_spec_cpu_period{job=~\"$job\",container=~\"distributor\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "limit",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(kube_pod_container_resource_requests{job=~\"$job\",container=~\"distributor\",resource=\"cpu\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "request",
-                        "legendLink": null,
-                        "step": 10
-                     }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "CPU",
-                  "tooltip": {
-                     "sort": 2
-                  },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
-                     },
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
-                     }
-                  ]
+                  "mode": "markdown",
+                  "span": 3,
+                  "title": "",
+                  "transparent": true,
+                  "type": "text"
                },
                {
-                  "aliasColors": { },
+                  "aliasColors": {
+                     "1xx": "#EAB839",
+                     "2xx": "#7EB26D",
+                     "3xx": "#6ED0E0",
+                     "4xx": "#EF843C",
+                     "5xx": "#E24D42",
+                     "error": "#E24D42",
+                     "success": "#7EB26D"
+                  },
                   "bars": false,
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 10,
                   "id": 5,
                   "legend": {
                      "avg": false,
@@ -395,65 +199,36 @@
                      "values": false
                   },
                   "lines": true,
-                  "linewidth": 1,
+                  "linewidth": 0,
                   "links": [ ],
                   "nullPointMode": "null as zero",
                   "percentage": false,
                   "pointradius": 5,
                   "points": false,
                   "renderer": "flot",
-                  "seriesOverrides": [
-                     {
-                        "alias": "request",
-                        "color": "#FFC000",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     },
-                     {
-                        "alias": "limit",
-                        "color": "#E02F44",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     }
-                  ],
+                  "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
-                  "stack": false,
+                  "span": 3,
+                  "stack": true,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "max by(pod) (container_memory_working_set_bytes{job=~\"$job\",container=~\"distributor\"})",
+                        "expr": "sum by (status) (\n  label_replace(label_replace(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"}[$__rate_interval]),\n  \"status\", \"${1}xx\", \"status_code\", \"([0-9])..\"),\n  \"status\", \"${1}\", \"status_code\", \"([a-z]+)\"))\n",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(container_spec_memory_limit_bytes{job=~\"$job\",container=~\"distributor\"} > 0)",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "limit",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(kube_pod_container_resource_requests{job=~\"$job\",container=~\"distributor\",resource=\"memory\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "request",
-                        "legendLink": null,
+                        "legendFormat": "{{status}}",
+                        "refId": "A",
                         "step": 10
                      }
                   ],
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Memory (workingset)",
+                  "title": "Write requests / sec",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -465,7 +240,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "bytes",
+                        "format": "reqps",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -488,7 +263,7 @@
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 1,
                   "id": 6,
                   "legend": {
                      "avg": false,
@@ -509,25 +284,43 @@
                   "renderer": "flot",
                   "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
+                  "span": 3,
                   "stack": false,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "sum by(pod) (go_memstats_heap_inuse_bytes{job=~\"$job\",container=~\"distributor\"})",
+                        "expr": "histogram_quantile(0.99, sum by (le) (cluster_job_route:cortex_request_duration_seconds_bucket:sum_rate{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"})) * 1e3",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
+                        "legendFormat": "99th Percentile",
+                        "refId": "A",
+                        "step": 10
+                     },
+                     {
+                        "expr": "histogram_quantile(0.50, sum by (le) (cluster_job_route:cortex_request_duration_seconds_bucket:sum_rate{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"})) * 1e3",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "50th Percentile",
+                        "refId": "B",
+                        "step": 10
+                     },
+                     {
+                        "expr": "1e3 * sum(cluster_job_route:cortex_request_duration_seconds_sum:sum_rate{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"}) / sum(cluster_job_route:cortex_request_duration_seconds_count:sum_rate{job=~\"$job\", route=~\"/distributor.Distributor/Push|/httpgrpc.*|api_(v1|prom)_push|otlp_v1_metrics\"})",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "Average",
+                        "refId": "C",
                         "step": 10
                      }
                   ],
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Memory (go heap inuse)",
+                  "title": "Write latency",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -539,7 +332,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "bytes",
+                        "format": "ms",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -555,26 +348,14 @@
                         "show": false
                      }
                   ]
-               }
-            ],
-            "repeat": null,
-            "repeatIteration": null,
-            "repeatRowId": null,
-            "showTitle": true,
-            "title": "Distributor",
-            "titleSize": "h6"
-         },
-         {
-            "collapse": false,
-            "height": "250px",
-            "panels": [
+               },
                {
                   "aliasColors": { },
                   "bars": false,
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 10,
                   "id": 7,
                   "legend": {
                      "avg": false,
@@ -586,7 +367,7 @@
                      "values": false
                   },
                   "lines": true,
-                  "linewidth": 1,
+                  "linewidth": 0,
                   "links": [ ],
                   "nullPointMode": "null as zero",
                   "percentage": false,
@@ -595,15 +376,23 @@
                   "renderer": "flot",
                   "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 6,
-                  "stack": false,
+                  "span": 3,
+                  "stack": true,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "sum by(pod) (cortex_ingester_memory_series{job=~\"$job\"})",
+                        "expr": "sum(cluster_namespace_job:cortex_distributor_received_samples:rate5m{job=~\"$job\"})",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
+                        "legendFormat": "samples / sec",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(cluster_namespace_job:cortex_distributor_received_exemplars:rate5m{job=~\"$job\"})",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "exemplars / sec",
                         "legendLink": null,
                         "step": 10
                      }
@@ -611,9 +400,11 @@
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "In-memory series",
+                  "title": "Ingestion / sec",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -625,112 +416,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
-                     },
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
-                     }
-                  ]
-               },
-               {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 0,
-                  "id": 8,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
-                  },
-                  "lines": true,
-                  "linewidth": 1,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [
-                     {
-                        "alias": "request",
-                        "color": "#FFC000",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     },
-                     {
-                        "alias": "limit",
-                        "color": "#E02F44",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     }
-                  ],
-                  "spaceLength": 10,
-                  "span": 6,
-                  "stack": false,
-                  "steppedLine": false,
-                  "targets": [
-                     {
-                        "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{job=~\"$job\",container=~\"ingester\"}[$__rate_interval]))",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(container_spec_cpu_quota{job=~\"$job\",container=~\"ingester\"} / container_spec_cpu_period{job=~\"$job\",container=~\"ingester\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "limit",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(kube_pod_container_resource_requests{job=~\"$job\",container=~\"ingester\",resource=\"cpu\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "request",
-                        "legendLink": null,
-                        "step": 10
-                     }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "CPU",
-                  "tooltip": {
-                     "sort": 2
-                  },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "short",
+                        "format": "cps",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -752,7 +438,7 @@
             "repeatIteration": null,
             "repeatRowId": null,
             "showTitle": true,
-            "title": "Ingester",
+            "title": "Writes",
             "titleSize": "h6"
          },
          {
@@ -760,12 +446,31 @@
             "height": "250px",
             "panels": [
                {
-                  "aliasColors": { },
+                  "content": "These panels show an overview on the read path. \nTo examine the read path in detail, see a specific dashboard:\n\n- <a target=\"_blank\" href=\"./d/e327503188913dc38ad571c647eef643/mimir-reads?${__url_time_range}&${__all_variables}\">Reads</a>\n- <a target=\"_blank\" href=\"./d/cc86fd5aa9301c6528986572ad974db9/mimir-reads-resources?${__url_time_range}&${__all_variables}\">Reads resources</a>\n- <a target=\"_blank\" href=\"./d/54b2a0a4748b3bd1aefa92ce5559a1c2/mimir-reads-networking?${__url_time_range}&${__all_variables}\">Reads networking</a>\n- <a target=\"_blank\" href=\"./d/a9b92d3c4d1af325d872a9e9a7083d71/mimir-overview-resources?${__url_time_range}&${__all_variables}\">Overview resources</a>\n- <a target=\"_blank\" href=\"./d/e15c71d372cc541367a088f10d9fcd92/mimir-overview-networking?${__url_time_range}&${__all_variables}\">Overview networking</a>\n- <a target=\"_blank\" href=\"./d/b3abe8d5c040395cc36615cb4334c92d/mimir-queries?${__url_time_range}&${__all_variables}\">Queries</a>\n- <a target=\"_blank\" href=\"./d/1b3443aea86db629e6efdb7d05c53823/mimir-compactor?${__url_time_range}&${__all_variables}\">Compactor</a>\n",
+                  "datasource": null,
+                  "description": "",
+                  "id": 8,
+                  "mode": "markdown",
+                  "span": 3,
+                  "title": "",
+                  "transparent": true,
+                  "type": "text"
+               },
+               {
+                  "aliasColors": {
+                     "1xx": "#EAB839",
+                     "2xx": "#7EB26D",
+                     "3xx": "#6ED0E0",
+                     "4xx": "#EF843C",
+                     "5xx": "#E24D42",
+                     "error": "#E24D42",
+                     "success": "#7EB26D"
+                  },
                   "bars": false,
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 10,
                   "id": 9,
                   "legend": {
                      "avg": false,
@@ -777,65 +482,36 @@
                      "values": false
                   },
                   "lines": true,
-                  "linewidth": 1,
+                  "linewidth": 0,
                   "links": [ ],
                   "nullPointMode": "null as zero",
                   "percentage": false,
                   "pointradius": 5,
                   "points": false,
                   "renderer": "flot",
-                  "seriesOverrides": [
-                     {
-                        "alias": "request",
-                        "color": "#FFC000",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     },
-                     {
-                        "alias": "limit",
-                        "color": "#E02F44",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     }
-                  ],
+                  "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
-                  "stack": false,
+                  "span": 3,
+                  "stack": true,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "max by(pod) (container_memory_rss{job=~\"$job\",container=~\"ingester\"})",
+                        "expr": "sum by (status) (\n  label_replace(label_replace(rate(cortex_request_duration_seconds_count{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"}[$__rate_interval]),\n  \"status\", \"${1}xx\", \"status_code\", \"([0-9])..\"),\n  \"status\", \"${1}\", \"status_code\", \"([a-z]+)\"))\n",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(container_spec_memory_limit_bytes{job=~\"$job\",container=~\"ingester\"} > 0)",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "limit",
-                        "legendLink": null,
-                        "step": 10
-                     },
-                     {
-                        "expr": "min(kube_pod_container_resource_requests{job=~\"$job\",container=~\"ingester\",resource=\"memory\"})",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "request",
-                        "legendLink": null,
+                        "legendFormat": "{{status}}",
+                        "refId": "A",
                         "step": 10
                      }
                   ],
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Memory (RSS)",
+                  "title": "Read requests / sec",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -847,7 +523,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "bytes",
+                        "format": "reqps",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -870,7 +546,7 @@
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 1,
                   "id": 10,
                   "legend": {
                      "avg": false,
@@ -889,58 +565,45 @@
                   "pointradius": 5,
                   "points": false,
                   "renderer": "flot",
-                  "seriesOverrides": [
-                     {
-                        "alias": "request",
-                        "color": "#FFC000",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     },
-                     {
-                        "alias": "limit",
-                        "color": "#E02F44",
-                        "dashLength": 5,
-                        "dashes": true,
-                        "fill": 0
-                     }
-                  ],
+                  "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
+                  "span": 3,
                   "stack": false,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "max by(pod) (container_memory_working_set_bytes{job=~\"$job\",container=~\"ingester\"})",
+                        "expr": "histogram_quantile(0.99, sum by (le) (cluster_job_route:cortex_request_duration_seconds_bucket:sum_rate{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"})) * 1e3",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
-                        "legendLink": null,
+                        "legendFormat": "99th Percentile",
+                        "refId": "A",
                         "step": 10
                      },
                      {
-                        "expr": "min(container_spec_memory_limit_bytes{job=~\"$job\",container=~\"ingester\"} > 0)",
+                        "expr": "histogram_quantile(0.50, sum by (le) (cluster_job_route:cortex_request_duration_seconds_bucket:sum_rate{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"})) * 1e3",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "limit",
-                        "legendLink": null,
+                        "legendFormat": "50th Percentile",
+                        "refId": "B",
                         "step": 10
                      },
                      {
-                        "expr": "min(kube_pod_container_resource_requests{job=~\"$job\",container=~\"ingester\",resource=\"memory\"})",
+                        "expr": "1e3 * sum(cluster_job_route:cortex_request_duration_seconds_sum:sum_rate{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"}) / sum(cluster_job_route:cortex_request_duration_seconds_count:sum_rate{job=~\"$job\", route=~\"(prometheus|api_prom)_api_v1_.+\"})",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "request",
-                        "legendLink": null,
+                        "legendFormat": "Average",
+                        "refId": "C",
                         "step": 10
                      }
                   ],
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Memory (workingset)",
+                  "title": "Read latency",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -952,7 +615,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "bytes",
+                        "format": "ms",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -975,7 +638,7 @@
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 10,
                   "id": 11,
                   "legend": {
                      "avg": false,
@@ -987,24 +650,125 @@
                      "values": false
                   },
                   "lines": true,
-                  "linewidth": 1,
+                  "linewidth": 0,
                   "links": [ ],
                   "nullPointMode": "null as zero",
                   "percentage": false,
                   "pointradius": 5,
                   "points": false,
                   "renderer": "flot",
-                  "seriesOverrides": [ ],
+                  "seriesOverrides": [
+                     {
+                        "alias": "instant queries",
+                        "color": "#429D48"
+                     },
+                     {
+                        "alias": "range queries",
+                        "color": "#F1C731"
+                     },
+                     {
+                        "alias": "\"label names\" queries",
+                        "color": "#2A66CF"
+                     },
+                     {
+                        "alias": "\"label values\" queries",
+                        "color": "#9E44C1"
+                     },
+                     {
+                        "alias": "series queries",
+                        "color": "#FFAB57"
+                     },
+                     {
+                        "alias": "remote read queries",
+                        "color": "#C79424"
+                     },
+                     {
+                        "alias": "metadata queries",
+                        "color": "#84D586"
+                     },
+                     {
+                        "alias": "exemplar queries",
+                        "color": "#A1C4FC"
+                     },
+                     {
+                        "alias": "other",
+                        "color": "#C788DE"
+                     }
+                  ],
                   "spaceLength": 10,
-                  "span": 4,
-                  "stack": false,
+                  "span": 3,
+                  "stack": true,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "sum by(pod) (go_memstats_heap_inuse_bytes{job=~\"$job\",container=~\"ingester\"})",
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_query\"}[$__rate_interval]))",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}}",
+                        "legendFormat": "instant queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_query_range\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "range queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_labels\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "\"label names\" queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_label_name_values\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "\"label values\" queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_series\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "series queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_read\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "remote read queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_metadata\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "metadata queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_query_exemplars\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "exemplar queries",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_request_duration_seconds_count{job=~\"$job\",route=~\"(prometheus|api_prom)_api_v1_.*\",route!~\".*(query|query_range|label.*|series|read|metadata|query_exemplars)\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "other",
                         "legendLink": null,
                         "step": 10
                      }
@@ -1012,9 +776,11 @@
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Memory (go heap inuse)",
+                  "title": "Queries / sec",
                   "tooltip": {
-                     "sort": 2
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
                   },
                   "type": "graph",
                   "xaxis": {
@@ -1026,7 +792,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "bytes",
+                        "format": "reqps",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -1048,7 +814,7 @@
             "repeatIteration": null,
             "repeatRowId": null,
             "showTitle": true,
-            "title": "",
+            "title": "Reads",
             "titleSize": "h6"
          },
          {
@@ -1056,88 +822,26 @@
             "height": "250px",
             "panels": [
                {
-                  "aliasColors": { },
-                  "bars": false,
-                  "dashLength": 10,
-                  "dashes": false,
-                  "datasource": "$datasource",
-                  "fill": 10,
+                  "content": "These panels show an overview on the recording and alerting rules evaluation.\nTo examine the rules evaluation and alerts notifications in detail, see a specific dashboard:\n\n- <a target=\"_blank\" href=\"./d/631e15d5d85afb2ca8e35d62984eeaa0/mimir-ruler?${__url_time_range}&${__all_variables}\">Ruler</a>\n- <a target=\"_blank\" href=\"./d/b0d38d318bbddd80476246d4930f9e55/mimir-alertmanager?${__url_time_range}&${__all_variables}\">Alertmanager</a>\n- <a target=\"_blank\" href=\"./d/a6883fb22799ac74479c7db872451092/mimir-alertmanager-resources?${__url_time_range}&${__all_variables}\">Alertmanager resources</a>\n- <a target=\"_blank\" href=\"./d/a9b92d3c4d1af325d872a9e9a7083d71/mimir-overview-resources?${__url_time_range}&${__all_variables}\">Overview resources</a>\n- <a target=\"_blank\" href=\"./d/e15c71d372cc541367a088f10d9fcd92/mimir-overview-networking?${__url_time_range}&${__all_variables}\">Overview networking</a>\n",
+                  "datasource": null,
+                  "description": "",
                   "id": 12,
-                  "legend": {
-                     "avg": false,
-                     "current": false,
-                     "max": false,
-                     "min": false,
-                     "show": true,
-                     "total": false,
-                     "values": false
-                  },
-                  "lines": true,
-                  "linewidth": 0,
-                  "links": [ ],
-                  "nullPointMode": "null as zero",
-                  "percentage": false,
-                  "pointradius": 5,
-                  "points": false,
-                  "renderer": "flot",
-                  "seriesOverrides": [ ],
-                  "spaceLength": 10,
-                  "span": 4,
-                  "stack": true,
-                  "steppedLine": false,
-                  "targets": [
-                     {
-                        "expr": "sum by(instance, pod, device) (\n  rate(\n    node_disk_written_bytes_total[$__rate_interval]\n  )\n)\n+\nignoring(pod) group_right() (\n  label_replace(\n    count by(\n      instance,\n      pod,\n      device\n    )\n    (\n      container_fs_writes_bytes_total{\n        job=~\"$job\",\n        container=~\"ingester\",\n        device!~\".*sda.*\"\n      }\n    ),\n    \"device\",\n    \"$1\",\n    \"device\",\n    \"/dev/(.*)\"\n  ) * 0\n)\n\n",
-                        "format": "time_series",
-                        "intervalFactor": 2,
-                        "legendFormat": "{{pod}} - {{device}}",
-                        "legendLink": null,
-                        "step": 10
-                     }
-                  ],
-                  "thresholds": [ ],
-                  "timeFrom": null,
-                  "timeShift": null,
-                  "title": "Disk writes",
-                  "tooltip": {
-                     "shared": false,
-                     "sort": 0,
-                     "value_type": "individual"
-                  },
-                  "type": "graph",
-                  "xaxis": {
-                     "buckets": null,
-                     "mode": "time",
-                     "name": null,
-                     "show": true,
-                     "values": [ ]
-                  },
-                  "yaxes": [
-                     {
-                        "format": "Bps",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": 0,
-                        "show": true
-                     },
-                     {
-                        "format": "short",
-                        "label": null,
-                        "logBase": 1,
-                        "max": null,
-                        "min": null,
-                        "show": false
-                     }
-                  ]
+                  "mode": "markdown",
+                  "span": 3,
+                  "title": "",
+                  "transparent": true,
+                  "type": "text"
                },
                {
-                  "aliasColors": { },
+                  "aliasColors": {
+                     "failed": "#E24D42",
+                     "success": "#7EB26D"
+                  },
                   "bars": false,
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 10,
+                  "fill": 1,
                   "id": 13,
                   "legend": {
                      "avg": false,
@@ -1149,7 +853,7 @@
                      "values": false
                   },
                   "lines": true,
-                  "linewidth": 0,
+                  "linewidth": 1,
                   "links": [ ],
                   "nullPointMode": "null as zero",
                   "percentage": false,
@@ -1158,15 +862,31 @@
                   "renderer": "flot",
                   "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
-                  "stack": true,
+                  "span": 3,
+                  "stack": false,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "sum by(instance, pod, device) (\n  rate(\n    node_disk_read_bytes_total[$__rate_interval]\n  )\n) + ignoring(pod) group_right() (\n  label_replace(\n    count by(\n      instance,\n      pod,\n      device\n    )\n    (\n      container_fs_writes_bytes_total{\n        job=~\"$job\",\n        container=~\"ingester\",\n        device!~\".*sda.*\"\n      }\n    ),\n    \"device\",\n    \"$1\",\n    \"device\",\n    \"/dev/(.*)\"\n  ) * 0\n)\n\n",
+                        "expr": "sum(rate(cortex_prometheus_rule_evaluations_total{job=~\"$job\"}[$__rate_interval]))\n-\nsum(rate(cortex_prometheus_rule_evaluation_failures_total{job=~\"$job\"}[$__rate_interval]))\n",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{pod}} - {{device}}",
+                        "legendFormat": "success",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_prometheus_rule_evaluation_failures_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "failed",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_prometheus_rule_group_iterations_missed_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "missed",
                         "legendLink": null,
                         "step": 10
                      }
@@ -1174,7 +894,7 @@
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Disk reads",
+                  "title": "Rule evaluations / sec",
                   "tooltip": {
                      "shared": false,
                      "sort": 0,
@@ -1190,7 +910,7 @@
                   },
                   "yaxes": [
                      {
-                        "format": "Bps",
+                        "format": "short",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -1213,7 +933,7 @@
                   "dashLength": 10,
                   "dashes": false,
                   "datasource": "$datasource",
-                  "fill": 0,
+                  "fill": 1,
                   "id": 14,
                   "legend": {
                      "avg": false,
@@ -1234,15 +954,15 @@
                   "renderer": "flot",
                   "seriesOverrides": [ ],
                   "spaceLength": 10,
-                  "span": 4,
+                  "span": 3,
                   "stack": false,
                   "steppedLine": false,
                   "targets": [
                      {
-                        "expr": "max by(persistentvolumeclaim) (\n  kubelet_volume_stats_used_bytes{job=~\"$job\"} /\n  kubelet_volume_stats_capacity_bytes{job=~\"$job\"}\n)\nand\ncount by(persistentvolumeclaim) (\n  kube_persistentvolumeclaim_labels{\n    job=~\"$job\",\n    label_name=~\"(ingester).*\"\n  }\n)\n",
+                        "expr": "sum (rate(cortex_prometheus_rule_evaluation_duration_seconds_sum{job=~\"$job\"}[$__rate_interval]))\n  /\nsum (rate(cortex_prometheus_rule_evaluation_duration_seconds_count{job=~\"$job\"}[$__rate_interval]))\n",
                         "format": "time_series",
                         "intervalFactor": 2,
-                        "legendFormat": "{{persistentvolumeclaim}}",
+                        "legendFormat": "average",
                         "legendLink": null,
                         "step": 10
                      }
@@ -1250,7 +970,7 @@
                   "thresholds": [ ],
                   "timeFrom": null,
                   "timeShift": null,
-                  "title": "Disk space utilization",
+                  "title": "Rule evaluations latency",
                   "tooltip": {
                      "shared": false,
                      "sort": 0,
@@ -1266,7 +986,94 @@
                   },
                   "yaxes": [
                      {
-                        "format": "percentunit",
+                        "format": "s",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": 0,
+                        "show": true
+                     },
+                     {
+                        "format": "short",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": null,
+                        "show": false
+                     }
+                  ]
+               },
+               {
+                  "aliasColors": {
+                     "failed": "#E24D42",
+                     "successful": "#7EB26D"
+                  },
+                  "bars": false,
+                  "dashLength": 10,
+                  "dashes": false,
+                  "datasource": "$datasource",
+                  "fill": 10,
+                  "id": 15,
+                  "legend": {
+                     "avg": false,
+                     "current": false,
+                     "max": false,
+                     "min": false,
+                     "show": true,
+                     "total": false,
+                     "values": false
+                  },
+                  "lines": true,
+                  "linewidth": 0,
+                  "links": [ ],
+                  "nullPointMode": "null as zero",
+                  "percentage": false,
+                  "pointradius": 5,
+                  "points": false,
+                  "renderer": "flot",
+                  "seriesOverrides": [ ],
+                  "spaceLength": 10,
+                  "span": 3,
+                  "stack": true,
+                  "steppedLine": false,
+                  "targets": [
+                     {
+                        "expr": "sum(rate(cortex_prometheus_notifications_sent_total{job=~\"$job\"}[$__rate_interval]))\n  -\nsum(rate(cortex_prometheus_notifications_errors_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "successful",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(cortex_prometheus_notifications_errors_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "failed",
+                        "legendLink": null,
+                        "step": 10
+                     }
+                  ],
+                  "thresholds": [ ],
+                  "timeFrom": null,
+                  "timeShift": null,
+                  "title": "Alerting notifications sent to Alertmanager / sec",
+                  "tooltip": {
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
+                  },
+                  "type": "graph",
+                  "xaxis": {
+                     "buckets": null,
+                     "mode": "time",
+                     "name": null,
+                     "show": true,
+                     "values": [ ]
+                  },
+                  "yaxes": [
+                     {
+                        "format": "short",
                         "label": null,
                         "logBase": 1,
                         "max": null,
@@ -1288,7 +1095,298 @@
             "repeatIteration": null,
             "repeatRowId": null,
             "showTitle": true,
-            "title": "",
+            "title": "Recording and alerting rules",
+            "titleSize": "h6"
+         },
+         {
+            "collapse": false,
+            "height": "250px",
+            "panels": [
+               {
+                  "content": "These panels show an overview on the long-term storage (object storage).\nTo examine the storage in detail, see a specific dashboard:\n\n- <a target=\"_blank\" href=\"./d/e1324ee2a434f4158c00a9ee279d3292/mimir-object-store?${__url_time_range}&${__all_variables}\">Object store</a>\n- <a target=\"_blank\" href=\"./d/1b3443aea86db629e6efdb7d05c53823/mimir-compactor?${__url_time_range}&${__all_variables}\">Compactor</a>\n",
+                  "datasource": null,
+                  "description": "",
+                  "id": 16,
+                  "mode": "markdown",
+                  "span": 3,
+                  "title": "",
+                  "transparent": true,
+                  "type": "text"
+               },
+               {
+                  "aliasColors": {
+                     "failed": "#E24D42",
+                     "successful": "#7EB26D"
+                  },
+                  "bars": false,
+                  "dashLength": 10,
+                  "dashes": false,
+                  "datasource": "$datasource",
+                  "fill": 10,
+                  "id": 17,
+                  "legend": {
+                     "avg": false,
+                     "current": false,
+                     "max": false,
+                     "min": false,
+                     "show": true,
+                     "total": false,
+                     "values": false
+                  },
+                  "lines": true,
+                  "linewidth": 0,
+                  "links": [ ],
+                  "nullPointMode": "null as zero",
+                  "percentage": false,
+                  "pointradius": 5,
+                  "points": false,
+                  "renderer": "flot",
+                  "seriesOverrides": [ ],
+                  "spaceLength": 10,
+                  "span": 3,
+                  "stack": true,
+                  "steppedLine": false,
+                  "targets": [
+                     {
+                        "expr": "sum(rate(thanos_objstore_bucket_operations_total{job=~\"$job\"}[$__rate_interval]))\n-\nsum(rate(thanos_objstore_bucket_operation_failures_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "successful",
+                        "legendLink": null,
+                        "step": 10
+                     },
+                     {
+                        "expr": "sum(rate(thanos_objstore_bucket_operation_failures_total{job=~\"$job\"}[$__rate_interval]))\n",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "failed",
+                        "legendLink": null,
+                        "step": 10
+                     }
+                  ],
+                  "thresholds": [ ],
+                  "timeFrom": null,
+                  "timeShift": null,
+                  "title": "Requests / sec",
+                  "tooltip": {
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
+                  },
+                  "type": "graph",
+                  "xaxis": {
+                     "buckets": null,
+                     "mode": "time",
+                     "name": null,
+                     "show": true,
+                     "values": [ ]
+                  },
+                  "yaxes": [
+                     {
+                        "format": "reqps",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": 0,
+                        "show": true
+                     },
+                     {
+                        "format": "short",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": null,
+                        "show": false
+                     }
+                  ]
+               },
+               {
+                  "aliasColors": { },
+                  "bars": false,
+                  "dashLength": 10,
+                  "dashes": false,
+                  "datasource": "$datasource",
+                  "fill": 10,
+                  "id": 18,
+                  "legend": {
+                     "avg": false,
+                     "current": false,
+                     "max": false,
+                     "min": false,
+                     "show": true,
+                     "total": false,
+                     "values": false
+                  },
+                  "lines": true,
+                  "linewidth": 0,
+                  "links": [ ],
+                  "nullPointMode": "null as zero",
+                  "percentage": false,
+                  "pointradius": 5,
+                  "points": false,
+                  "renderer": "flot",
+                  "seriesOverrides": [
+                     {
+                        "alias": "attributes",
+                        "color": "#429D48"
+                     },
+                     {
+                        "alias": "delete",
+                        "color": "#F1C731"
+                     },
+                     {
+                        "alias": "exists",
+                        "color": "#2A66CF"
+                     },
+                     {
+                        "alias": "get",
+                        "color": "#9E44C1"
+                     },
+                     {
+                        "alias": "get_range",
+                        "color": "#FFAB57"
+                     },
+                     {
+                        "alias": "iter",
+                        "color": "#C79424"
+                     },
+                     {
+                        "alias": "upload",
+                        "color": "#84D586"
+                     }
+                  ],
+                  "spaceLength": 10,
+                  "span": 3,
+                  "stack": true,
+                  "steppedLine": false,
+                  "targets": [
+                     {
+                        "expr": "sum by(operation) (rate(thanos_objstore_bucket_operations_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "{{operation}}",
+                        "legendLink": null,
+                        "step": 10
+                     }
+                  ],
+                  "thresholds": [ ],
+                  "timeFrom": null,
+                  "timeShift": null,
+                  "title": "Operations / sec",
+                  "tooltip": {
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
+                  },
+                  "type": "graph",
+                  "xaxis": {
+                     "buckets": null,
+                     "mode": "time",
+                     "name": null,
+                     "show": true,
+                     "values": [ ]
+                  },
+                  "yaxes": [
+                     {
+                        "format": "reqps",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": 0,
+                        "show": true
+                     },
+                     {
+                        "format": "short",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": null,
+                        "show": false
+                     }
+                  ]
+               },
+               {
+                  "aliasColors": { },
+                  "bars": false,
+                  "dashLength": 10,
+                  "dashes": false,
+                  "datasource": "$datasource",
+                  "fill": 1,
+                  "id": 19,
+                  "legend": {
+                     "avg": false,
+                     "current": false,
+                     "max": false,
+                     "min": false,
+                     "show": true,
+                     "total": false,
+                     "values": false
+                  },
+                  "lines": true,
+                  "linewidth": 1,
+                  "links": [ ],
+                  "nullPointMode": "null as zero",
+                  "percentage": false,
+                  "pointradius": 5,
+                  "points": false,
+                  "renderer": "flot",
+                  "seriesOverrides": [ ],
+                  "spaceLength": 10,
+                  "span": 3,
+                  "stack": false,
+                  "steppedLine": false,
+                  "targets": [
+                     {
+                        "expr": "sum(max by(user) (max_over_time(cortex_bucket_blocks_count{job=~\"$job\"}[15m])))",
+                        "format": "time_series",
+                        "intervalFactor": 2,
+                        "legendFormat": "blocks",
+                        "legendLink": null,
+                        "step": 10
+                     }
+                  ],
+                  "thresholds": [ ],
+                  "timeFrom": null,
+                  "timeShift": null,
+                  "title": "Total number of blocks in the storage",
+                  "tooltip": {
+                     "shared": false,
+                     "sort": 0,
+                     "value_type": "individual"
+                  },
+                  "type": "graph",
+                  "xaxis": {
+                     "buckets": null,
+                     "mode": "time",
+                     "name": null,
+                     "show": true,
+                     "values": [ ]
+                  },
+                  "yaxes": [
+                     {
+                        "format": "short",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": 0,
+                        "show": true
+                     },
+                     {
+                        "format": "short",
+                        "label": null,
+                        "logBase": 1,
+                        "max": null,
+                        "min": null,
+                        "show": false
+                     }
+                  ]
+               }
+            ],
+            "repeat": null,
+            "repeatIteration": null,
+            "repeatRowId": null,
+            "showTitle": true,
+            "title": "Long-term storage (object storage)",
             "titleSize": "h6"
          }
       ],
@@ -1314,16 +1412,17 @@
                "type": "datasource"
             },
             {
-               "allValue": null,
+               "allValue": ".+",
                "current": {
-                  "text": "prod",
-                  "value": "prod"
+                  "selected": true,
+                  "text": "All",
+                  "value": "$__all"
                },
                "datasource": "$datasource",
                "hide": 0,
-               "includeAll": false,
+               "includeAll": true,
                "label": "job",
-               "multi": false,
+               "multi": true,
                "name": "job",
                "options": [ ],
                "query": "label_values(cortex_build_info, job)",
@@ -1368,7 +1467,7 @@
          ]
       },
       "timezone": "utc",
-      "title": "Mimir / Writes resources",
-      "uid": "bc9160e50b52e89e0e49c840fea3d379",
+      "title": "Mimir / Overview",
+      "uid": "ffcd83628d7d4b5a03d1cafd159e6c9c",
       "version": 0
    }

@@ -11,6 +11,8 @@ sed -i -r "/singleBinary/s/false/true/" operations/mimir-mixin/config.libsonnet
 make build-mixin
 ```
 
+> The operator requires having Docker up and running.
+
 The dashboards are located at `operations/mimir-mixin-compiled/dashboards/`.
 
 The reason for using `singleBinary` mode is that, by default, all metrics should have a label called `cluster`, assuming you could have metrics for multiple Mimir instances, but in our case, we have only one.
