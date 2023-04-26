@@ -3,7 +3,7 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "helm" "linkerd"; do
+for cmd in "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
@@ -79,4 +79,7 @@ helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
   --wait
 
 echo "Deploying Linkerd Multicluster"
-linkerd mc install | kubectl apply -f -
+helm upgrade --install linkerd-multicluster linkerd/linkerd-multicluster \
+  --namespace linkerd-multicluster --create-namespace \
+  --set identityTrustDomain=$DOMAIN \
+  --wait

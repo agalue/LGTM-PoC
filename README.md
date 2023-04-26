@@ -48,7 +48,7 @@ The following is the list of Data Sources on the Central Grafana:
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
-* [Linkerd CLI](https://linkerd.io/2.12/getting-started/#step-1-install-the-cli)
+* [Linkerd CLI](https://linkerd.io/2.13/getting-started/#step-1-install-the-cli)
 
 The solution has been designed and tested only on an Intel-based Mac. You might need to change the scripts to run them on a different operating system.
 
@@ -130,7 +130,7 @@ To see the permissions associated with the `ServiceAccount` on the central clust
 ➜  kubectl describe clusterrole linkerd-service-mirror-remote-access-default --context lgtm-central
 Name:         linkerd-service-mirror-remote-access-default
 Labels:       linkerd.io/extension=multicluster
-Annotations:  linkerd.io/created-by: linkerd/cli stable-2.12.0
+Annotations:  linkerd.io/created-by: linkerd/cli stable-2.13-2
 PolicyRule:
   Resources   Non-Resource URLs  Resource Names    Verbs
   ---------   -----------------  --------------    -----

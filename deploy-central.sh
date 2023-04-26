@@ -114,4 +114,4 @@ kubectl -n loki label svc/loki-write mirror.linkerd.io/exported=true
 
 # Update DNS
 INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Remember to add entries to /etc/hosts pointing to $INGRESS_IP to test the Ingress resources"
+echo "Remember to append an entry for grafana.example.com pointing to $INGRESS_IP in /etc/hosts to test the Ingress resources"
