@@ -25,7 +25,6 @@ traces:
       enabled: true # For Grafana Agent (port 55680)
 
 global_overrides:
-  max_search_bytes_per_trace: 10000
   metrics_generator_processors:
   - service-graphs
   - span-metrics
