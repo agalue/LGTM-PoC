@@ -29,7 +29,7 @@ grafana:
       searchNamespace: ALL
   grafana.ini:
     feature_toggles:
-      enable: tempoSearch tempoBackendSearch
+      enable: tempoSearch tempoBackendSearch tempoApmTable traceqlEditor
     server:
       domain: grafana.example.com # Ensure to use the correct domain / Will be used for Ingress
   datasources:

@@ -42,7 +42,9 @@ echo "Deploying Prometheus CRDs"
 echo "Deploying Linkerd"
 . deploy-linkerd.sh
 
-echo "Creating link to central cluster"
+# Not needed in our case, but if we expose headless services associated with StatefulSets we should add:
+# --set "enableHeadlessServices=true"
+echo "Creating link from the remote cluster into the central cluster"
 linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
 
 echo "Setting up namespaces"
