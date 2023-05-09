@@ -3,7 +3,7 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "helm"; do
+for cmd in "helm" "kubectl"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
