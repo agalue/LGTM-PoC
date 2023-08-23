@@ -80,11 +80,12 @@ rollout_operator:
   enabled: false
 
 overrides_exporter:
-  resources: null
+  resources: {}
+  affinity: {}
 
 ruler:
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
   initContainers:
   - name: wait-chunks
     image: busybox
@@ -92,20 +93,20 @@ ruler:
     command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 alertmanager:
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
 
 distributor:
   replicas: 2
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
 
 ingester:
   replicas: 3
   persistentVolume:
     size: 20Gi
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
   zoneAwareReplication:
     enabled: false
 
@@ -113,13 +114,13 @@ compactor:
   replicas: 2
   persistentVolume:
     size: 10Gi
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
 
 querier:
   replicas: 3
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
   initContainers:
   - name: wait-metadata
     image: busybox
@@ -128,8 +129,8 @@ querier:
 
 query_frontend:
   replicas: 2
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
   initContainers:
   - name: wait-results
     image: busybox
@@ -143,8 +144,8 @@ store_gateway:
   replicas: 3
   persistentVolume:
     size: 10Gi
-  resources: null
-  affinity: null
+  resources: {}
+  affinity: {}
   zoneAwareReplication:
     enabled: false
   initContainers:
@@ -164,7 +165,7 @@ chunks-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: null
+  affinity: {}
 
 index-cache:
   enabled: true
@@ -173,7 +174,7 @@ index-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: null
+  affinity: {}
 
 metadata-cache:
   enabled: true
@@ -182,7 +183,7 @@ metadata-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: null
+  affinity: {}
 
 results-cache:
   enabled: true
@@ -191,7 +192,7 @@ results-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: null
+  affinity: {}
 
 metaMonitoring:
   serviceMonitor:
