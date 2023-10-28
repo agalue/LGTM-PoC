@@ -32,6 +32,7 @@ spec:
   selector:
     name: grafana-agent
 
+# Reference: https://github.com/grafana/agent/blob/main/production/kubernetes/agent-traces.yaml
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,11 +52,10 @@ spec:
       serviceAccountName: grafana-agent
       containers:
       - name: grafana-agent
-        image: grafana/agent:v0.35.4
+        image: grafana/agent:v0.37.3
         imagePullPolicy: IfNotPresent
-        command:
-        - /bin/agent
         args:
+        - -config.expand-env=true
         - -config.file=/etc/agent/agent.yaml
         - -server.http.address=0.0.0.0:80
         env:
