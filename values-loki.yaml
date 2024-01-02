@@ -1,5 +1,7 @@
 # Warning: there won't be any resource requests/limits for any Loki-related container
 ---
+fullnameOverride: loki
+
 global:
   clusterDomain: lgtm-central.cluster.local
 
