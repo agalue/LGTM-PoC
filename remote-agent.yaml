@@ -1,7 +1,47 @@
+# Reference: https://github.com/grafana/agent/blob/main/production/kubernetes/agent-traces.yaml
+
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: grafana-agent
+  namespace: observability
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grafana-agent
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - nodes/proxy
+  - services
+  - endpoints
+  - pods
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grafana-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grafana-agent
+subjects:
+- kind: ServiceAccount
   name: grafana-agent
   namespace: observability
 
@@ -32,7 +72,6 @@ spec:
   selector:
     name: grafana-agent
 
-# Reference: https://github.com/grafana/agent/blob/main/production/kubernetes/agent-traces.yaml
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,7 +91,7 @@ spec:
       serviceAccountName: grafana-agent
       containers:
       - name: grafana-agent
-        image: grafana/agent:v0.37.3
+        image: grafana/agent:v0.38.1
         imagePullPolicy: IfNotPresent
         args:
         - -config.expand-env=true
