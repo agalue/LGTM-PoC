@@ -11,6 +11,7 @@ CERT_ISSUER_ID=issuer-remote
 CONTEXT=lgtm-remote
 DOMAIN=${CONTEXT}.cluster.local
 NODES=2
+CPUS=1
 MEMORY=4
 SUBNET=240
 

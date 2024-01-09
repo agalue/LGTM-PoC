@@ -11,6 +11,7 @@ CERT_ISSUER_ID=issuer-central
 CONTEXT=lgtm-central
 DOMAIN=${CONTEXT}.cluster.local
 NODES=3
+CPUS=2
 MEMORY=8
 SUBNET=248
 

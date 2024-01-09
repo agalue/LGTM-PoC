@@ -30,7 +30,7 @@ Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For dem
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
 
-> There will be 5 VMs between both clusters, requiring 10 CPUs and 32GB of RAM. Your machine would need to be able to accommodate those resources to run the lab, or you would have to make manual adjustments. I choose `multipass` instead of `minikube` as I feel the performance is better, and the former works better than the latter on ARM-based Macs. All the work done here was tested on an Intel-based Mac.
+> There will be 5 VMs between both clusters, requiring 8 CPUs and 32GB of RAM. Your machine would need to be able to accommodate those resources to run the lab, or you would have to make manual adjustments. I choose `multipass` instead of `minikube` as I feel the performance is better, and the former works better than the latter on ARM-based Macs. All the work done here was tested on an Intel-based Mac.
 
 ### Data Sources
 
