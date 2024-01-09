@@ -7,34 +7,16 @@ for cmd in "minikube" "kubectl" "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-DRIVER=${DRIVER-hyperkit}
-DOMAIN=lgtm-remote.cluster.local
 CERT_ISSUER_ID=issuer-remote
+CONTEXT=lgtm-remote
+DOMAIN=${CONTEXT}.cluster.local
+NODES=2
+MEMORY=4
+SUBNET=240
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
-if minikube status --profile=lgtm-remote > /dev/null; then
-  echo "Minikube already running"
-else
-  echo "Starting minikube"
-  minikube start \
-    --driver=$DRIVER \
-    --container-runtime=containerd \
-    --cpus=2 \
-    --memory=4g \
-    --addons=metrics-server \
-    --addons=metallb \
-    --dns-domain=$DOMAIN \
-    --embed-certs=true \
-    --profile=lgtm-remote
-fi
-
-MINIKUBE_IP=$(minikube ip -p lgtm-remote)
-expect <<EOF
-spawn minikube addons configure metallb -p lgtm-remote
-expect "Enter Load Balancer Start IP:" { send "${MINIKUBE_IP%.*}.211\\r" }
-expect "Enter Load Balancer End IP:" { send "${MINIKUBE_IP%.*}.220\\r" }
-expect eof
-EOF
+echo "Deploying Kubernetes"
+. deploy-k3s.sh
 
 echo "Deploying Prometheus CRDs"
 . deploy-prometheus-crds.sh
@@ -45,6 +27,8 @@ echo "Deploying Linkerd"
 # Not needed in our case, but if we expose headless services associated with StatefulSets we should add:
 # --set "enableHeadlessServices=true"
 echo "Creating link from the remote cluster into the central cluster"
+export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
+kubectl config use-context lgtm-remote
 linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
 
 echo "Setting up namespaces"

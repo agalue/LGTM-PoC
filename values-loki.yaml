@@ -15,16 +15,6 @@ gateway:
 test:
   enabled: false
 
-write:
-  affinity: null
-
-read:
-  affinity: null
-  legacyReadTarget: false
-
-backend:
-  affinity: null
-
 loki:
   auth_enabled: true
   storage:

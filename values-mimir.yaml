@@ -81,32 +81,31 @@ rollout_operator:
 
 overrides_exporter:
   resources: {}
-  affinity: {}
 
 ruler:
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-chunks
     image: busybox
     imagePullPolicy: IfNotPresent
     command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+  - name: wait-metadata
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
 
 alertmanager:
   resources: {}
-  affinity: {}
 
 distributor:
   replicas: 2
   resources: {}
-  affinity: {}
 
 ingester:
   replicas: 3
   persistentVolume:
     size: 20Gi
   resources: {}
-  affinity: {}
   zoneAwareReplication:
     enabled: false
 
@@ -115,12 +114,10 @@ compactor:
   persistentVolume:
     size: 10Gi
   resources: {}
-  affinity: {}
 
 querier:
   replicas: 3
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-metadata
     image: busybox
@@ -130,7 +127,6 @@ querier:
 query_frontend:
   replicas: 2
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-results
     image: busybox
@@ -145,7 +141,6 @@ store_gateway:
   persistentVolume:
     size: 10Gi
   resources: {}
-  affinity: {}
   zoneAwareReplication:
     enabled: false
   initContainers:
@@ -165,7 +160,6 @@ chunks-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 index-cache:
   enabled: true
@@ -174,7 +168,6 @@ index-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 metadata-cache:
   enabled: true
@@ -183,7 +176,6 @@ metadata-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 results-cache:
   enabled: true
@@ -192,7 +184,6 @@ results-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 metaMonitoring:
   serviceMonitor:

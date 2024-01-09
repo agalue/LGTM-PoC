@@ -20,15 +20,17 @@ As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://l
 
 ![Architecture](architecture-1.png)
 
-We will use Minikube for the clusters, and as the Linkerd Gateway for Multi-Cluster requires a Load Balancer service, we will enable and configure the MetalLB plugin on Minikube, and we'll have different Cluster Domain.
+We will use [K3s](https://k3s.io/) via [Multipass](https://multipass.run/) for the clusters. Each cluster would have [MetalLB](https://metallb.universe.tf/) deployed because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service. For each cluster, we'll have a different Cluster Domain.
 
-For MetalLB, the Central cluster will use segment `x.x.x.201-210`, and the Remote cluster will employ `x.x.x.211-220` for the Public IPs extracted from the Minikube IP on each case.
+For MetalLB, the Central cluster will use segment `x.x.x.240/29`, and the Remote cluster will employ `x.x.x.248/29` for the Public IPs extracted from the Master Server IP on each case.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
 Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
+
+> There will be 5 VMs between both clusters, requiring 10 CPUs and 32GB of RAM. Your machine would need to be able to accommodate those resources to run the lab, or you would have to make manual adjustments. I choose `multipass` instead of `minikube` as I feel the performance is better, and the former works better than the latter on ARM-based Macs. All the work done here was tested on an Intel-based Mac.
 
 ### Data Sources
 
@@ -44,7 +46,7 @@ The following is the list of Data Sources on the Central Grafana:
 
 ## Requirements
 
-* [Minikube](https://minikube.sigs.k8s.io/)
+* [Multipass](https://multipass.run/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
@@ -60,19 +62,25 @@ The solution has been designed and tested only on an Intel-based Mac. You might 
 ./deploy-certs.sh
 ```
 
-* Deploy Central Cluster with LGTM stack (Minikube context: `lgtm-central`):
+* Deploy Central Cluster with LGTM stack (K8s context: `lgtm-central`):
 
 ```bash
 ./deploy-central.sh
 ```
 
-* Deploy Remote Cluster with sample application linked to the Central Cluster (Minikube context: `lgtm-remote`):
+* Deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote`):
 
 ```bash
 ./deploy-remote.sh
 ```
 
 ## Validation
+
+Export the `kubeconfig` to access both clusters:
+
+```bash
+export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
+```
 
 ### Linkerd Multi-Cluster
 
@@ -174,6 +182,7 @@ Within the [dashboards](./dashboards/) subdirectory, you should find some sample
 ## Shutdown
 
 ```bash
-minikube delete -p lgtm-central
-minikube delete -p lgtm-remote
+multipass delete --purge lgtm-central-node{1,2,3}
+multipass delete --purge lgtm-remote-node{1,2}
+rm *-kubeconfig.yaml
 ```

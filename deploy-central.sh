@@ -7,36 +7,15 @@ for cmd in "minikube" "kubectl" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-DRIVER=${DRIVER-hyperkit}
-DOMAIN=lgtm-central.cluster.local
 CERT_ISSUER_ID=issuer-central
-
-# Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
-if minikube status --profile=lgtm-central > /dev/null; then
-  echo "Minikube already running"
-else
-  echo "Starting minikube"
-  minikube start \
-    --driver=$DRIVER \
-    --container-runtime=containerd \
-    --cpus=4 \
-    --memory=16g \
-    --addons=metrics-server \
-    --addons=metallb \
-    --dns-domain=$DOMAIN \
-    --embed-certs=true \
-    --profile=lgtm-central
-fi
-
-MINIKUBE_IP=$(minikube ip -p lgtm-central)
-expect <<EOF
-spawn minikube addons configure metallb -p lgtm-central
-expect "Enter Load Balancer Start IP:" { send "${MINIKUBE_IP%.*}.201\\r" }
-expect "Enter Load Balancer End IP:" { send "${MINIKUBE_IP%.*}.210\\r" }
-expect eof
-EOF
+CONTEXT=lgtm-central
+DOMAIN=${CONTEXT}.cluster.local
+NODES=3
+MEMORY=8
+SUBNET=248
 
 echo "Updating Helm Repositories"
+helm repo add metallb https://metallb.github.io/metallb
 helm repo add jetstack https://charts.jetstack.io
 helm repo add linkerd https://helm.linkerd.io/stable
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -44,6 +23,10 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add minio https://charts.min.io/
 helm repo update
+
+# Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
+echo "Deploying Kubernetes"
+. deploy-k3s.sh
 
 echo "Deploying Prometheus CRDs"
 . deploy-prometheus-crds.sh
@@ -95,23 +78,23 @@ kubectl apply -f remote-agent.yaml
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
   -n mimir -f values-mimir.yaml
-kubectl rollout status -n mimir deploy/mimir-distributor
-kubectl rollout status -n mimir deploy/mimir-query-frontend
+kubectl rollout status -n mimir deployment/mimir-distributor
+kubectl rollout status -n mimir deployment/mimir-query-frontend
 
 echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   -n ingress-nginx --create-namespace -f values-ingress.yaml
-kubectl rollout status -n ingress-nginx deploy/ingress-nginx-controller
+kubectl rollout status -n ingress-nginx deployment/ingress-nginx-controller
 sleep 5 # Give some extra time to avoid issues with ingress webhooks
 
 echo "Create Ingress resources"
 kubectl apply -f ingress-central.yaml
 
 echo "Exporting Services via Linkerd Multicluster"
-kubectl -n tempo label svc/tempo-distributor mirror.linkerd.io/exported=true
-kubectl -n mimir label svc/mimir-distributor mirror.linkerd.io/exported=true
-kubectl -n loki label svc/loki-write mirror.linkerd.io/exported=true
+kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
+kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
+kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
 
 # Update DNS
-INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "Remember to append an entry for grafana.example.com pointing to $INGRESS_IP in /etc/hosts to test the Ingress resources"

@@ -1,4 +1,5 @@
 *.crt
 *.key
+*-kubeconfig.yaml
 cert-expiry-date.txt
 TODO.md

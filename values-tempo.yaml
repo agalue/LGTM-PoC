@@ -36,32 +36,26 @@ minio:
   enabled: false
 
 ingester:
-  affinity: '{}'
   topologySpreadConstraints: null
 
 distributor:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 queryFrontend:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 querier:
   replicas: 3
-  affinity: '{}'
   topologySpreadConstraints: null
 
 compactor:
-  affinity: '{}'
   topologySpreadConstraints: null
 
 metricsGenerator:
   enabled: true
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
   config:
     processor:
@@ -80,7 +74,6 @@ metricsGenerator:
 
 memcached:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 storage:
