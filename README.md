@@ -22,7 +22,7 @@ As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://l
 
 We will use [K3s](https://k3s.io/) via [Multipass](https://multipass.run/) for the clusters. Each cluster would have [MetalLB](https://metallb.universe.tf/) deployed because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service. For each cluster, we'll have a different Cluster Domain.
 
-For MetalLB, the Central cluster will use segment `x.x.x.240/29`, and the Remote cluster will employ `x.x.x.248/29` for the Public IPs extracted from the Master Server IP on each case.
+For MetalLB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` for the Public IPs extracted from the Master Server IP on each case.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
