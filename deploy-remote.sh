@@ -3,17 +3,17 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "minikube" "kubectl" "helm" "linkerd"; do
+for cmd in "kubectl" "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
 CERT_ISSUER_ID=issuer-remote
 CONTEXT=lgtm-remote
 DOMAIN=${CONTEXT}.cluster.local
-NODES=2
-CPUS=1
-MEMORY=4
-SUBNET=240
+SUBNET=240 # For Cilium L2/LB
+WORKERS=1
+WORKERS_CPUS=2
+WORKERS_MEMORY=4
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
 echo "Deploying Kubernetes"

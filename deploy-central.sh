@@ -3,20 +3,19 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "minikube" "kubectl" "helm"; do
+for cmd in "kubectl" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
 CERT_ISSUER_ID=issuer-central
 CONTEXT=lgtm-central
 DOMAIN=${CONTEXT}.cluster.local
-NODES=3
-CPUS=2
-MEMORY=8
-SUBNET=248
+SUBNET=248 # For Cilium L2/LB
+WORKERS=3
+WORKERS_CPUS=4
+WORKERS_MEMORY=8
 
 echo "Updating Helm Repositories"
-helm repo add metallb https://metallb.github.io/metallb
 helm repo add jetstack https://charts.jetstack.io
 helm repo add linkerd https://helm.linkerd.io/stable
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

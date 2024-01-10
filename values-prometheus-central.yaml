@@ -5,6 +5,15 @@ prometheus:
     - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
       headers:
         X-Scope-OrgID: _local
+      queueConfig:
+        capacity: 5000
+        minShards: 1
+        maxShards: 50
+        maxSamplesPerSend: 2000
+      writeRelabelConfigs:
+      - sourceLabels: [namespace]
+        regex: "^linkerd.*"
+        action: drop
 
 prometheusOperator:
   clusterDomain: lgtm-central.cluster.local

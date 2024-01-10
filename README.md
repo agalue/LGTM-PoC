@@ -20,9 +20,9 @@ As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://l
 
 ![Architecture](architecture-1.png)
 
-We will use [K3s](https://k3s.io/) via [Multipass](https://multipass.run/) for the clusters. Each cluster would have [MetalLB](https://metallb.universe.tf/) deployed because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service. For each cluster, we'll have a different Cluster Domain.
+We will use [K3s](https://k3s.io/) via [Multipass](https://multipass.run/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as a L2/LB implementation, mainly because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service. For each cluster, we'll have a different Cluster Domain.
 
-For MetalLB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` for the Public IPs extracted from the Master Server IP on each case.
+For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` for the Public IPs extracted from the Master Server IP on each case.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
@@ -30,7 +30,7 @@ Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For dem
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
 
-> There will be 5 VMs between both clusters, requiring 8 CPUs and 32GB of RAM. Your machine would need to be able to accommodate those resources to run the lab, or you would have to make manual adjustments. I choose `multipass` instead of `minikube` as I feel the performance is better, and the former works better than the latter on ARM-based Macs. All the work done here was tested on an Intel-based Mac.
+> **WARNING:** There will be several VMs between both clusters, so we recommend to have a machine with 16 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `multipass` instead of `minikube` as I feel the performance is better, and the former works better than the latter on ARM-based Macs. All the work done here was tested on an Intel-based Mac.
 
 ### Data Sources
 
