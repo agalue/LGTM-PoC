@@ -197,6 +197,11 @@ results-cache:
 metaMonitoring:
   serviceMonitor:
     enabled: true
-    clusterLabel: null
+    clusterLabel: central
     labels:
       release: monitor
+  dashboards:
+    enabled: true
+    labels:
+      release: monitor
+      grafana_dashboard: "1"
