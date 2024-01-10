@@ -35,36 +35,34 @@ fi
 # Deploy master node
 multipass launch -c ${MASTER_CPUS} -m ${MASTER_MEMORY}g -n ${MASTER}
 MASTER_IP=$(multipass info ${MASTER} | grep IPv4 | awk '{print $2}')
-
 cat <<EOF | multipass exec ${MASTER} -- sudo bash
 mkdir -p /etc/rancher/k3s
 
-cat <<CFG >/etc/rancher/k3s/config.yaml
+cat <<CFG | tee /etc/rancher/k3s/config.yaml
+node-ip: ${MASTER_IP}
+tls-san: ${MASTER_IP}
+bind-address: ${MASTER_IP}
 write-kubeconfig-mode: '644'
 cluster-domain: ${CONTEXT}.cluster.local
 flannel-backend: none
-disable-network-policy: true
 disable-kube-proxy: true
+disable-network-policy: true
+disable-cloud-controller: true
 disable:
 - traefik
 - servicelb
 CFG
 
 curl -sfL https://get.k3s.io | sh -
-
-curl -L --remote-name-all https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
+curl -sfL --remote-name-all https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
 tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
 rm cilium-linux-amd64.tar.gz
 
-cat /etc/rancher/k3s/k3s.yaml | sed "s/default/${CONTEXT}/" | sed "s/127.0.0.1/${MASTER_IP}/" > /tmp/k3s.yaml
-export KUBECONFIG=/tmp/k3s.yaml
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 cilium install --wait \
 --set cluster.name=${CONTEXT} \
 --set ipam.mode=kubernetes \
---set kubeProxyReplacement=true \
---set k8sServiceHost=${MASTER_IP} \
---set k8sServicePort=6443 \
 --set devices=ens+ \
 --set l2announcements.enabled=true \
 --set externalIPs.enabled=true \
@@ -93,13 +91,11 @@ spec:
   cidrs:
   - cidr: "${MASTER_IP%.*}.${SUBNET}/29"
 CFG
-
-kubectl taint node ${MASTER} node-role.kubernetes.io/master:NoSchedule --overwrite
 EOF
 
 # Extract kubeconfig
-multipass exec ${MASTER} -- cat /etc/rancher/k3s/k3s.yaml | \
-  sed "s/default/${CONTEXT}/" | sed "s/127.0.0.1/${MASTER_IP}/" > ${CONFIG}
+multipass exec ${MASTER} -- cat /etc/rancher/k3s/k3s.yaml | sed "s/default/${CONTEXT}/" > ${CONFIG}
+chmod 600 ${CONFIG}
 export KUBECONFIG=${CONFIG}
 kubectl config use-context ${CONTEXT}
 
@@ -109,6 +105,7 @@ if [ ${WORKERS} > 0 ]; then
   for i in $(seq 1 ${WORKERS}); do
     WORKER=${CONTEXT}-worker${i}
     multipass launch -c ${WORKERS_CPUS} -m ${WORKERS_MEMORY}g -d ${WORKERS_DISK}g -n ${WORKER}
-    multipass exec ${WORKER} -- bash -c "curl -sfL https://get.k3s.io | K3S_URL=\"https://$MASTER_IP:6443\" K3S_TOKEN=\"$TOKEN\" sh -"
+    multipass exec ${WORKER} -- bash -c "curl -sfL https://get.k3s.io | K3S_URL='https://$MASTER_IP:6443' K3S_TOKEN='$TOKEN' sh -"
+    multipass exec ${MASTER} -- kubectl label nodes ${WORKER} kubernetes.io/role=worker
   done
 fi
