@@ -1,12 +1,5 @@
 # Warning: there won't be any resource requests/limits for any Linkerd-related container
 ---
-proxyInit:
-  runAsRoot: true # To avoid issues with privileged DaemonSets like Promtail
-  resources:
-    cpu:
-      limit: ""
-      request: ""
-
 proxy:
   # Default ports plus memberlist(7946)
   opaquePorts: 25,587,3306,4444,5432,6379,7946,9300,11211
