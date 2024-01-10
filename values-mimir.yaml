@@ -188,7 +188,7 @@ results-cache:
 metaMonitoring:
   serviceMonitor:
     enabled: true
-    clusterLabel: "central"
+    clusterLabel: central
     labels:
       release: monitor
   dashboards:

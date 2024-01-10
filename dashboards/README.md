@@ -22,3 +22,4 @@ The following deploys a sample dashboard for the TNS application:
 kubectl --context lgtm-central create cm tns -n observability --from-file=tns.json
 kubectl --context lgtm-central label cm tns -n observability grafana_dashboard=1 release=monitor
 ```
+
