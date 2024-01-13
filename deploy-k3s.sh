@@ -14,7 +14,7 @@ done
 
 CONTEXT=${CONTEXT-k3s} # Kubeconfig Profile and cluster sub-domain
 MASTER_CPUS=${MASTER_CPUS-1} # Number of CPUS for the master node
-MASTER_MEMORY=${MASTER_MEMORY-3} # Memory size in GB for the master node
+MASTER_MEMORY=${MASTER_MEMORY-2} # Memory size in GB for the master node
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 WORKERS_CPUS=${WORKERS_CPUS-2} # Number of CPUS per worker node
 WORKERS_MEMORY=${WORKERS_MEMORY-4} # Memory size in GB per worker node
@@ -91,6 +91,8 @@ spec:
   cidrs:
   - cidr: "${MASTER_IP%.*}.${SUBNET}/29"
 CFG
+
+kubectl taint node ${MASTER} node-role.kubernetes.io/master:NoSchedule --overwrite
 EOF
 
 # Extract kubeconfig

@@ -12,8 +12,8 @@ CONTEXT=lgtm-central
 DOMAIN=${CONTEXT}.cluster.local
 SUBNET=248 # For Cilium L2/LB
 WORKERS=3
-WORKERS_CPUS=4
-WORKERS_MEMORY=8
+WORKERS_CPUS=2
+WORKERS_MEMORY=4
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
