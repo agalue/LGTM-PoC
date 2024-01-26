@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # The script will create one dedicated master node and a set of worker nodes.
-# The master node will have 1 CPU and 3GB of RAM, although the worker nodes are configurable.
-# However, if the number of workers is zero, there is going to be a single-node cluster.
-# In this case the single-master will use the provided CPU, Memory, and Disk for workers nodes.
+# If the number of workers is zero, there is going to be a single-node cluster.
+# In this case the single-node will use the provided CPU, Memory, and Disk settings from the workers nodes.
 
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
@@ -14,7 +13,7 @@ done
 
 CONTEXT=${CONTEXT-k3s} # Kubeconfig Profile and cluster sub-domain
 MASTER_CPUS=${MASTER_CPUS-1} # Number of CPUS for the master node
-MASTER_MEMORY=${MASTER_MEMORY-2} # Memory size in GB for the master node
+MASTER_MEMORY=${MASTER_MEMORY-3} # Memory size in GB for the master node
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 WORKERS_CPUS=${WORKERS_CPUS-2} # Number of CPUS per worker node
 WORKERS_MEMORY=${WORKERS_MEMORY-4} # Memory size in GB per worker node

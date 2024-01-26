@@ -7,17 +7,25 @@ for cmd in "kubectl" "helm" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CERT_ISSUER_ID=issuer-remote
-CONTEXT=lgtm-remote
-DOMAIN=${CONTEXT}.cluster.local
-SUBNET=240 # For Cilium L2/LB
-WORKERS=1
-WORKERS_CPUS=2
-WORKERS_MEMORY=4
+# Global
+CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
+CONTEXT=${CONTEXT-lgtm-remote}
+DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
+# Local K3s
+SUBNET=${SUBNET-240} # For Cilium L2/LB
+WORKERS=${WORKERS-1}
+WORKERS_CPUS=${WORKERS_CPUS-2}
+WORKERS_MEMORY=${WORKERS_MEMORY-4}
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
 echo "Deploying Kubernetes"
-. deploy-k3s.sh
+if [[ $(kubectl config get-contexts --no-headers | awk '{print $2}') == *$CONTEXT* ]]; then
+  echo "$CONTEXT exists, cluster won't be created"
+  kubectl config use-context $CONTEXT
+else
+  echo "Creating cluster $CONTEXT"
+  . deploy-k3s.sh
+fi
 
 echo "Deploying Prometheus CRDs"
 . deploy-prometheus-crds.sh
@@ -46,7 +54,8 @@ done
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml --wait
+  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml \
+  --set prometheusOperator.clusterDomain=$DOMAIN --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
