@@ -36,7 +36,9 @@ echo "Deploying Linkerd"
 # Not needed in our case, but if we expose headless services associated with StatefulSets we should add:
 # --set "enableHeadlessServices=true"
 echo "Creating link from the remote cluster into the central cluster"
-export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
+if [[ -e lgtm-central-kubeconfig.yaml && -e lgtm-remote-kubeconfig.yaml ]]; then
+  export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
+fi
 kubectl config use-context lgtm-remote
 linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
 
