@@ -69,7 +69,7 @@ Follow all the directions from the main README file.
 ## Shutdown
 
 ```bash
-civo k3s delete lgtm-remote
-civo k3s delete lgtm-central
+civo k3s delete lgtm-remote -y
+civo k3s delete lgtm-central -y
 for name in $(civo volume ls -o json | jq -r '.[] | .name'); do civo volume delete $name -y; done
 ```
