@@ -38,9 +38,9 @@ echo "Deploying Linkerd"
 echo "Creating link from the remote cluster into the central cluster"
 if [[ -e lgtm-central-kubeconfig.yaml && -e lgtm-remote-kubeconfig.yaml ]]; then
   export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
+  kubectl config use-context $CONTEXT
 fi
-kubectl config use-context lgtm-remote
-linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
+linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply --context lgtm-remote -f -
 
 echo "Setting up namespaces"
 for ns in observability tns mimir tempo loki; do
