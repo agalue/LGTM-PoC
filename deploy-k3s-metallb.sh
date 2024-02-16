@@ -67,33 +67,33 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 cilium install --version 1.15.1 --wait \
 --set cluster.name=${CONTEXT} \
 --set ipam.mode=kubernetes \
---set devices=ens+ \
---set l2announcements.enabled=true \
---set externalIPs.enabled=true \
 --set socketLB.enabled=true \
 --set socketLB.hostNamespaceOnly=true
 
 cilium status --wait
 
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.3/config/manifests/metallb-native.yaml
+kubectl rollout status -n metallb-system deployment/controller
+kubectl rollout status -n metallb-system daemonset/speaker
 cat <<CFG | kubectl apply -f -
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumLoadBalancerIPPool
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
 metadata:
   name: ${CONTEXT}-pool
+  namespace: metallb-system
 spec:
-  cidrs:
-  - cidr: "${MASTER_IP%.*}.${SUBNET}/29"
+  addresses:
+  - ${MASTER_IP%.*}.${SUBNET}/29
 ---
-apiVersion: cilium.io/v2alpha1
-kind: CiliumL2AnnouncementPolicy
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
 metadata:
-  name: ${CONTEXT}-policy
+  name: ${CONTEXT}-l2adv
+  namespace: metallb-system
 spec:
-  interfaces:
-  - ens3
-  externalIPs: true
-  loadBalancerIPs: true
+  ipAddressPools:
+  - ${CONTEXT}-pool
 CFG
 
 if (( ${WORKERS} > 0 )); then
