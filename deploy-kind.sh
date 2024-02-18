@@ -3,14 +3,14 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "docker" "kind" "cilium" "jq"; do
+for cmd in "docker" "kind" "cilium" "kubectl" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
 CONTEXT=${CONTEXT-kind} # Kubeconfig Profile and cluster sub-domain
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/LB
-HOST_IP=${HOST_IP-$(ifconfig en0 inet | grep inet | awk '{print $2}')} # The IP address of your machine
+HOST_IP=${HOST_IP-$(ipconfig getifaddr en0)} # The IP address of your machine
 
 MASTER=${CONTEXT}-control-plane
 
@@ -20,6 +20,11 @@ if [[ $(kind get clusters | tr '\n' ' ') = *${CONTEXT}* ]]; then
   kubectl config use-context kind-${CONTEXT}
   return
 fi
+
+WORKER_YAML=""
+for ((i = 1; i <= WORKERS; i++)); do
+  WORKER_YAML+="- role: worker"$'\n'
+done
 
 # Deploy Kind Cluster
 cat <<EOF | kind create cluster --config -
@@ -35,12 +40,10 @@ nodes:
     kind: ClusterConfiguration
     networking:
       dnsDomain: "${CONTEXT}.cluster.local"
-- role: worker
-- role: worker
-- role: worker
+${WORKER_YAML}
 networking:
   ipFamily: ipv4
-  apiServerAddress: ${HOST_IP}
+# apiServerAddress: ${HOST_IP}
   disableDefaultCNI: true
   kubeProxyMode: none
 EOF

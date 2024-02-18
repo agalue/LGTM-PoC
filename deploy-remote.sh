@@ -30,7 +30,11 @@ if [[ -e lgtm-central-kubeconfig.yaml && -e lgtm-remote-kubeconfig.yaml ]]; then
   export KUBECONFIG="lgtm-central-kubeconfig.yaml:lgtm-remote-kubeconfig.yaml"
   kubectl config use-context $CONTEXT
 fi
+# The following is required when using Kind/Docker without apiServerAddress on Kind config.
+API_SERVER=$(kubectl get node --context lgtm-central -l node-role.kubernetes.io/control-plane -o json \
+  | jq -r '.items[] | .status.addresses[] | select(.type=="InternalIP") | .address')
 linkerd mc link --context lgtm-central --cluster-name lgtm-central \
+  --api-server-address="https://${API_SERVER}:6443" \
   | kubectl apply --context lgtm-remote -f -
 
 echo "Setting up namespaces"
