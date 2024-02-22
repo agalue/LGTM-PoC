@@ -90,6 +90,10 @@ kind: CiliumL2AnnouncementPolicy
 metadata:
   name: ${CONTEXT}-policy
 spec:
+  nodeSelector:
+    matchExpressions:
+    - key: node-role.kubernetes.io/control-plane
+      operator: DoesNotExist
   interfaces:
   - ens3
   externalIPs: true

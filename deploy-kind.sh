@@ -10,7 +10,6 @@ done
 CONTEXT=${CONTEXT-kind} # Kubeconfig Profile and cluster sub-domain
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/LB
-HOST_IP=${HOST_IP-$(ipconfig getifaddr en0)} # The IP address of your machine
 
 MASTER=${CONTEXT}-control-plane
 
@@ -43,7 +42,6 @@ nodes:
 ${WORKER_YAML}
 networking:
   ipFamily: ipv4
-# apiServerAddress: ${HOST_IP}
   disableDefaultCNI: true
   kubeProxyMode: none
 EOF
@@ -77,8 +75,12 @@ kind: CiliumL2AnnouncementPolicy
 metadata:
   name: ${CONTEXT}-policy
 spec:
+  nodeSelector:
+    matchExpressions:
+    - key: node-role.kubernetes.io/control-plane
+      operator: DoesNotExist
   interfaces:
-  - eth0
+  - ^eth[0-9].*
   externalIPs: true
   loadBalancerIPs: true
 EOF
