@@ -195,4 +195,10 @@ metaMonitoring:
     enabled: true
     labels:
       release: monitor
-      grafana_dashboard: "1"
+  prometheusRule:
+    enabled: true
+    mimirAlerts: true
+    mimirRules: true
+    labels:
+      release: monitor
+
