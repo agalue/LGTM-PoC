@@ -6,9 +6,6 @@ serviceAccount: # There is no way to set an account per component
   create: true
   name: tempo-sa
 
-global:
-  clusterDomain: lgtm-central.cluster.local
-
 search:
   enabled: true
 
@@ -92,3 +89,8 @@ metaMonitoring:
     enabled: true
     labels:
       release: monitor
+
+prometheusRule:
+  enabled: true
+  labels:
+    release: monitor

@@ -7,8 +7,6 @@ serviceAccount: # There is no way to set an account per component
   name: mimir-sa
 
 global:
-  clusterDomain: lgtm-central.cluster.local
-
   extraEnv:
   - name: JAEGER_ENDPOINT
     value: 'http://grafana-agent.observability.svc:14268/api/traces'

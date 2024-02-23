@@ -15,8 +15,5 @@ prometheus:
         regex: "^linkerd.*"
         action: drop
 
-prometheusOperator:
-  clusterDomain: lgtm-remote.cluster.local
-
 grafana:
   enabled: false

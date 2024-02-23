@@ -9,6 +9,7 @@ defaultRules:
     etcd: false
     kubeControllerManager: false
     kubeScheduler: false
+    kubeProxy: false
 
 kubeControllerManager:
   enabled: false
@@ -17,6 +18,9 @@ kubeEtcd:
   enabled: false
 
 kubeScheduler:
+  enabled: false
+
+kubeProxy:
   enabled: false
 
 alertmanager: # Required to be notified on alerts managed by Prometheus

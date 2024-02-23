@@ -15,9 +15,6 @@ prometheus:
         regex: "^linkerd.*"
         action: drop
 
-prometheusOperator:
-  clusterDomain: lgtm-central.cluster.local
-
 grafana:
   adminPassword: Adm1nAdm1n
   serviceAccount:

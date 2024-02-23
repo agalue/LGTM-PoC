@@ -2,9 +2,6 @@
 ---
 fullnameOverride: loki
 
-global:
-  clusterDomain: lgtm-central.cluster.local
-
 serviceAccount: # There is no way to set an account per component
   create: true
   name: loki-sa
@@ -77,7 +74,5 @@ monitoring:
     labels:
       release: monitor
   dashboards:
-    namespace: observability
     labels:
       release: monitor
-      grafana_dashboard: "1"
