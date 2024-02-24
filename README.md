@@ -1,8 +1,8 @@
 # LGTM PoC
 
-In the Kubernetes world, the best way to monitor the cluster and everything running on it are via Prometheus. Microservices, especially those written in Go, could expose metrics in Prometheus format, and there is a vast collection of exporters for those applications that don't natively. For that reason, Mimir is the best way to consolidate metrics from multiple Kubernetes clusters (and the applications running on each of them).
+In the world of Kubernetes, Prometheus is considered the best tool to monitor the cluster and all its running components. Microservices, specifically those written in Go, can expose their metrics in Prometheus format. Additionally, there are numerous exporters available for applications that cannot natively do so. Therefore, Mimir is the ideal way to consolidate metrics from multiple Kubernetes clusters along with the applications running on each of them.
 
-Loki is drastically easier to deploy and manage than the traditional ELK stack, which is why I consider it the best log aggregation solution. For similar reasons, Tempo for traces.
+When it comes to log aggregation solutions, Loki is a much simpler and easier-to-manage option compared to the traditional ELK stack. Similarly, Tempo is the best choice for traces due to similar reasons.
 
 ## Architecture
 
@@ -50,9 +50,11 @@ The following is the list of Data Sources on the Central Grafana:
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
-* [Linkerd CLI](https://linkerd.io/2.13/getting-started/#step-1-install-the-cli)
+* [Linkerd CLI](https://linkerd.io/2.14/getting-started/#step-1-install-the-cli)
+* [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli)
+* [Jq](https://jqlang.github.io/jq/)
 
-The solution has been designed and tested only on an Intel-based Mac. You might need to change the scripts to run them on a different operating system.
+The solution has been designed and tested only on an Intel-based Mac and a Linux Server. You might need to change the scripts to run them on a different operating system.
 
 ## Start
 
@@ -123,7 +125,8 @@ When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI 
 You can inspect the runtime kubeconfig as follows:
 
 ```bash
-kubectl get secret -n linkerd-multicluster cluster-credentials-lgtm-central \
+kubectl get secret --context lgtm-remote \
+  -n linkerd-multicluster cluster-credentials-lgtm-central \
   -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
 ```
 
@@ -134,7 +137,7 @@ To see the permissions associated with the `ServiceAccount` on the central clust
 Name:         linkerd-service-mirror-remote-access-default
 Labels:       app.kubernetes.io/managed-by=Helm
               linkerd.io/extension=multicluster
-Annotations:  linkerd.io/created-by: linkerd/helm stable-2.14.0
+Annotations:  linkerd.io/created-by: linkerd/helm stable-2.14.10
               meta.helm.sh/release-name: linkerd-multicluster
               meta.helm.sh/release-namespace: linkerd-multicluster
 PolicyRule:
@@ -149,7 +152,7 @@ PolicyRule:
   jobs.batch                       []                 []                [list get watch]
   endpointslices.discovery.k8s.io  []                 []                [list get watch]
   servers.policy.linkerd.io        []                 []                [list get watch]
-```
+  ```
 
 > Note that the `ServiceAccount` exists on both cluster.
 
@@ -166,11 +169,11 @@ So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in th
 
 ### LGTM Stack
 
-You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
+If you're running on Linux or macOS with OrbStack, you should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
 
-```
+```bash
 kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; echo
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
 Then, access the Grafana WebUI available at `https://grafana.example.com` and accept the warning as the site uses a certificate signed by a self-signed CA.

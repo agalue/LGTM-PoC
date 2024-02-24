@@ -29,7 +29,7 @@ helm repo update
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
 echo "Deploying Kubernetes"
-. deploy-kind.sh
+. deploy-k3s.sh
 
 echo "Deploying Prometheus CRDs"
 . deploy-prometheus-crds.sh

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+INGRESS_IP=$(kubectl --context lgtm-central get service \
+  -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 cat <<EOF > haproxy.cfg
 global

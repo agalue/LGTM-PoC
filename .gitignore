@@ -3,4 +3,5 @@
 *-kubeconfig.yaml
 haproxy.cfg
 cert-expiry-date.txt
+haproxy.cfg
 TODO.md
