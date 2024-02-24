@@ -1,7 +1,6 @@
 # Warning: there won't be any resource requests/limits for any Linkerd-related container
 ---
 proxyInit:
-  runAsRoot: true # To avoid issues with privileged DaemonSets like Promtail
   resources:
     cpu:
       limit: ""

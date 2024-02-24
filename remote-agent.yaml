@@ -91,7 +91,7 @@ spec:
       serviceAccountName: grafana-agent
       containers:
       - name: grafana-agent
-        image: grafana/agent:v0.38.1
+        image: grafana/agent:v0.39.0
         imagePullPolicy: IfNotPresent
         args:
         - -config.expand-env=true

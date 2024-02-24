@@ -7,8 +7,6 @@ serviceAccount: # There is no way to set an account per component
   name: mimir-sa
 
 global:
-  clusterDomain: lgtm-central.cluster.local
-
   extraEnv:
   - name: JAEGER_ENDPOINT
     value: 'http://grafana-agent.observability.svc:14268/api/traces'
@@ -81,32 +79,31 @@ rollout_operator:
 
 overrides_exporter:
   resources: {}
-  affinity: {}
 
 ruler:
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-chunks
-    image: busybox
+    image: busybox:1.28
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 1; done']
+  - name: wait-metadata
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
 
 alertmanager:
   resources: {}
-  affinity: {}
 
 distributor:
   replicas: 2
   resources: {}
-  affinity: {}
 
 ingester:
   replicas: 3
   persistentVolume:
     size: 20Gi
   resources: {}
-  affinity: {}
   zoneAwareReplication:
     enabled: false
 
@@ -115,27 +112,24 @@ compactor:
   persistentVolume:
     size: 10Gi
   resources: {}
-  affinity: {}
 
 querier:
   replicas: 3
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-metadata
-    image: busybox
+    image: busybox:1.28
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
 
 query_frontend:
   replicas: 2
   resources: {}
-  affinity: {}
   initContainers:
   - name: wait-results
-    image: busybox
+    image: busybox:1.28
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-results-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 1; done']
 
 query_scheduler:
   enabled: false
@@ -145,18 +139,17 @@ store_gateway:
   persistentVolume:
     size: 10Gi
   resources: {}
-  affinity: {}
   zoneAwareReplication:
     enabled: false
   initContainers:
   - name: wait-metadata
-    image: busybox
+    image: busybox:1.28
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
   - name: wait-chunks
-    image: busybox
+    image: busybox:1.28
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-chunks-cache.mimir.svc.lgtm-central.cluster.local; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 1; done']
 
 chunks-cache:
   enabled: true
@@ -165,7 +158,6 @@ chunks-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 index-cache:
   enabled: true
@@ -174,7 +166,6 @@ index-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 metadata-cache:
   enabled: true
@@ -183,7 +174,6 @@ metadata-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 results-cache:
   enabled: true
@@ -192,7 +182,6 @@ results-cache:
   resources:
     requests:
       cpu: 25m
-  affinity: {}
 
 metaMonitoring:
   serviceMonitor:
@@ -204,4 +193,10 @@ metaMonitoring:
     enabled: true
     labels:
       release: monitor
-      grafana_dashboard: "1"
+  prometheusRule:
+    enabled: true
+    mimirAlerts: true
+    mimirRules: true
+    labels:
+      release: monitor
+

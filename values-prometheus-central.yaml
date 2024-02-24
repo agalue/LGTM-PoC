@@ -5,9 +5,15 @@ prometheus:
     - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
       headers:
         X-Scope-OrgID: _local
-
-prometheusOperator:
-  clusterDomain: lgtm-central.cluster.local
+      queueConfig:
+        capacity: 5000
+        minShards: 1
+        maxShards: 50
+        maxSamplesPerSend: 2000
+      writeRelabelConfigs:
+      - sourceLabels: [namespace]
+        regex: "^linkerd.*"
+        action: drop
 
 grafana:
   adminPassword: Adm1nAdm1n
