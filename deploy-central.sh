@@ -14,6 +14,9 @@ SUBNET=${SUBNET-248} # For Cilium L2/LB
 WORKERS=${WORKERS-3}
 WORKERS_CPUS=${WORKERS_CPUS-2}
 WORKERS_MEMORY=${WORKERS_MEMORY-4}
+CLUSTER_ID=${CLUSTER_ID-1}
+POD_CIDR=${POD_CIDR-10.1.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.2.0.0/16}
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io

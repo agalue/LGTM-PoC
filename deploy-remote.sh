@@ -14,6 +14,9 @@ SUBNET=${SUBNET-240} # For Cilium L2/LB
 WORKERS=${WORKERS-1}
 WORKERS_CPUS=${WORKERS_CPUS-2}
 WORKERS_MEMORY=${WORKERS_MEMORY-4}
+CLUSTER_ID=${CLUSTER_ID-2}
+POD_CIDR=${POD_CIDR-10.3.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.4.0.0/16}
 
 # Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
 echo "Deploying Kubernetes"

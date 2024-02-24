@@ -1,5 +1,6 @@
 *.crt
 *.key
 *-kubeconfig.yaml
+haproxy.cfg
 cert-expiry-date.txt
 TODO.md

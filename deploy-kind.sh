@@ -10,8 +10,11 @@ done
 CONTEXT=${CONTEXT-kind} # Kubeconfig Profile and cluster sub-domain
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/LB
-
+CLUSTER_ID=${CLUSTER_ID-1}
+POD_CIDR=${POD_CIDR-10.244.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
 MASTER=${CONTEXT}-control-plane
+CILIUM_VERSION=${CILIUM_VERSION-1.15.1}
 
 # Abort if the cluster exists; if so, ensure the kubeconfig is exported
 if [[ $(kind get clusters | tr '\n' ' ') = *${CONTEXT}* ]]; then
@@ -44,9 +47,12 @@ networking:
   ipFamily: ipv4
   disableDefaultCNI: true
   kubeProxyMode: none
+  podSubnet: ${POD_CIDR}
+  serviceSubnet: ${SVC_CIDR}
 EOF
 
-cilium install --version 1.15.1 --wait \
+cilium install --version ${CILIUM_VERSION} --wait \
+  --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
   --set ipam.mode=kubernetes \
   --set devices=eth+ \
