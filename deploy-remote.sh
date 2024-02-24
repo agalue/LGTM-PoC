@@ -3,38 +3,21 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "minikube" "kubectl" "helm" "linkerd"; do
+for cmd in "kubectl" "helm" "linkerd" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-DRIVER=${DRIVER-hyperkit}
-DOMAIN=lgtm-remote.cluster.local
-CERT_ISSUER_ID=issuer-remote
+CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
+CONTEXT=${CONTEXT-lgtm-remote}
+DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
+SUBNET=${SUBNET-240} # For Cilium L2/LB
+WORKERS=${WORKERS-1}
+CLUSTER_ID=${CLUSTER_ID-2}
+POD_CIDR=${POD_CIDR-10.3.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.4.0.0/16}
 
-# Empty /var/db/dhcpd_leases if you ran out of IP addresses on your Mac
-if minikube status --profile=lgtm-remote > /dev/null; then
-  echo "Minikube already running"
-else
-  echo "Starting minikube"
-  minikube start \
-    --driver=$DRIVER \
-    --container-runtime=containerd \
-    --cpus=2 \
-    --memory=4g \
-    --addons=metrics-server \
-    --addons=metallb \
-    --dns-domain=$DOMAIN \
-    --embed-certs=true \
-    --profile=lgtm-remote
-fi
-
-MINIKUBE_IP=$(minikube ip -p lgtm-remote)
-expect <<EOF
-spawn minikube addons configure metallb -p lgtm-remote
-expect "Enter Load Balancer Start IP:" { send "${MINIKUBE_IP%.*}.211\\r" }
-expect "Enter Load Balancer End IP:" { send "${MINIKUBE_IP%.*}.220\\r" }
-expect eof
-EOF
+echo "Deploying Kubernetes"
+. deploy-kind.sh
 
 echo "Deploying Prometheus CRDs"
 . deploy-prometheus-crds.sh
@@ -42,10 +25,18 @@ echo "Deploying Prometheus CRDs"
 echo "Deploying Linkerd"
 . deploy-linkerd.sh
 
-# Not needed in our case, but if we expose headless services associated with StatefulSets we should add:
-# --set "enableHeadlessServices=true"
+CENTRAL=lgtm-central
+CENTRAL_CTX=kind-${CENTRAL}
+REMOTE_CTX=kind-lgtm-remote
+
+# The following is required when using Kind/Docker without apiServerAddress on Kind config.
+API_SERVER=$(kubectl get node --context ${CENTRAL_CTX} -l node-role.kubernetes.io/control-plane -o json \
+  | jq -r '.items[] | .status.addresses[] | select(.type=="InternalIP") | .address')
+
 echo "Creating link from the remote cluster into the central cluster"
-linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply -f -
+linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
+  --api-server-address="https://${API_SERVER}:6443" \
+  | kubectl apply --context ${REMOTE_CTX} -f -
 
 echo "Setting up namespaces"
 for ns in observability tns mimir tempo loki; do
@@ -61,7 +52,8 @@ done
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml --wait
+  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml \
+  --set prometheusOperator.clusterDomain=$DOMAIN --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \

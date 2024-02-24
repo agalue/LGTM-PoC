@@ -1,8 +1,8 @@
 # LGTM PoC
 
-In the Kubernetes world, the best way to monitor the cluster and everything running on it are via Prometheus. Microservices, especially those written in Go, could expose metrics in Prometheus format, and there is a vast collection of exporters for those applications that don't natively. For that reason, Mimir is the best way to consolidate metrics from multiple Kubernetes clusters (and the applications running on each of them).
+In the world of Kubernetes, Prometheus is considered the best tool to monitor the cluster and all its running components. Microservices, specifically those written in Go, can expose their metrics in Prometheus format. Additionally, there are numerous exporters available for applications that cannot natively do so. Therefore, Mimir is the ideal way to consolidate metrics from multiple Kubernetes clusters along with the applications running on each of them.
 
-Loki is drastically easier to deploy and manage than the traditional ELK stack, which is why I consider it the best log aggregation solution. For similar reasons, Tempo for traces.
+When it comes to log aggregation solutions, Loki is a much simpler and easier-to-manage option compared to the traditional ELK stack. Similarly, Tempo is the best choice for traces due to similar reasons.
 
 ## Architecture
 
@@ -20,15 +20,17 @@ As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://l
 
 ![Architecture](architecture-1.png)
 
-We will use Minikube for the clusters, and as the Linkerd Gateway for Multi-Cluster requires a Load Balancer service, we will enable and configure the MetalLB plugin on Minikube, and we'll have different Cluster Domain.
+We will use [Kind](https://kind.sigs.k8s.io/) via [Docker](https://www.docker.com/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as an L2/LB, mainly because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service (that way we wouldn't need MetalLB). For each cluster, we'll have a different Cluster Domain.
 
-For MetalLB, the Central cluster will use segment `x.x.x.201-210`, and the Remote cluster will employ `x.x.x.211-220` for the Public IPs extracted from the Minikube IP on each case.
+For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` from the Docker network created by `kind`.
 
 The Multi-Cluster Link is originated on the Remote Cluster, targeting the Central Cluster, meaning the Service Mirror Controller lives on the Remote Cluster.
 
 Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
+
+> **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running Rocky Linux 9. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
 
 ### Data Sources
 
@@ -44,13 +46,16 @@ The following is the list of Data Sources on the Central Grafana:
 
 ## Requirements
 
-* [Minikube](https://minikube.sigs.k8s.io/)
+* Docker (I recommend [OrbStack](https://orbstack.dev/) if you're on macOS)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
-* [Linkerd CLI](https://linkerd.io/2.13/getting-started/#step-1-install-the-cli)
+* [Linkerd CLI](https://linkerd.io/2.14/getting-started/#step-1-install-the-cli)
+* [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli)
+* [Kind](https://kind.sigs.k8s.io/)
+* [Jq](https://jqlang.github.io/jq/)
 
-The solution has been designed and tested only on an Intel-based Mac. You might need to change the scripts to run them on a different operating system.
+The solution has been designed and tested only on an Intel-based Mac and a Linux Server. You might need to change the scripts to run them on a different operating system.
 
 ## Start
 
@@ -60,13 +65,13 @@ The solution has been designed and tested only on an Intel-based Mac. You might 
 ./deploy-certs.sh
 ```
 
-* Deploy Central Cluster with LGTM stack (Minikube context: `lgtm-central`):
+* Deploy Central Cluster with LGTM stack (K8s context: `lgtm-central`):
 
 ```bash
 ./deploy-central.sh
 ```
 
-* Deploy Remote Cluster with sample application linked to the Central Cluster (Minikube context: `lgtm-remote`):
+* Deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote`):
 
 ```bash
 ./deploy-remote.sh
@@ -79,7 +84,7 @@ The solution has been designed and tested only on an Intel-based Mac. You might 
 The `linkerd` CLI can help to verify if the inter-cluster communication is working. From the `lgtm-remote` cluster, you can do the following:
 
 ```bash
-➜  linkerd mc check --context lgtm-remote
+➜  linkerd mc check --context kind-lgtm-remote
 linkerd-multicluster
 --------------------
 √ Link CRD exists
@@ -105,7 +110,7 @@ Status check results are √
 ```
 
 ```bash
-➜  linkerd mc gateways --context lgtm-remote
+➜  linkerd mc gateways --context kind-lgtm-remote
 CLUSTER       ALIVE    NUM_SVC      LATENCY
 lgtm-central  True           3          2ms
 ```
@@ -115,18 +120,19 @@ When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI 
 You can inspect the runtime kubeconfig as follows:
 
 ```bash
-kubectl get secret -n linkerd-multicluster cluster-credentials-lgtm-central \
+kubectl get secret --context kind-lgtm-remote \
+  -n linkerd-multicluster cluster-credentials-lgtm-central \
   -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
 ```
 
 To see the permissions associated with the `ServiceAccount` on the central cluster:
 
 ```bash
-➜  kubectl describe clusterrole linkerd-service-mirror-remote-access-default --context lgtm-central
+➜  kubectl describe clusterrole linkerd-service-mirror-remote-access-default --context kind-lgtm-central
 Name:         linkerd-service-mirror-remote-access-default
 Labels:       app.kubernetes.io/managed-by=Helm
               linkerd.io/extension=multicluster
-Annotations:  linkerd.io/created-by: linkerd/helm stable-2.14.0
+Annotations:  linkerd.io/created-by: linkerd/helm stable-2.14.10
               meta.helm.sh/release-name: linkerd-multicluster
               meta.helm.sh/release-namespace: linkerd-multicluster
 PolicyRule:
@@ -141,13 +147,13 @@ PolicyRule:
   jobs.batch                       []                 []                [list get watch]
   endpointslices.discovery.k8s.io  []                 []                [list get watch]
   servers.policy.linkerd.io        []                 []                [list get watch]
-```
+  ```
 
 > Note that the `ServiceAccount` exists on both cluster.
 
 In other words, to create a link from `lgtm-remote` to `lgtm-central`, we run the following assuming the current context is assigned to `lgtm-remote`:
 ```bash
-linkerd mc link --context lgtm-central --cluster-name lgtm-central | kubectl apply --context lgtm-remote -f -
+linkerd mc link --context kind-lgtm-central --cluster-name lgtm-central | kubectl apply --context kind-lgtm-remote -f -
 ```
 
 With the `--context` parameter, we specify the "target" cluster and assign a name to it (which will be part of the exposed service names in the remote cluster). If we inspect the YAML file generated by the above command, we can see a secret that contains `kubeconfig`; that's how to reach the `lgtm-central` cluster, and that will be taken from your local kubeconfig, but using a user called `linkerd-service-mirror-remote-access-default` (a service account in the `linkerd-multicluster` namespace that exists in both clusters).
@@ -158,12 +164,20 @@ So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in th
 
 ### LGTM Stack
 
-You should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
+If you're running on Linux or macOS with OrbStack, you should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
 
+```bash
+kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
-kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; echo
+
+If you're using Docker for Desktop on macOS, I created a script to deploy HAProxy which allows you to access the Ingress Service via localhost:
+
+```bash
+./deploy-proxy
 ```
+
+In that case, use `127.0.0.1` when modifying `/etc/hosts` instead of the LB IP.
 
 Then, access the Grafana WebUI available at `https://grafana.example.com` and accept the warning as the site uses a certificate signed by a self-signed CA.
 
@@ -174,6 +188,13 @@ Within the [dashboards](./dashboards/) subdirectory, you should find some sample
 ## Shutdown
 
 ```bash
-minikube delete -p lgtm-central
-minikube delete -p lgtm-remote
+kind delete cluster --name lgtm-central
+kind delete cluster --name lgtm-remote
+```
+
+If you started the HAProxy:
+
+```bash
+docker stop haproxy
+docker rm haproxy
 ```

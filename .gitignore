@@ -1,4 +1,5 @@
 *.crt
 *.key
 cert-expiry-date.txt
+haproxy.cfg
 TODO.md

@@ -6,9 +6,6 @@ serviceAccount: # There is no way to set an account per component
   create: true
   name: tempo-sa
 
-global:
-  clusterDomain: lgtm-central.cluster.local
-
 search:
   enabled: true
 
@@ -36,32 +33,26 @@ minio:
   enabled: false
 
 ingester:
-  affinity: '{}'
   topologySpreadConstraints: null
 
 distributor:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 queryFrontend:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 querier:
   replicas: 3
-  affinity: '{}'
   topologySpreadConstraints: null
 
 compactor:
-  affinity: '{}'
   topologySpreadConstraints: null
 
 metricsGenerator:
   enabled: true
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
   config:
     processor:
@@ -80,7 +71,6 @@ metricsGenerator:
 
 memcached:
   replicas: 2
-  affinity: '{}'
   topologySpreadConstraints: null
 
 storage:
@@ -99,3 +89,8 @@ metaMonitoring:
     enabled: true
     labels:
       release: monitor
+
+prometheusRule:
+  enabled: true
+  labels:
+    release: monitor

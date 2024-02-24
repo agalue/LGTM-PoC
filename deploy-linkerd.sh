@@ -66,6 +66,8 @@ helm upgrade --install linkerd-viz linkerd/linkerd-viz \
   --set grafana.enabled=false \
   --set prometheus.enabled=false \
   --set prometheusUrl=http://monitor-prometheus.observability.svc:9090 \
+  --set grafana.externalUrl=https://grafana.example.com \
+  --set dashboard.enforcedHostRegexp=".*" \
   --wait
 
 echo "Deploying Linkerd-Jaeger via Grafana Agent"
