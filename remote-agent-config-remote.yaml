@@ -5,7 +5,7 @@ metadata:
   name: grafana-agent
   namespace: observability
 data:
-  agent.yaml: |
+  config.yaml: |
     server:
       log_level: info
     traces:

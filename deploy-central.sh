@@ -75,7 +75,8 @@ helm upgrade --install promtail grafana/promtail \
 
 echo "Deplying Grafana Agent (for Traces)"
 kubectl apply -f remote-agent-config-central.yaml
-kubectl apply -f remote-agent.yaml
+helm upgrade --install grafana-agent grafana/grafana-agent \
+  -n observability -f values-agent.yaml --wait
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
