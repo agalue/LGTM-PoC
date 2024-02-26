@@ -7,7 +7,7 @@ metadata:
 data:
   agent.yaml: |
     server:
-      log_level: debug
+      log_level: info
     traces:
       configs:
       - name: kubernetes-traces

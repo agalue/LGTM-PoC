@@ -21,7 +21,18 @@ controller:
       maxUnavailable: 1
   service:
     externalTrafficPolicy: Local
+  opentelemetry:
+    enabled: true
   config:
-    enable-opentracing: "true"
-    zipkin-collector-host: grafana-agent.observability.svc
-    zipkin-service-name: nginx-internal
+    enable-opentelemetry: "true"
+    opentelemetry-trust-incoming-span: "false"
+    opentelemetry-operation-name: HTTP $request_method $service_name $location_path
+    otlp-collector-host: grafana-agent.observability.svc
+    otel-service-name: nginx-internal
+    otel-sampler: AlwaysOn
+    otel-sampler-ratio: "1.0"
+    http-snippet: |
+      # For Linkerd compatibility - https://linkerd.io/2.14/tasks/distributed-tracing/#troubleshooting
+      opentelemetry_propagate b3;
+      # https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#http-server-semantic-conventions
+      opentelemetry_attribute "http.route" "$service_name:$location_path";
