@@ -32,28 +32,18 @@ gateway:
 minio:
   enabled: false
 
-ingester:
-  topologySpreadConstraints: null
-
 distributor:
   replicas: 2
-  topologySpreadConstraints: null
 
 queryFrontend:
   replicas: 2
-  topologySpreadConstraints: null
 
 querier:
   replicas: 3
-  topologySpreadConstraints: null
-
-compactor:
-  topologySpreadConstraints: null
 
 metricsGenerator:
   enabled: true
   replicas: 2
-  topologySpreadConstraints: null
   config:
     processor:
       service_graphs:
@@ -71,7 +61,6 @@ metricsGenerator:
 
 memcached:
   replicas: 2
-  topologySpreadConstraints: null
 
 storage:
   trace:
