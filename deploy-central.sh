@@ -15,6 +15,7 @@ WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.1.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.2.0.0/16}
+LINKERD_HA=${LINKERD_HA-yes}
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io

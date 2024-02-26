@@ -9,6 +9,7 @@ done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
 DOMAIN=${DOMAIN-}
+LINKERD_HA=${LINKERD_HA-no}
 
 if [[ "$CERT_ISSUER_ID" == "" ]]; then
   echo "CERT_ISSUER_ID env-var required"
@@ -42,6 +43,10 @@ helm upgrade --install linkerd-crds linkerd/linkerd-crds \
   --namespace linkerd --create-namespace
 
 echo "Deploying Linkerd"
+helm_values_args=("-f" "values-linkerd.yaml")
+if [[ "$LINKERD_HA" == "yes" ]]; then
+  helm_values_args+=("-f" "values-linkerd-ha.yaml")
+fi
 helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
   --namespace linkerd \
   --set clusterDomain=$DOMAIN \
@@ -50,7 +55,7 @@ helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
   --set-file identity.issuer.tls.crtPEM=$CERT_ISSUER_ID.crt \
   --set-file identity.issuer.tls.keyPEM=$CERT_ISSUER_ID.key \
   --set identity.issuer.crtExpiry=$CERT_EXPIRY_DATE \
-  -f values-linkerd.yaml \
+  ${helm_values_args[@]} \
   --wait
 
 echo "Update PodMonitor resources"
