@@ -60,7 +60,7 @@ helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f values-promtail-remote.yaml --wait
 
 echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f remote-agent-config-remote.yaml
+kubectl apply -f grafana-agent-config-remote.yaml
 helm upgrade --install grafana-agent grafana/grafana-agent \
   -n observability -f values-agent.yaml --wait
 

@@ -22,6 +22,7 @@ data:
           otlp:
             protocols:
               grpc:
+              http:
         remote_write:
         - endpoint: tempo-distributor-lgtm-central.tempo.svc:55680
           insecure: true
