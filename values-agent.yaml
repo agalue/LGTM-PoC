@@ -26,6 +26,9 @@ agent:
   - name: oltp-grpc
     port: 4317
     targetPort: 4317
+  - name: oltp-http
+    port: 4318
+    targetPort: 4318
 controller:
   tolerations:
   - effect: NoSchedule
