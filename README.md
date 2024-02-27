@@ -46,13 +46,13 @@ The following is the list of Data Sources on the Central Grafana:
 
 ## Requirements
 
-* Docker (I recommend [OrbStack](https://orbstack.dev/) if you're on macOS)
+* [Docker](https://www.docker.com/) ([OrbStack](https://orbstack.dev/) recommend if you're on macOS)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+* [Kind](https://kind.sigs.k8s.io/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
 * [Linkerd CLI](https://linkerd.io/2.14/getting-started/#step-1-install-the-cli)
 * [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli)
-* [Kind](https://kind.sigs.k8s.io/)
 * [Jq](https://jqlang.github.io/jq/)
 
 The solution has been designed and tested only on an Intel-based Mac and a Linux Server. You might need to change the scripts to run them on a different operating system.

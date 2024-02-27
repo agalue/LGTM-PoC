@@ -38,6 +38,9 @@ if [ ! -f "$CERT_ISSUER_ID.crt" ]; then
   exit 1
 fi
 
+echo "Update kube-system namespace"
+kubectl label ns kube-system config.linkerd.io/admission-webhooks=disabled
+
 echo "Deploying Linkerd CRDs"
 helm upgrade --install linkerd-crds linkerd/linkerd-crds \
   --namespace linkerd --create-namespace

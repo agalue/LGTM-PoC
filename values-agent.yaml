@@ -1,0 +1,39 @@
+# Warning: there won't be any resource requests/limits for any grafana agent-related container
+---
+agent:
+  mode: static
+  configMap:
+    create: false
+  enableReporting: false
+  extraPorts:
+  - name: thrift-compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: thrift-binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: thrift-http
+    port: 14268
+    targetPort: 14268
+  - name: thrift-grpc
+    port: 14250
+    targetPort: 14250
+  - name: opencensus
+    port: 55678
+    targetPort: 55678
+  - name: oltp-grpc
+    port: 4317
+    targetPort: 4317
+  - name: oltp-http
+    port: 4318
+    targetPort: 4318
+controller:
+  tolerations:
+  - effect: NoSchedule
+    operator: Exists
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitor

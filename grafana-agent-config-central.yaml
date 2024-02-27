@@ -5,7 +5,7 @@ metadata:
   name: grafana-agent
   namespace: observability
 data:
-  agent.yaml: |
+  config.yaml: |
     server:
       log_level: info
     traces:
@@ -14,18 +14,15 @@ data:
         receivers:
           jaeger:
             protocols:
-              grpc:
-              thrift_binary:
-              thrift_compact:
-              thrift_http:
-          opencensus:
+              thrift_http: # For Mimir (port 14268)
+          opencensus: # For Linkerd (port 55678)
           otlp:
             protocols:
-              grpc:
+              grpc: # For Nginx Ingress (port 4317)
         remote_write:
-        - endpoint: tempo-distributor-lgtm-central.tempo.svc:55680
+        - endpoint: tempo-distributor.tempo.svc:55680
           insecure: true
           retry_on_failure:
             enabled: true
           headers:
-            X-Scope-OrgID: remote01
+            X-Scope-OrgID: _local
