@@ -11,6 +11,9 @@ data:
     traces:
       configs:
       - name: kubernetes-traces
+        batch:
+          send_batch_size: 1000
+          timeout: 5s
         receivers:
           jaeger:
             protocols:
