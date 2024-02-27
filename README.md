@@ -12,7 +12,7 @@ We will use Grafana Agent to send traces to Tempo on all environments to have mu
 
 We will use Promtail to send logs to Loki on all environments deployed as a `DaemonSet`.
 
-We will use Prometheus to send metrics to Mimir on all environments.
+We will use Prometheus to send metrics to Mimir on all environments (handling `ServiceMonitor` and `PodMonitor` resources).
 
 We will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`), and another with a sample application, generating metrics, logs, and traces (`lgtm-remote`).
 
@@ -46,7 +46,7 @@ The following is the list of Data Sources on the Central Grafana:
 
 ## Requirements
 
-* [Docker](https://www.docker.com/) ([OrbStack](https://orbstack.dev/) recommend if you're on macOS)
+* [Docker](https://www.docker.com/) ([OrbStack](https://orbstack.dev/) recommended when running on macOS)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Kind](https://kind.sigs.k8s.io/)
 * [Helm](https://helm.sh/)
