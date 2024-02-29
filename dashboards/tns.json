@@ -910,8 +910,8 @@
       {
         "current": {
           "selected": true,
-          "text": "Mimir Remote",
-          "value": "Mimir Remote"
+          "text": "Mimir Remote TNS",
+          "value": "Mimir Remote TNS"
         },
         "hide": 0,
         "includeAll": false,

@@ -15,6 +15,7 @@ POD_CIDR=${POD_CIDR-10.244.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
 MASTER=${CONTEXT}-control-plane
 CILIUM_VERSION=${CILIUM_VERSION-1.15.1}
+HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using OrbStack)
 
 # Abort if the cluster exists; if so, ensure the kubeconfig is exported
 if [[ $(kind get clusters | tr '\n' ' ') = *${CONTEXT}* ]]; then
@@ -47,6 +48,7 @@ networking:
   ipFamily: ipv4
   disableDefaultCNI: true
   kubeProxyMode: none
+  apiServerAddress: ${HOST_IP}
   podSubnet: ${POD_CIDR}
   serviceSubnet: ${SVC_CIDR}
 EOF
@@ -59,7 +61,9 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set l2announcements.enabled=true \
   --set externalIPs.enabled=true \
   --set socketLB.enabled=true \
-  --set socketLB.hostNamespaceOnly=true
+  --set socketLB.hostNamespaceOnly=true \
+  --set k8sClientRateLimit.qps=50 \
+  --set k8sClientRateLimit.burst=100
 
 cilium status --wait
 

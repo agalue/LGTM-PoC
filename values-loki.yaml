@@ -47,7 +47,7 @@ loki:
       shared_store: s3
   schemaConfig:
     configs:
-    - from: '2023-04-01'
+    - from: '2024-02-01'
       store: tsdb
       object_store: s3
       schema: v12
