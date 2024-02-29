@@ -12,7 +12,7 @@ When you install Loki via its Helm chart and you have monitoring enabled (see va
 
 There are dashboards for Tempo, but they need some rework to avoid depending on the `cluster` label, as the `singleBinary` mode is unavailable.
 
-For that reason, there are no dashboards available.
+For that reason, there are no dashboards deployed on this PoC.
 
 ## TNS Application
 
@@ -23,3 +23,28 @@ kubectl --context kind-lgtm-central create cm tns -n observability --from-file=t
 kubectl --context kind-lgtm-central label cm tns -n observability grafana_dashboard=1 release=monitor
 ```
 
+## OTEL Demo Application
+
+The following deploys the dashboards from the OTEL Demo Helm Chart:
+
+```bash
+base_url="https://raw.githubusercontent.com/open-telemetry/opentelemetry-helm-charts/main/charts/opentelemetry-demo/grafana-dashboards/"
+
+dashboards=(
+  "demo-dashboard.json" \
+  "opentelemetry-collector-data-flow.json" \
+  "opentelemetry-collector.json" \
+  "spanmetrics-dashboard.json" \
+)
+
+arguments=()
+for dashboard in ${dashboards[@]}; do
+  wget -O ${dashboard} ${base_url}${dashboard}
+  arguments+="--from-file=${dashboard}"
+done
+
+kubectl --context kind-lgtm-central create cm otel-demo -n observability ${arguments[@]}
+kubectl --context kind-lgtm-central label cm otel-demo -n observability grafana_dashboard=1 release=monitor
+```
+
+> Doing that manually is because we're not deploying Grafana with the OTEL Demo App. Instead, we have it on the central cluster.
