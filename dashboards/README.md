@@ -25,28 +25,17 @@ kubectl --context kind-lgtm-central label cm tns -n observability grafana_dashbo
 
 ## OTEL Demo Application
 
-> *WARNING*: Some of the dashboards assume the presence of a local Prometheus data source as the default, and others use an OpenSearch data source, which won't work when deploying them at the central location. You would have to adjust the content of the affected dashboards to use them.
+Some of the [original](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-demo/grafana-dashboards) dashboards assume the presence of a local Prometheus data source as the default, and others use an OpenSearch data source, which won't work when deploying them at the central location. The provided dashboards were adjusted to work on this environment.
 
 The following deploys the dashboards from the OTEL Demo Helm Chart:
 
 ```bash
-base_url="https://raw.githubusercontent.com/open-telemetry/opentelemetry-helm-charts/main/charts/opentelemetry-demo/grafana-dashboards/"
-
-dashboards=(
-  "demo-dashboard.json" \
-  "opentelemetry-collector-data-flow.json" \
-  "opentelemetry-collector.json" \
-  "spanmetrics-dashboard.json" \
-)
-
-arguments=()
-for dashboard in ${dashboards[@]}; do
-  wget -O ${dashboard} ${base_url}${dashboard}
-  arguments+="--from-file=${dashboard}"
-done
-
-kubectl --context kind-lgtm-central create cm otel-demo -n observability ${arguments[@]}
-kubectl --context kind-lgtm-central label cm otel-demo -n observability grafana_dashboard=1 release=monitor
+kubectl --context kind-lgtm-central create cm otel-demo -n observability \
+  --from-file=otel-demo.json \
+  --from-file=otel-spanmetrics.json \
+  --from-file=otel-collector.json \
+  --from-file=otel-collector-flow.json
+kubectl --context kind-lgtm-central label cm otel-demo -n observability grafana_dashboard=1 
 ```
 
 > Doing that manually is because we're not deploying Grafana with the OTEL Demo App. Instead, we have it on the central cluster.
