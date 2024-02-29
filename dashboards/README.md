@@ -25,6 +25,8 @@ kubectl --context kind-lgtm-central label cm tns -n observability grafana_dashbo
 
 ## OTEL Demo Application
 
+> *WARNING*: Some of the dashboards assume the presence of a local Prometheus data source as the default, and others use an OpenSearch data source, which won't work when deploying them at the central location. You would have to adjust the content of the affected dashboards to use them.
+
 The following deploys the dashboards from the OTEL Demo Helm Chart:
 
 ```bash

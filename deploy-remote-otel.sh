@@ -17,6 +17,8 @@ CLUSTER_ID=${CLUSTER_ID-3}
 POD_CIDR=${POD_CIDR-10.5.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.6.0.0/16}
 
+LINKERD_JAEGER_ENABLED=no # Linkerd Jaeger doesn't support OTLP
+
 echo "Deploying Kubernetes"
 . deploy-kind.sh
 
@@ -58,3 +60,21 @@ helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
 echo "Deploying OpenTelemetry Demo application"
 helm upgrade --install demo open-telemetry/opentelemetry-demo \
   -n otel -f values-opentelemetry-demo.yaml
+kubectl rollout status -n otel daemonset/demo-otelcol-agent
+
+cat <<EOF | kubectl apply -f -
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-otelcol
+  namespace: otel
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otelcol
+EOF

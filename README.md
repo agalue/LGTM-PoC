@@ -8,7 +8,7 @@ When it comes to log aggregation solutions, Loki is a much simpler and easier-to
 
 ![Architecture](architecture-0.png)
 
-We have a central cluster running Grafana's LGTM stack with Linkerd on Kubernetes. Then, several client or remote clusters are connected via Linkerd Multi-Cluster to the central cluster to send metrics, logs, and traces to the LGTM stack.
+We have a central cluster running Grafana's LGTM stack with Linkerd on Kubernetes. Then, several client or remote clusters are connected via Linkerd [Multi-Cluster](https://linkerd.io/2.14/features/multicluster/) to the central cluster to send metrics, logs, and traces to the LGTM stack.
 
 The remote clusters show different possibilities for deploying the solution.
 
@@ -26,9 +26,9 @@ Promtail is deployed as a `DaemonSet` to forward logs to Loki.
 
 When using Prometheus to send metrics to Mimir, the idea is to utilize the CRDs (`ServiceMonitor` and `PodMonitor` resources) to monitor local applications (when deployed with the operator or through the Kube Stack).
 
-For this PoC, we will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`) and another with a sample application, generating metrics, logs, and traces using the [TNS](https://github.com/grafana/tns) Observability Demo App from Grafana (`lgtm-remote`).
+For this PoC, we will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`) and another with a sample application, generating metrics, logs, and traces using the [TNS](https://github.com/grafana/tns) Observability Demo App from Grafana (`lgtm-remote`, based on the first scenario).
 
-Optionally, there is a third cluster running the [OpenTelemetry Demo App](https://opentelemetry.io/docs/demo/), which is configured via Helm to send metrics to the LGTM stack using the OTEL Collector (`lgtm-remote-otel`).
+Optionally, there is a third cluster running the [OpenTelemetry Demo App](https://opentelemetry.io/docs/demo/), which is configured via Helm to send metrics to the LGTM stack using the OTEL Collector (`lgtm-remote-otel`, based on the third scenario).
 
 As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://linkerd.io/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
 
