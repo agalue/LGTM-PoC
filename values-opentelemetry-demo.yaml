@@ -1,0 +1,65 @@
+---
+default:
+  image:
+    tag: latest
+
+opentelemetry-collector:
+  image:
+    tag: latest
+  mode: daemonset
+  presets:
+    logsCollection:
+      enabled: true
+      includeCollectorLogs: false
+  service:
+    enabled: true
+  config:
+    exporters:
+      opensearch: null
+      otlphttp/prometheus: null
+      otlp:
+        endpoint: http://tempo-distributor-lgtm-central.tempo.svc:4317
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+      prometheusremotewrite:
+        endpoint: http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+      loki:
+        endpoint: http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+    processors:
+      spanmetrics:
+        metrics_exporter: prometheusremotewrite
+    service:
+      extensions: [ health_check, memory_ballast ]
+      pipelines:
+        metrics:
+          exporters: [ prometheusremotewrite ]
+        logs:
+          exporters: [ loki ]
+
+jaeger:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+opensearch:
+  enabled: false
+
+components:
+  featureflagService:
+    resources:
+      limits:
+        memory: null

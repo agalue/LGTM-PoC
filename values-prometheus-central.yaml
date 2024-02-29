@@ -42,30 +42,30 @@ grafana:
     datasources.yaml:
       apiVersion: 1
       datasources:
-      - name: Tempo Remote
+      - name: Tempo Remote TNS
         type: tempo
-        uid: tempo_remote_ds
+        uid: tempo_remote_tns_ds
         access: proxy
         url: http://tempo-query-frontend.tempo.svc:3100
         isDefault: false
         editable: true
         jsonData:
           lokiSearch:
-            datasourceUid: loki_remote_ds
+            datasourceUid: loki_remote_tns_ds
           nodeGraph:
             enabled: true
           serviceMap:
-            datasourceUid: mimir_remote_ds
+            datasourceUid: mimir_remote_tns_ds
           tracesToLogs:
-            datasourceUid: loki_remote_ds
+            datasourceUid: loki_remote_tns_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
           manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
-      - name: Loki Remote
+      - name: Loki Remote TNS
         type: loki
-        uid: loki_remote_ds
+        uid: loki_remote_tns_ds
         access: proxy
         url: http://loki-read.loki.svc:3100
         isDefault: false
@@ -73,7 +73,7 @@ grafana:
         jsonData:
           derivedFields:
           - name: TraceID
-            datasourceUid: tempo_remote_ds
+            datasourceUid: tempo_remote_tns_ds
             matcherRegex: traceID=(\w+)
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
@@ -81,9 +81,9 @@ grafana:
           manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
-      - name: Mimir Remote
+      - name: Mimir Remote TNS
         type: prometheus
-        uid: mimir_remote_ds
+        uid: mimir_remote_tns_ds
         isDefault: false
         editable: true
         access: proxy
@@ -94,6 +94,58 @@ grafana:
           manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
+      - name: Tempo Remote OTEL
+        type: tempo
+        uid: tempo_remote_otel_ds
+        access: proxy
+        url: http://tempo-query-frontend.tempo.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          lokiSearch:
+            datasourceUid: loki_remote_otel_ds
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir_remote_otel_ds
+          tracesToLogs:
+            datasourceUid: loki_remote_otel_ds
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Loki Remote OTEL
+        type: loki
+        uid: loki_remote_otel_ds
+        access: proxy
+        url: http://loki-read.loki.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          derivedFields:
+          - name: TraceID
+            datasourceUid: tempo_remote_otel_ds
+            matcherRegex: traceID=(\w+)
+            url: $${__value.raw}
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Mimir Remote OTEL
+        type: prometheus
+        uid: mimir_remote_otel_ds
+        isDefault: false
+        editable: true
+        access: proxy
+        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+          manageAlerts: false
+        secureJsonData:
+          httpHeaderValue1: remote02
       - name: Tempo Local
         type: tempo
         uid: tempo_ds

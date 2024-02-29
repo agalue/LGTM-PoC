@@ -8,14 +8,16 @@ for cmd in "kubectl" "helm" "linkerd" "jq"; do
 done
 
 CENTRAL=${CENTRAL-lgtm-central}
-CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
-CONTEXT=${CONTEXT-lgtm-remote}
+CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-otel}
+CONTEXT=${CONTEXT-lgtm-otel}
 DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-240} # For Cilium L2/LB
 WORKERS=${WORKERS-1}
-CLUSTER_ID=${CLUSTER_ID-2}
-POD_CIDR=${POD_CIDR-10.3.0.0/16}
-SVC_CIDR=${SVC_CIDR-10.4.0.0/16}
+CLUSTER_ID=${CLUSTER_ID-3}
+POD_CIDR=${POD_CIDR-10.5.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.6.0.0/16}
+
+LINKERD_JAEGER_ENABLED=no # Linkerd Jaeger doesn't support OTLP
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -39,7 +41,7 @@ linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
   | kubectl apply --context ${REMOTE_CTX} -f -
 
 echo "Setting up namespaces"
-for ns in observability mimir tempo loki tns; do
+for ns in observability mimir tempo loki otel; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
@@ -50,19 +52,29 @@ metadata:
 EOF
 done
 
-echo "Deploying Prometheus (for Metrics)"
+echo "Deploying Prometheus (for local Kubernetes Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote.yaml \
+  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote-otel.yaml \
   --set prometheusOperator.clusterDomain=$DOMAIN --wait
 
-echo "Deploying Grafana Promtail (for Logs)"
-helm upgrade --install promtail grafana/promtail \
-  -n observability -f values-promtail-common.yaml -f values-promtail-remote.yaml --wait
+echo "Deploying OpenTelemetry Demo application"
+helm upgrade --install demo open-telemetry/opentelemetry-demo \
+  -n otel -f values-opentelemetry-demo.yaml
+kubectl rollout status -n otel daemonset/demo-otelcol-agent
 
-echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f grafana-agent-config-remote.yaml
-helm upgrade --install grafana-agent grafana/grafana-agent \
-  -n observability -f values-agent.yaml --wait
-
-echo "Deploying Grafana TNS application"
-kubectl apply -f grafana-tns-apps.yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-otelcol
+  namespace: otel
+  labels:
+    release: monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otelcol
+EOF

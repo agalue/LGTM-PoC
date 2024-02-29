@@ -92,7 +92,7 @@ spec:
         - name: JAEGER_AGENT_HOST
           value: grafana-agent.observability.svc
         - name: JAEGER_TAGS
-          value: cluster=tns,namespace=tns
+          value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE
           value: const
         - name: JAEGER_SAMPLER_PARAM
@@ -128,7 +128,7 @@ spec:
         - name: JAEGER_AGENT_HOST
           value: grafana-agent.observability.svc
         - name: JAEGER_TAGS
-          value: cluster=tns,namespace=tns
+          value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE
           value: const
         - name: JAEGER_SAMPLER_PARAM
@@ -165,7 +165,7 @@ spec:
         - name: JAEGER_AGENT_HOST
           value: grafana-agent.observability.svc
         - name: JAEGER_TAGS
-          value: cluster=tns,namespace=tns
+          value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE
           value: const
         - name: JAEGER_SAMPLER_PARAM
