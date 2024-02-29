@@ -9,7 +9,7 @@ done
 
 CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-otel}
-CONTEXT=${CONTEXT-lgtm-otel}
+CONTEXT=${CONTEXT-lgtm-remote-otel}
 DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-240} # For Cilium L2/LB
 WORKERS=${WORKERS-1}
