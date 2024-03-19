@@ -19,7 +19,8 @@ loki:
   commonConfig: null
   structuredConfig:
     ruler:
-      alertmanager_url: http://monitor-alertmanager:9093
+      alertmanager_url: http://monitor-alertmanager.observability.svc:9093
+      enable_alertmanager_v2: true
       enable_sharding: true
       storage:
         type: s3

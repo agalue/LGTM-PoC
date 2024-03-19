@@ -37,10 +37,6 @@ mimir:
       instance_limits:
         max_ingestion_rate: 30000 # Per-distributor rate limit
         max_inflight_push_requests: 250
-    ingester:
-      ring:
-        num_tokens: 512
-        unregister_on_shutdown: false
     frontend:
       log_queries_longer_than: 1m
     limits:
@@ -52,6 +48,8 @@ mimir:
       # https://grafana.com/docs/mimir/latest/operators-guide/configure/configure-out-of-order-samples-ingestion/
       out_of_order_time_window: 15m
       max_cache_freshness: 15m
+    ruler:
+      alertmanager_url: http://monitor-alertmanager.observability.svc:9093
     blocks_storage:
       s3:
         bucket_name: mimir-data
@@ -60,7 +58,7 @@ mimir:
         bucket_name: mimir-ruler
     alertmanager_storage:
       s3:
-        bucket_name: mimir-ruler
+        bucket_name: mimir-alerts
 
 runtimeConfig:
   ingester_limits:

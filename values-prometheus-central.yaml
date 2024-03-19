@@ -1,6 +1,7 @@
 ---
 prometheus:
   prometheusSpec:
+    enableRemoteWriteReceiver: true # For Tempo Metrics Generator
     remoteWrite:
     - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
       headers:
@@ -60,7 +61,6 @@ grafana:
             datasourceUid: loki_remote_tns_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
       - name: Loki Remote TNS
@@ -78,7 +78,6 @@ grafana:
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
       - name: Mimir Remote TNS
@@ -91,7 +90,6 @@ grafana:
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
       - name: Tempo Remote OTEL
@@ -112,7 +110,6 @@ grafana:
             datasourceUid: loki_remote_otel_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote02
       - name: Loki Remote OTEL
@@ -130,7 +127,6 @@ grafana:
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote02
       - name: Mimir Remote OTEL
@@ -143,7 +139,6 @@ grafana:
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote02
       - name: Tempo Local
@@ -164,7 +159,6 @@ grafana:
             datasourceUid: loki_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
       - name: Loki Local
@@ -182,7 +176,6 @@ grafana:
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
       - name: Mimir Local
@@ -195,7 +188,6 @@ grafana:
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
   dashboardProviders:
