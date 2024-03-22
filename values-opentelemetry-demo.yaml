@@ -6,7 +6,7 @@ default:
 opentelemetry-collector:
   image:
     tag: latest
-  mode: daemonset
+  mode: deployment
   presets:
     logsCollection:
       enabled: true
@@ -35,16 +35,21 @@ opentelemetry-collector:
           insecure: true # Linkerd uses mTLS behind the scenes
         headers:
           X-Scope-OrgID: remote02
-    processors:
-      spanmetrics:
-        metrics_exporter: prometheusremotewrite
     service:
-      extensions: [ health_check, memory_ballast ]
+      extensions:
+      - health_check
+      - memory_ballast
       pipelines:
         metrics:
-          exporters: [ prometheusremotewrite ]
+          receivers:
+          - otlp
+          - spanmetrics
+          - prometheus
+          exporters:
+          - prometheusremotewrite
         logs:
-          exporters: [ loki ]
+          exporters:
+          - loki
 
 jaeger:
   enabled: false
