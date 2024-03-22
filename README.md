@@ -207,7 +207,7 @@ kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-contr
 If you're using Docker for Desktop on macOS, I created a script to deploy HAProxy which allows you to access the Ingress Service via localhost:
 
 ```bash
-./deploy-proxy
+./deploy-proxy.sh
 ```
 
 In that case, use `127.0.0.1` when modifying `/etc/hosts` instead of the LB IP.

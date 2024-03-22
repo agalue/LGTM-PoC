@@ -84,13 +84,12 @@ helm upgrade --install mimir grafana/mimir-distributed \
 kubectl rollout status -n mimir deployment/mimir-distributor
 kubectl rollout status -n mimir deployment/mimir-query-frontend
 
+echo "Create Ingress resources"
+kubectl apply -f ingress-central.yaml
+
 echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   -n ingress-nginx --create-namespace -f values-ingress.yaml --wait
-sleep 10 # Give some extra time to avoid issues with ingress webhooks
-
-echo "Create Ingress resources"
-kubectl apply -f ingress-central.yaml
 
 echo "Exporting Services via Linkerd Multicluster"
 kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
