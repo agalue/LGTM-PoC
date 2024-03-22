@@ -67,7 +67,7 @@ grafana:
         type: loki
         uid: loki_remote_tns_ds
         access: proxy
-        url: http://loki-read.loki.svc:3100
+        url: http://loki-gateway.loki.svc
         isDefault: false
         editable: true
         jsonData:
@@ -86,7 +86,7 @@ grafana:
         isDefault: false
         editable: true
         access: proxy
-        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        url: http://mimir-gateway.mimir.svc/prometheus
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
@@ -116,7 +116,7 @@ grafana:
         type: loki
         uid: loki_remote_otel_ds
         access: proxy
-        url: http://loki-read.loki.svc:3100
+        url: http://loki-gateway.loki.svc
         isDefault: false
         editable: true
         jsonData:
@@ -135,7 +135,7 @@ grafana:
         isDefault: false
         editable: true
         access: proxy
-        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        url: http://mimir-gateway.mimir.svc/prometheus
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
@@ -165,7 +165,7 @@ grafana:
         type: loki
         uid: loki_ds
         access: proxy
-        url: http://loki-read.loki.svc:3100
+        url: http://loki-gateway.loki.svc
         isDefault: false
         editable: true
         jsonData:
@@ -184,7 +184,7 @@ grafana:
         isDefault: false
         editable: true
         access: proxy
-        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        url: http://mimir-gateway.mimir.svc/prometheus
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST

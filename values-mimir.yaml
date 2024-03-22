@@ -1,7 +1,5 @@
 # Warning: there won't be any resource requests/limits for any Mimir-related container
 ---
-fullnameOverride: mimir
-
 serviceAccount: # There is no way to set an account per component
   create: true
   name: mimir-sa
@@ -44,10 +42,17 @@ mimir:
       max_global_series_per_user: 1000000 # To accomodate one big tenant
       max_global_series_per_metric: 100000
       max_label_names_per_series: 100
+      cardinality_analysis_enabled: true
+      compactor_blocks_retention_period: 2h
       # Allow ingestion of out-of-order samples up to 15 minutes since the latest received sample for the series.
       # https://grafana.com/docs/mimir/latest/operators-guide/configure/configure-out-of-order-samples-ingestion/
       out_of_order_time_window: 15m
       max_cache_freshness: 15m
+    compactor:
+      block_ranges:
+      - 30m
+      - 1h
+      - 2h
     ruler:
       alertmanager_url: http://monitor-alertmanager.observability.svc:9093
     blocks_storage:
@@ -66,8 +71,8 @@ runtimeConfig:
     max_ingestion_rate: 30000
     max_series: 1000000
 
-nginx:
-  enabled: false
+gateway:
+  enabledNonEnterprise: true
 
 minio:
   enabled: false
@@ -130,7 +135,7 @@ query_frontend:
     command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 1; done']
 
 query_scheduler:
-  enabled: false
+  replicas: 2
 
 store_gateway:
   replicas: 3
@@ -184,7 +189,6 @@ results-cache:
 metaMonitoring:
   serviceMonitor:
     enabled: true
-    clusterLabel: central
     labels:
       release: monitor
   dashboards:

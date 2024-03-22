@@ -37,6 +37,10 @@ alertmanager: # Required to be notified on alerts managed by Prometheus
             requests:
               storage: 1Gi
 
+prometheus-node-exporter:
+  podAnnotations:
+    linkerd.io/inject: enabled
+
 prometheusOperator:
   serviceAccount:
     create: true

@@ -26,7 +26,13 @@ fi
 
 WORKER_YAML=""
 for ((i = 1; i <= WORKERS; i++)); do
-  WORKER_YAML+="- role: worker"$'\n'
+  WORKER_YAML+=$(cat <<EOF
+- role: worker
+  labels:
+    topology.kubernetes.io/region: ${CONTEXT}
+    topology.kubernetes.io/zone: zone${i}
+EOF
+)$'\n'
 done
 
 # Deploy Kind Cluster
@@ -42,7 +48,7 @@ nodes:
     apiVersion: kubeadm.k8s.io/v1beta3
     kind: ClusterConfiguration
     networking:
-      dnsDomain: "${CONTEXT}.cluster.local"
+      dnsDomain: ${CONTEXT}.cluster.local
 ${WORKER_YAML}
 networking:
   ipFamily: ipv4
@@ -65,7 +71,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set k8sClientRateLimit.qps=50 \
   --set k8sClientRateLimit.burst=100
 
-cilium status --wait
+cilium status --wait --ignore-warnings
 
 NETWORK=$(docker network inspect kind \
   | jq -r '.[0].IPAM.Config[] | select(.Gateway != null) | .Subnet')
