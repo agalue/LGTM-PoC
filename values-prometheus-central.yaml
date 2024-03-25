@@ -59,6 +59,26 @@ grafana:
     enabled: true
     labels:
       release: monitor
+  alerting:
+    policies.yaml:
+      apiVersion: 1
+      policies:
+      - orgId: 1
+        receiver: external-alertmanager
+        group_by:
+        - grafana_folder
+        - alertname
+    contactpoints.yaml:
+      apiVersion: 1
+      contactPoints:
+      - orgId: 1
+        name: external-alertmanager
+        receivers:
+        - uid: external_alertmanager_uid
+          type: prometheus-alertmanager
+          disableResolveMessage: false
+          settings:
+            url: http://monitor-alertmanager.observability.svc:9093
   datasources:
     datasources.yaml:
       apiVersion: 1
