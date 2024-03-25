@@ -14,6 +14,9 @@ prometheus:
       - sourceLabels: [namespace]
         regex: "^linkerd.*"
         action: drop
-
-grafana:
-  enabled: false
+    alertingEndpoints:
+    - name: monitor-alertmanager-lgtm-central
+      namespace: observability
+      port: 9093
+      pathPrefix: "/"
+      apiVersion: v2

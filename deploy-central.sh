@@ -95,6 +95,7 @@ echo "Exporting Services via Linkerd Multicluster"
 kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
 kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
 kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
+kubectl -n observability label service/monitor-alertmanager mirror.linkerd.io/exported=true
 
 # Update DNS
 INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
