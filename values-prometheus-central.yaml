@@ -55,6 +55,10 @@ grafana:
       enable: tempoSearch tempoBackendSearch tempoApmTable traceqlEditor
     server:
       domain: grafana.example.com # Ensure to use the correct domain / Will be used for Ingress
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitor
   datasources:
     datasources.yaml:
       apiVersion: 1
