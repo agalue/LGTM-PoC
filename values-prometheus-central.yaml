@@ -1,4 +1,19 @@
 ---
+alertmanager: # Required to be notified on alerts managed by Prometheus
+  enabled: true
+  serviceAccount:
+    create: true
+    name: alertmanager-sa
+  alertmanagerSpec:
+    resources: null
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+
 prometheus:
   prometheusSpec:
     enableRemoteWriteReceiver: true # For Tempo Metrics Generator
@@ -17,6 +32,7 @@ prometheus:
         action: drop
 
 grafana:
+  enabled: true
   adminPassword: Adm1nAdm1n
   serviceAccount:
     create: true

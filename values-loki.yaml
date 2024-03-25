@@ -43,9 +43,11 @@ loki:
         prefix: loki_index_
   limits_config:
     ingestion_rate_mb: 10
-    retention_period: 2h
+    retention_period: 7d # Global Metrics TTL
   ingester:
-    max_chunk_age: 30m
+    max_chunk_age: 1h
+  querier:
+    query_ingesters_within: 2h
   compactor:
     working_directory: /var/loki/compactor
     shared_store: s3

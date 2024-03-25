@@ -6,6 +6,7 @@ cleanPrometheusOperatorObjectNames: true
 
 defaultRules:
   rules:
+    alertmanager: false
     etcd: false
     kubeControllerManager: false
     kubeScheduler: false
@@ -23,19 +24,11 @@ kubeScheduler:
 kubeProxy:
   enabled: false
 
-alertmanager: # Required to be notified on alerts managed by Prometheus
-  serviceAccount:
-    create: true
-    name: alertmanager-sa
-  alertmanagerSpec:
-    resources: null
-    storage:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 1Gi
+alertmanager:
+  enabled: false
+
+grafana:
+  enabled: false
 
 prometheus-node-exporter:
   podAnnotations:

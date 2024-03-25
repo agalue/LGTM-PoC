@@ -17,7 +17,7 @@ multitenancyEnabled: true
 compactor:
   config:
     compaction:
-      block_retention: 2h
+      block_retention: 48h # Global Metrics TTL
 
 traces:
   otlp:
@@ -40,6 +40,11 @@ distributor:
 
 queryFrontend:
   replicas: 2
+  config:
+    search:
+      # The following are defaults but show how to control where to query
+      query_backend_after: 15m
+      query_ingesters_until: 30m
 
 querier:
   replicas: 3

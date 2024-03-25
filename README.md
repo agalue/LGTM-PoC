@@ -143,7 +143,7 @@ Status check results are √
 ```bash
 ➜  linkerd mc gateways --context kind-lgtm-remote
 CLUSTER       ALIVE    NUM_SVC      LATENCY
-lgtm-central  True           3          2ms
+lgtm-central  True           4          2ms
 ```
 
 When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI will use the Kubeconfig from the `lgtm-central` to configure the service mirror controller on the `lgtm-remote` cluster.
