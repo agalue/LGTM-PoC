@@ -4,6 +4,9 @@ nameOverride: monitor
 fullnameOverride: monitor
 cleanPrometheusOperatorObjectNames: true
 
+crds:
+  enabled: false
+
 defaultRules:
   rules:
     alertmanager: false
