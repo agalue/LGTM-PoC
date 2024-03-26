@@ -30,7 +30,7 @@ echo "Deploying Kubernetes"
 . deploy-kind.sh
 
 echo "Deploying Prometheus CRDs"
-. deploy-prometheus-crds.sh
+helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
 echo "Deploying Cert-Manager"
 helm upgrade --install cert-manager jetstack/cert-manager \

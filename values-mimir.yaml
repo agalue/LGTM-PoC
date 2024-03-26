@@ -38,7 +38,7 @@ mimir:
     frontend:
       log_queries_longer_than: 1m
     querier:
-      query_store_after: 3h # < query_ingesters_within
+      query_store_after: 3h # < query_ingesters_within (default: 12h)
     limits:
       ingestion_rate: 30000 # Per-user rate limit
       max_global_series_per_user: 1000000 # To accomodate one big tenant
@@ -46,22 +46,18 @@ mimir:
       max_label_names_per_series: 100
       cardinality_analysis_enabled: true
       compactor_blocks_retention_period: 7d # Global Metrics TTL
-      query_ingesters_within: 4h # > query_store_after
+      query_ingesters_within: 4h # > query_store_after (default: 13h)
       # Allow ingestion of out-of-order samples up to X minutes since the latest received sample for the series.
       # https://grafana.com/docs/mimir/latest/operators-guide/configure/configure-out-of-order-samples-ingestion/
       out_of_order_time_window: 15m
       max_cache_freshness: 15m
-    compactor:
-      block_ranges:
-      - 1h
-      - 2h
-      - 4h
-      - 24h
     ruler:
       alertmanager_url: http://monitor-alertmanager.observability.svc:9093
     blocks_storage:
+      bucket_store:
+        ignore_blocks_within: 3h # < query_store_after (default: 10h)
       tsdb:
-        retention_period: 6h # > query_store_after
+        retention_period: 6h # > query_store_after (default: 13h)
       s3:
         bucket_name: mimir-data
     ruler_storage:
