@@ -1,12 +1,9 @@
 ---
-default:
-  image:
-    tag: latest
-
 opentelemetry-collector:
-  image:
-    tag: latest
   mode: deployment
+  resources:
+    limits:
+      memory: 512Mi
   presets:
     logsCollection:
       enabled: true
@@ -39,16 +36,31 @@ opentelemetry-collector:
       tail_sampling:
         policies:
           [
+            # forward all traces with errors
             {
               name: errors-policy,
               type: status_code,
-              status_code: { status_codes: [ERROR] },
+              status_code: { status_codes: [ERROR] }
             },
+            # forward only the 30% of successful traces with latency over 50ms
             {
-              name: randomized-policy,
-              type: probabilistic,
-              probabilistic: { sampling_percentage: 30 },
-            },
+              name: long-traces-policy,
+              type: and,
+              and: {
+                and_sub_policy: [
+                  {
+                    name: latency-policy,
+                    type: latency,
+                    latency: { threshold_ms: 50 }
+                  },
+                  {
+                    name: randomized-policy,
+                    type: probabilistic,
+                    probabilistic: { sampling_percentage: 30 }
+                  }
+                ]
+              }
+            }
           ]
     service:
       pipelines:
@@ -64,9 +76,9 @@ opentelemetry-collector:
         traces:
           processors:
           - k8sattributes
+          - tail_sampling
           - memory_limiter
           - resource
-          - tail_sampling
           - batch
           exporters:
           - otlp
@@ -83,6 +95,7 @@ grafana:
 opensearch:
   enabled: false
 
+# Patches to avoid runtime issues
 components:
   featureflagService:
     resources:
