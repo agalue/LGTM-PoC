@@ -10,9 +10,18 @@ When you install Loki via its Helm chart and you have monitoring enabled (see va
 
 ## Tempo
 
-There are dashboards for Tempo, but they need some rework to avoid depending on the `cluster` label, as the `singleBinary` mode is unavailable.
+The Helm chart doesn't provide dashboards by default like Mimir or Loki, so the following helps to deploy the generated dashboards from Tempo's source code (see [here](https://github.com/grafana/tempo/tree/main/operations/tempo-mixin-compiled)):
 
-For that reason, there are no dashboards deployed on this PoC.
+```bash
+tempoUrl="https://raw.githubusercontent.com/grafana/tempo/main/operations/tempo-mixin-compiled/dashboards"
+for id in "operational" "reads" "resources" "rollout-progress" "tenants" "writes"; do
+  dashboard="tempo-${id}.json"
+  wget --quiet ${tempoUrl}/${dashboard}
+  kubectl create cm dashboard-${id} -n tempo --from-file=${dashboard}
+  kubectl label cm dashboard-${id} -n tempo grafana_dashboard=1
+done
+rm -f tempo-*.json
+```
 
 ## TNS Application
 
