@@ -25,9 +25,11 @@ kubectl --context kind-lgtm-central label cm tns -n observability grafana_dashbo
 
 ## OTEL Demo Application
 
-Some of the [original](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-demo/grafana-dashboards) dashboards assume the presence of a local Prometheus data source as the default, and others use an OpenSearch data source, which won't work when deploying them at the central location. The provided dashboards were adjusted to work on this environment.
+> *WARNING:* Consider the following a work in progress.
 
-The following deploys the dashboards from the OTEL Demo Helm Chart:
+Some of the [original](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-demo/grafana-dashboards) dashboards assume a local Prometheus data source as the default, and others use an OpenSearch data source, which won't work when deploying them at the central location. This is mainly because the OTEL Demo deploys Prometheus and Grafana by default, but we're not using those instances in this PoC.
+
+The following deploys adjusted versions of the dashboards from the OTEL Demo Helm Chart to work on this environment:
 
 ```bash
 kubectl --context kind-lgtm-central create cm otel-demo -n observability \
@@ -37,5 +39,3 @@ kubectl --context kind-lgtm-central create cm otel-demo -n observability \
   --from-file=otel-collector-flow.json
 kubectl --context kind-lgtm-central label cm otel-demo -n observability grafana_dashboard=1 
 ```
-
-> Doing that manually is because we're not deploying Grafana with the OTEL Demo App. Instead, we have it on the central cluster.
