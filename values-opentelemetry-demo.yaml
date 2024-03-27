@@ -35,21 +35,41 @@ opentelemetry-collector:
           insecure: true # Linkerd uses mTLS behind the scenes
         headers:
           X-Scope-OrgID: remote02
+    processors:
+      tail_sampling:
+        policies:
+          [
+            {
+              name: errors-policy,
+              type: status_code,
+              status_code: { status_codes: [ERROR] },
+            },
+            {
+              name: randomized-policy,
+              type: probabilistic,
+              probabilistic: { sampling_percentage: 30 },
+            },
+          ]
     service:
-      extensions:
-      - health_check
-      - memory_ballast
       pipelines:
         metrics:
           receivers:
           - otlp
-          - spanmetrics
           - prometheus
           exporters:
           - prometheusremotewrite
         logs:
           exporters:
           - loki
+        traces:
+          processors:
+          - k8sattributes
+          - memory_limiter
+          - resource
+          - tail_sampling
+          - batch
+          exporters:
+          - otlp
 
 jaeger:
   enabled: false
@@ -65,6 +85,10 @@ opensearch:
 
 components:
   featureflagService:
+    resources:
+      limits:
+        memory: null
+  loadgenerator:
     resources:
       limits:
         memory: null
