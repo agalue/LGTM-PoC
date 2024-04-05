@@ -1,5 +1,8 @@
 # Warning: there won't be any resource requests/limits for any Mimir-related container
 ---
+image:
+  tag: 2.12.0 # Force latest version until the chart is updated
+
 serviceAccount: # There is no way to set an account per component
   create: true
   name: mimir-sa
@@ -86,6 +89,7 @@ overrides_exporter:
   resources: {}
 
 ruler:
+  replicas: 2
   resources: {}
   initContainers:
   - name: wait-chunks
