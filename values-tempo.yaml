@@ -89,8 +89,3 @@ metaMonitoring:
     enabled: true
     labels:
       release: monitor
-
-prometheusRule:
-  enabled: true
-  labels:
-    release: monitor

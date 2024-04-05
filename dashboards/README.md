@@ -13,14 +13,28 @@ When you install Loki via its Helm chart and you have monitoring enabled (see va
 The Helm chart doesn't provide dashboards by default like Mimir or Loki, so the following helps to deploy the generated dashboards from Tempo's source code (see [here](https://github.com/grafana/tempo/tree/main/operations/tempo-mixin-compiled)):
 
 ```bash
-tempoUrl="https://raw.githubusercontent.com/grafana/tempo/main/operations/tempo-mixin-compiled/dashboards"
+tempoUrl="https://raw.githubusercontent.com/grafana/tempo/main/operations/tempo-mixin-compiled"
+for id in "rules" "alerts"; do
+  cat <<EOF > tempo-${id}.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tempo-${id}
+  namespace: tempo
+  labels:
+    release: monitor
+spec:
+EOF
+  wget -qO- ${tempoUrl}/${id}.yaml | sed 's/^/  /' >> tempo-${id}.yaml
+  kubectl apply -f tempo-${id}.yaml
+done
 for id in "operational" "reads" "resources" "rollout-progress" "tenants" "writes"; do
   dashboard="tempo-${id}.json"
-  wget --quiet ${tempoUrl}/${dashboard}
+  wget --quiet ${tempoUrl}/dashboards/${dashboard}
   kubectl create cm dashboard-${id} -n tempo --from-file=${dashboard}
   kubectl label cm dashboard-${id} -n tempo grafana_dashboard=1
 done
-rm -f tempo-*.json
+rm -f tempo-*.*
 ```
 
 ## TNS Application
