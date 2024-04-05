@@ -1,13 +1,13 @@
 ---
 opentelemetry-collector:
-  mode: daemonset
+  mode: deployment # using single-instance due to tail sampling
   resources:
     limits:
       memory: 512Mi
   presets:
     logsCollection:
-      enabled: true
-      includeCollectorLogs: true
+      enabled: false
+      includeCollectorLogs: false
   service:
     enabled: true
   config:
