@@ -5,12 +5,15 @@ metadata:
   name: grafana-agent
   namespace: observability
 data:
-  agent.yaml: |
+  config.yaml: |
     server:
-      log_level: debug
+      log_level: info
     traces:
       configs:
       - name: kubernetes-traces
+        batch:
+          send_batch_size: 1000
+          timeout: 5s
         receivers:
           jaeger:
             protocols:
@@ -22,6 +25,7 @@ data:
           otlp:
             protocols:
               grpc:
+              http:
         remote_write:
         - endpoint: tempo-distributor-lgtm-central.tempo.svc:55680
           insecure: true

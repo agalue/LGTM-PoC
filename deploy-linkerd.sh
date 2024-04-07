@@ -9,6 +9,9 @@ done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
 DOMAIN=${DOMAIN-}
+LINKERD_HA=${LINKERD_HA-no}
+LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
+LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-yes}
 
 if [[ "$CERT_ISSUER_ID" == "" ]]; then
   echo "CERT_ISSUER_ID env-var required"
@@ -37,11 +40,18 @@ if [ ! -f "$CERT_ISSUER_ID.crt" ]; then
   exit 1
 fi
 
+echo "Update kube-system namespace"
+kubectl label ns kube-system config.linkerd.io/admission-webhooks=disabled
+
 echo "Deploying Linkerd CRDs"
 helm upgrade --install linkerd-crds linkerd/linkerd-crds \
   --namespace linkerd --create-namespace
 
 echo "Deploying Linkerd"
+helm_values_args=("-f" "values-linkerd.yaml")
+if [[ "$LINKERD_HA" == "yes" ]]; then
+  helm_values_args+=("-f" "values-linkerd-ha.yaml")
+fi
 helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
   --namespace linkerd \
   --set clusterDomain=$DOMAIN \
@@ -50,7 +60,7 @@ helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
   --set-file identity.issuer.tls.crtPEM=$CERT_ISSUER_ID.crt \
   --set-file identity.issuer.tls.keyPEM=$CERT_ISSUER_ID.key \
   --set identity.issuer.crtExpiry=$CERT_EXPIRY_DATE \
-  -f values-linkerd.yaml \
+  ${helm_values_args[@]} \
   --wait
 
 echo "Update PodMonitor resources"
@@ -58,20 +68,24 @@ for obj in "controller" "proxy" "service-mirror"; do
   kubectl label -n linkerd podmonitor/linkerd-$obj release=monitor
 done
 
-echo "Deploying Linkerd-Viz"
-helm upgrade --install linkerd-viz linkerd/linkerd-viz \
+# Requires Prometheus
+if [[ "$LINKERD_VIZ_ENABLED" == "yes" ]]; then
+  echo "Deploying Linkerd-Viz"
+  helm upgrade --install linkerd-viz linkerd/linkerd-viz \
   --namespace linkerd-viz --create-namespace \
   --set clusterDomain=$DOMAIN \
   --set identityTrustDomain=$DOMAIN \
   --set grafana.enabled=false \
   --set prometheus.enabled=false \
   --set prometheusUrl=http://monitor-prometheus.observability.svc:9090 \
-  --set grafana.externalUrl=https://grafana.example.com \
   --set dashboard.enforcedHostRegexp=".*" \
   --wait
+fi
 
-echo "Deploying Linkerd-Jaeger via Grafana Agent"
-helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
+# Requires Grafana Agent
+if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
+  echo "Deploying Linkerd-Jaeger via Grafana Agent"
+  helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
   --namespace linkerd-jaeger --create-namespace \
   --set clusterDomain=$DOMAIN \
   --set collector.enabled=false \
@@ -79,6 +93,7 @@ helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
   --set webhook.collectorSvcAddr=grafana-agent.observability.svc:55678 \
   --set webhook.collectorSvcAccount=grafana-agent \
   --wait
+fi
 
 echo "Deploying Linkerd Multicluster"
 helm upgrade --install linkerd-multicluster linkerd/linkerd-multicluster \

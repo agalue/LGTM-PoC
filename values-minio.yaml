@@ -44,6 +44,10 @@ buckets:
   policy: none
   purge: false
   versioning: false
+- name: mimir-alerts
+  policy: none
+  purge: false
+  versioning: false
 
 postJob:
   podAnnotations:

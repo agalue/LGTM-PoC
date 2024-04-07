@@ -17,6 +17,7 @@ WORKERS_MEMORY=${WORKERS_MEMORY-4}
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.1.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.2.0.0/16}
+LINKERD_HA=${LINKERD_HA-yes}
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -32,7 +33,7 @@ echo "Deploying Kubernetes"
 . deploy-k3s.sh
 
 echo "Deploying Prometheus CRDs"
-. deploy-prometheus-crds.sh
+helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
 echo "Deploying Cert-Manager"
 helm upgrade --install cert-manager jetstack/cert-manager \
@@ -76,8 +77,9 @@ helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f values-promtail-central.yaml --wait
 
 echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f remote-agent-config-central.yaml
-kubectl apply -f remote-agent.yaml
+kubectl apply -f grafana-agent-config-central.yaml
+helm upgrade --install grafana-agent grafana/grafana-agent \
+  -n observability -f values-agent.yaml --wait
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
@@ -85,19 +87,18 @@ helm upgrade --install mimir grafana/mimir-distributed \
 kubectl rollout status -n mimir deployment/mimir-distributor
 kubectl rollout status -n mimir deployment/mimir-query-frontend
 
-echo "Deploying Nginx Ingress Controller"
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  -n ingress-nginx --create-namespace -f values-ingress.yaml
-kubectl rollout status -n ingress-nginx deployment/ingress-nginx-controller
-sleep 5 # Give some extra time to avoid issues with ingress webhooks
-
 echo "Create Ingress resources"
 kubectl apply -f ingress-central.yaml
+
+echo "Deploying Nginx Ingress Controller"
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  -n ingress-nginx --create-namespace -f values-ingress.yaml --wait
 
 echo "Exporting Services via Linkerd Multicluster"
 kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
 kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
 kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
+kubectl -n observability label service/monitor-alertmanager mirror.linkerd.io/exported=true
 
 # Update DNS
 INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')

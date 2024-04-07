@@ -8,19 +8,33 @@ When it comes to log aggregation solutions, Loki is a much simpler and easier-to
 
 ![Architecture](architecture-0.png)
 
-We will use Grafana Agent to send traces to Tempo on all environments to have multi-tenancy on traces, deployed as a `Deployment`.
+We have a central cluster running Grafana's LGTM stack with Linkerd on Kubernetes. Then, several client or remote clusters are connected via Linkerd [Multi-Cluster](https://linkerd.io/2.14/features/multicluster/) to the central cluster to send metrics, logs, and traces to the LGTM stack.
 
-We will use Promtail to send logs to Loki on all environments deployed as a `DaemonSet`.
+The remote clusters show different possibilities for deploying the solution.
 
-We will use Prometheus to send metrics to Mimir on all environments.
+In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir (via Linkerd MC). Similarly, we have Promtail for logs (forwarding data to central Loki) and Grafana Agent for traces (forwarding data to central Tempo).
 
-We will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`), and another with a sample application, generating metrics, logs, and traces (`lgtm-remote`).
+In the second scenario, we have Grafana Agent either on [static](https://grafana.com/docs/agent/latest/static/) or [flow](https://grafana.com/docs/agent/latest/flow/) mode handling all the observability data (metrics, logs, and traces) and forward it to the LGTM stack.
+
+In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
+
+Each cluster (including the central one) will be a tenant on Mimir, Loki, and Tempo to separate the data from each other.
+
+Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Promtail doing the same for logs to Loki, and Grafana Agent for traces to Tempo. Technically speaking, we don't need Grafana Agent on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
+
+Promtail is deployed as a `DaemonSet` to forward logs to Loki.
+
+When using Prometheus to send metrics to Mimir, the idea is to utilize the CRDs (`ServiceMonitor` and `PodMonitor` resources) to monitor local applications (when deployed with the operator or through the Kube Stack).
+
+For this PoC, we will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`) and another with a sample application, generating metrics, logs, and traces using the [TNS](https://github.com/grafana/tns) Observability Demo App from Grafana (`lgtm-remote`, based on the first scenario).
+
+Optionally, there is a third cluster running the [OpenTelemetry Demo App](https://opentelemetry.io/docs/demo/), which is configured via Helm to send metrics to the LGTM stack using the OTEL Collector (`lgtm-remote-otel`, based on the third scenario).
 
 As Zero Trust is becoming more important nowadays, we'll use [Linkerd](https://linkerd.io/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
 
-![Architecture](architecture-1.png)
+![Linkerd MC Architecture](architecture-1.png)
 
-We will use [K3s](https://k3s.io/) via [Multipass](https://multipass.run/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as a L2/LB implementation, mainly because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service. For each cluster, we'll have a different Cluster Domain.
+We will use [Kind](https://kind.sigs.k8s.io/) via [Docker](https://www.docker.com/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as an L2/LB, mainly because the Linkerd Gateway for Multi-Cluster requires a Load Balancer service (that way we wouldn't need MetalLB). For each cluster, we'll have a different Cluster Domain.
 
 For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` for the Public IPs extracted from the Master Server IP on each case.
 
@@ -40,14 +54,23 @@ The following is the list of Data Sources on the Central Grafana:
 * `Tempo Local` to get traces from the local cluster.
 * `Loki Local` to get logs from the local cluster.
 
-* `Mimir Remote` to get metrics from the remote cluster.
-* `Tempo Remote` to get traces from the remote cluster.
-* `Loki Remote` to get logs from the remote cluster.
+If you're running the remote cluster with the TNS Demo Application:
+
+* `Mimir Remote TNS` to get metrics from the remote cluster.
+* `Tempo Remote TNS` to get traces from the remote cluster.
+* `Loki Remote TNS` to get logs from the remote cluster.
+
+If you're running the remote cluster with the OTEL Demo Application:
+
+* `Mimir Remote OTEL` to get metrics from the second remote cluster running the OTEL Demo.
+* `Tempo Remote OTEL` to get traces from the second remote cluster running the OTEL Demo.
+* `Loki Remote OTEL` to get logs from the second remote cluster running the OTEL Demo.
 
 ## Requirements
 
-* [Multipass](https://multipass.run/)
+* Docker (I recommend [OrbStack](https://orbstack.dev/) if you're on macOS)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+* [Kind](https://kind.sigs.k8s.io/)
 * [Helm](https://helm.sh/)
 * [Step CLI](https://smallstep.com/docs/step-cli)
 * [Linkerd CLI](https://linkerd.io/2.14/getting-started/#step-1-install-the-cli)
@@ -64,17 +87,24 @@ The solution has been designed and tested only on an Intel-based Mac and a Linux
 ./deploy-certs.sh
 ```
 
-* Deploy Central Cluster with LGTM stack (K8s context: `lgtm-central`):
+* To deploy Central Cluster with LGTM stack (K8s context: `lgtm-central`), run the following:
 
 ```bash
 ./deploy-central.sh
 ```
 
-* Deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote`):
+* To deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote`), run the following:
 
 ```bash
 ./deploy-remote.sh
 ```
+
+* To deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote-otel`), run the following:
+
+```bash
+./deploy-remote-otel.sh
+```
+> Note that running both remote clusters simultaneously would require having enough resources on your machine.
 
 ## Validation
 
@@ -117,7 +147,7 @@ Status check results are √
 ```bash
 ➜  linkerd mc gateways --context lgtm-remote
 CLUSTER       ALIVE    NUM_SVC      LATENCY
-lgtm-central  True           3          2ms
+lgtm-central  True           4          2ms
 ```
 
 When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI will use the Kubeconfig from the `lgtm-central` to configure the service mirror controller on the `lgtm-remote` cluster.
@@ -167,6 +197,8 @@ Another service account called `linkerd-service-mirror-lgtm-central` for the mir
 
 So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in the remote cluster (where you created the link from).
 
+> If you're using the OpenTelemetry Demo cluster, replace `lgtm-remote` with `lgtm-remote-otel`.
+
 ### LGTM Stack
 
 If you're running on Linux or macOS with OrbStack, you should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
@@ -176,16 +208,30 @@ kubectl get svc --context lgtm-central -n ingress-nginx ingress-nginx-controller
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
+If you're using Docker for Desktop on macOS, I created a script to deploy HAProxy which allows you to access the Ingress Service via localhost:
+
+```bash
+./deploy-proxy
+```
+
+In that case, use `127.0.0.1` when modifying `/etc/hosts` instead of the LB IP.
+
 Then, access the Grafana WebUI available at `https://grafana.example.com` and accept the warning as the site uses a certificate signed by a self-signed CA.
 
 The password for the `admin` account is defined in [values-prometheus-central.yaml](./values-prometheus-central.yaml) (i.e., `Adm1nAdm1n`). From the Explore tab, you should be able to access the data collected locally and received from the remote location using the data sources described initially.
 
-Within the [dashboards](./dashboards/) subdirectory, you should find some sample Mimir dashboards (the README under this folder explains how to generate them). More importantly, there is a dashboard for the TNS App that you can use to visualize metrics from more locations based on the metrics stored in the central location. If you check the logs for that application (`tns` namespace), you can visualize the remote logs stored on the central Loki and the traces.
+Within the [dashboards](./dashboards/) subdirectory, you should find a sample dashboard for the TNS App that you can use to visualize metrics from more locations based on the metrics stored in the central location. If you check the logs for that application (`tns` namespace), you can visualize the remote logs stored on the central Loki and the traces.
 
 ## Shutdown
 
 ```bash
-multipass delete --purge lgtm-central-node{1,2,3}
-multipass delete --purge lgtm-remote-node{1,2}
-rm *-kubeconfig.yaml
+kind delete cluster --name lgtm-central
+kind delete cluster --name lgtm-remote
+```
+
+If you started the HAProxy:
+
+```bash
+docker stop haproxy
+docker rm haproxy
 ```

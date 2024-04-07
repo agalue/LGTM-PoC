@@ -1,0 +1,12 @@
+# Warning: there won't be any resource requests/limits for any Linkerd-related container
+---
+enablePodDisruptionBudget: true
+enablePodAntiAffinity: true
+highAvailability: true
+controllerReplicas: 3
+webhookFailurePolicy: Fail
+
+deploymentStrategy:
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 25%

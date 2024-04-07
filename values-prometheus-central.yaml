@@ -1,6 +1,22 @@
 ---
+alertmanager: # Required to be notified on alerts managed by Prometheus
+  enabled: true
+  serviceAccount:
+    create: true
+    name: alertmanager-sa
+  alertmanagerSpec:
+    resources: null
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+
 prometheus:
   prometheusSpec:
+    enableRemoteWriteReceiver: true # For Tempo Metrics Generator
     remoteWrite:
     - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
       headers:
@@ -16,6 +32,7 @@ prometheus:
         action: drop
 
 grafana:
+  enabled: true
   adminPassword: Adm1nAdm1n
   serviceAccount:
     create: true
@@ -34,66 +51,134 @@ grafana:
     dashboards:
       searchNamespace: ALL
   grafana.ini:
-    feature_toggles:
-      enable: tempoSearch tempoBackendSearch tempoApmTable traceqlEditor
     server:
       domain: grafana.example.com # Ensure to use the correct domain / Will be used for Ingress
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: monitor
+  alerting:
+    policies.yaml:
+      apiVersion: 1
+      policies:
+      - orgId: 1
+        receiver: external-alertmanager
+        group_by:
+        - grafana_folder
+        - alertname
+    contactpoints.yaml:
+      apiVersion: 1
+      contactPoints:
+      - orgId: 1
+        name: external-alertmanager
+        receivers:
+        - uid: external_alertmanager_uid
+          type: prometheus-alertmanager
+          disableResolveMessage: false
+          settings:
+            url: http://monitor-alertmanager.observability.svc:9093
   datasources:
     datasources.yaml:
       apiVersion: 1
       datasources:
-      - name: Tempo Remote
+      - name: Tempo Remote TNS
         type: tempo
-        uid: tempo_remote_ds
+        uid: tempo_remote_tns_ds
         access: proxy
         url: http://tempo-query-frontend.tempo.svc:3100
         isDefault: false
         editable: true
         jsonData:
           lokiSearch:
-            datasourceUid: loki_remote_ds
+            datasourceUid: loki_remote_tns_ds
           nodeGraph:
             enabled: true
           serviceMap:
-            datasourceUid: mimir_remote_ds
+            datasourceUid: mimir_remote_tns_ds
           tracesToLogs:
-            datasourceUid: loki_remote_ds
+            datasourceUid: loki_remote_tns_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
-      - name: Loki Remote
+      - name: Loki Remote TNS
         type: loki
-        uid: loki_remote_ds
+        uid: loki_remote_tns_ds
         access: proxy
-        url: http://loki-read.loki.svc:3100
+        url: http://loki-gateway.loki.svc
         isDefault: false
         editable: true
         jsonData:
           derivedFields:
           - name: TraceID
-            datasourceUid: tempo_remote_ds
+            datasourceUid: tempo_remote_tns_ds
             matcherRegex: traceID=(\w+)
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
-      - name: Mimir Remote
+      - name: Mimir Remote TNS
         type: prometheus
-        uid: mimir_remote_ds
+        uid: mimir_remote_tns_ds
         isDefault: false
         editable: true
         access: proxy
-        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        url: http://mimir-gateway.mimir.svc/prometheus
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: remote01
+      - name: Tempo Remote OTEL
+        type: tempo
+        uid: tempo_remote_otel_ds
+        access: proxy
+        url: http://tempo-query-frontend.tempo.svc:3100
+        isDefault: false
+        editable: true
+        jsonData:
+          lokiSearch:
+            datasourceUid: loki_remote_otel_ds
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir_remote_otel_ds
+          tracesToLogs:
+            datasourceUid: loki_remote_otel_ds
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Loki Remote OTEL
+        type: loki
+        uid: loki_remote_otel_ds
+        access: proxy
+        url: http://loki-gateway.loki.svc
+        isDefault: false
+        editable: true
+        jsonData:
+          derivedFields:
+          - name: TraceID
+            datasourceUid: tempo_remote_otel_ds
+            matcherRegex: traceID=(\w+)
+            url: $${__value.raw}
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Mimir Remote OTEL
+        type: prometheus
+        uid: mimir_remote_otel_ds
+        isDefault: false
+        editable: true
+        access: proxy
+        url: http://mimir-gateway.mimir.svc/prometheus
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
       - name: Tempo Local
         type: tempo
         uid: tempo_ds
@@ -112,14 +197,13 @@ grafana:
             datasourceUid: loki_ds
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
       - name: Loki Local
         type: loki
         uid: loki_ds
         access: proxy
-        url: http://loki-read.loki.svc:3100
+        url: http://loki-gateway.loki.svc
         isDefault: false
         editable: true
         jsonData:
@@ -130,7 +214,6 @@ grafana:
             url: $${__value.raw}
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
       - name: Mimir Local
@@ -139,11 +222,10 @@ grafana:
         isDefault: false
         editable: true
         access: proxy
-        url: http://mimir-query-frontend.mimir.svc:8080/prometheus
+        url: http://mimir-gateway.mimir.svc/prometheus
         jsonData:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
-          manageAlerts: false
         secureJsonData:
           httpHeaderValue1: _local
   dashboardProviders:

@@ -1,0 +1,107 @@
+---
+opentelemetry-collector:
+  mode: deployment # using single-instance due to tail sampling
+  resources:
+    limits:
+      memory: 512Mi
+  presets:
+    logsCollection:
+      enabled: false
+      includeCollectorLogs: false
+  service:
+    enabled: true
+  config:
+    exporters:
+      opensearch: null
+      otlphttp/prometheus: null
+      otlp:
+        endpoint: http://tempo-distributor-lgtm-central.tempo.svc:4317
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+      prometheusremotewrite:
+        endpoint: http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+      loki:
+        endpoint: http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push
+        tls:
+          insecure: true # Linkerd uses mTLS behind the scenes
+        headers:
+          X-Scope-OrgID: remote02
+    processors:
+      tail_sampling:
+        policies:
+          [
+            # forward all traces with errors
+            {
+              name: errors-policy,
+              type: status_code,
+              status_code: { status_codes: [ERROR] }
+            },
+            # forward only the 30% of successful traces with latency over 50ms
+            {
+              name: long-traces-policy,
+              type: and,
+              and: {
+                and_sub_policy: [
+                  {
+                    name: latency-policy,
+                    type: latency,
+                    latency: { threshold_ms: 50 }
+                  },
+                  {
+                    name: randomized-policy,
+                    type: probabilistic,
+                    probabilistic: { sampling_percentage: 30 }
+                  }
+                ]
+              }
+            }
+          ]
+    service:
+      pipelines:
+        metrics:
+          receivers:
+          - otlp
+          - prometheus
+          exporters:
+          - prometheusremotewrite
+        logs:
+          exporters:
+          - loki
+        traces:
+          processors:
+          - k8sattributes
+          - tail_sampling
+          - memory_limiter
+          - resource
+          - batch
+          exporters:
+          - otlp
+
+jaeger:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+opensearch:
+  enabled: false
+
+# Patches to avoid runtime issues
+components:
+  featureflagService:
+    resources:
+      limits:
+        memory: null
+  loadgenerator:
+    resources:
+      limits:
+        memory: null

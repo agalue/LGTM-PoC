@@ -5,18 +5,23 @@ metadata:
   name: grafana-agent
   namespace: observability
 data:
-  agent.yaml: |
+  config.yaml: |
     server:
-      log_level: debug
+      log_level: info
     traces:
       configs:
       - name: kubernetes-traces
+        batch:
+          send_batch_size: 1000
+          timeout: 5s
         receivers:
           jaeger:
             protocols:
               thrift_http: # For Mimir (port 14268)
           opencensus: # For Linkerd (port 55678)
-          zipkin: # For Nginx Ingress (port 9411)
+          otlp:
+            protocols:
+              grpc: # For Nginx Ingress (port 4317)
         remote_write:
         - endpoint: tempo-distributor.tempo.svc:55680
           insecure: true

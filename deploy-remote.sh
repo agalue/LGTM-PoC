@@ -7,6 +7,7 @@ for cmd in "kubectl" "helm" "linkerd" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
+CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
 CONTEXT=${CONTEXT-lgtm-remote}
 DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
@@ -23,7 +24,7 @@ echo "Deploying Kubernetes"
 . deploy-k3s.sh
 
 echo "Deploying Prometheus CRDs"
-. deploy-prometheus-crds.sh
+helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
 echo "Deploying Linkerd"
 . deploy-linkerd.sh
@@ -37,7 +38,7 @@ linkerd mc link --context lgtm-central --cluster-name lgtm-central \
   | kubectl apply --context lgtm-remote -f -
 
 echo "Setting up namespaces"
-for ns in observability tns mimir tempo loki; do
+for ns in observability mimir tempo loki tns; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
@@ -58,8 +59,9 @@ helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f values-promtail-remote.yaml --wait
 
 echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f remote-agent-config-remote.yaml
-kubectl apply -f remote-agent.yaml
+kubectl apply -f grafana-agent-config-remote.yaml
+helm upgrade --install grafana-agent grafana/grafana-agent \
+  -n observability -f values-agent.yaml --wait
 
-echo "Deploying TNS application"
-kubectl apply -f remote-apps.yaml
+echo "Deploying Grafana TNS application"
+kubectl apply -f grafana-tns-apps.yaml

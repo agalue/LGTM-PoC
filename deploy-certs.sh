@@ -35,4 +35,12 @@ step certificate create \
   --ca ca.crt --ca-key ca.key \
   --force
 
+step certificate create \
+  identity.linkerd.lgtm-otel.cluster.local \
+  issuer-otel.crt issuer-otel.key \
+  --profile intermediate-ca \
+  --not-after ${CERT_EXPIRY_HOURS}h --no-password --insecure \
+  --ca ca.crt --ca-key ca.key \
+  --force
+
 echo ${CERT_EXPIRY_DATE} > cert-expiry-date.txt
