@@ -13,9 +13,10 @@ DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-248} # For Cilium L2/LB
 WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1}
-POD_CIDR=${POD_CIDR-10.1.0.0/16}
-SVC_CIDR=${SVC_CIDR-10.2.0.0/16}
+POD_CIDR=${POD_CIDR-10.11.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.12.0.0/16}
 LINKERD_HA=${LINKERD_HA-yes}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -37,8 +38,10 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace \
   -f values-certmanager.yaml --wait
 
-echo "Deploying Linkerd"
-. deploy-linkerd.sh
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
+  echo "Deploying Linkerd"
+  . deploy-linkerd.sh
+fi
 
 echo "Setting up namespaces"
 for ns in observability storage tempo loki mimir; do
@@ -91,11 +94,19 @@ echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   -n ingress-nginx --create-namespace -f values-ingress.yaml --wait
 
-echo "Exporting Services via Linkerd Multicluster"
-kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
-kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
-kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
-kubectl -n observability label service/monitor-alertmanager mirror.linkerd.io/exported=true
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
+  echo "Exporting Services via Cilium ClusterMesh"
+  kubectl -n tempo annotate service/tempo-distributor service.cilium.io/global=true
+  kubectl -n mimir annotate service/mimir-distributor service.cilium.io/global=true
+  kubectl -n loki annotate service/loki-write service.cilium.io/global=true
+  kubectl -n observability annotate service/monitor-alertmanager service.cilium.io/global=true
+else
+  echo "Exporting Services via Linkerd Multicluster"
+  kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
+  kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
+  kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
+  kubectl -n observability label service/monitor-alertmanager mirror.linkerd.io/exported=true
+fi
 
 # Update DNS
 INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')

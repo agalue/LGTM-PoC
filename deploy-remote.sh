@@ -14,8 +14,9 @@ DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-240} # For Cilium L2/LB
 WORKERS=${WORKERS-1}
 CLUSTER_ID=${CLUSTER_ID-2}
-POD_CIDR=${POD_CIDR-10.3.0.0/16}
-SVC_CIDR=${SVC_CIDR-10.4.0.0/16}
+POD_CIDR=${POD_CIDR-10.21.0.0/16}
+SVC_CIDR=${SVC_CIDR-10.22.0.0/16}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -23,20 +24,13 @@ echo "Deploying Kubernetes"
 echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
-echo "Deploying Linkerd"
-. deploy-linkerd.sh
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
+  echo "Deploying Linkerd"
+  . deploy-linkerd.sh
+fi
 
-CENTRAL_CTX=kind-${CENTRAL}
-REMOTE_CTX=kind-${CONTEXT}
-
-# The following is required when using Kind/Docker without apiServerAddress on Kind config.
-API_SERVER=$(kubectl get node --context ${CENTRAL_CTX} -l node-role.kubernetes.io/control-plane -o json \
-  | jq -r '.items[] | .status.addresses[] | select(.type=="InternalIP") | .address')
-
-echo "Creating link from ${REMOTE_CTX} to ${CENTRAL_CTX}"
-linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
-  --api-server-address="https://${API_SERVER}:6443" \
-  | kubectl apply --context ${REMOTE_CTX} -f -
+echo "Connect to Central"
+. deploy-link.sh
 
 echo "Setting up namespaces"
 for ns in observability mimir tempo loki tns; do
