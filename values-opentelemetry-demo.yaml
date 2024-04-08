@@ -94,14 +94,3 @@ grafana:
 
 opensearch:
   enabled: false
-
-# Patches to avoid runtime issues
-components:
-  featureflagService:
-    resources:
-      limits:
-        memory: null
-  loadgenerator:
-    resources:
-      limits:
-        memory: null
