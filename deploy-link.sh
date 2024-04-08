@@ -7,6 +7,18 @@ for cmd in "kubectl" "cilium" "linkerd"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
+echo "Setting up namespaces"
+for ns in observability mimir tempo loki $APP_NS; do
+  cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $ns
+  annotations:
+    linkerd.io/inject: enabled
+EOF
+done
+
 CENTRAL=${CENTRAL-lgtm-central}
 CONTEXT=${CONTEXT-lgtm-remote}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}

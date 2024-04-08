@@ -17,6 +17,7 @@ CLUSTER_ID=${CLUSTER_ID-2}
 POD_CIDR=${POD_CIDR-10.21.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.22.0.0/16}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+APP_NS="tns"
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -31,18 +32,6 @@ fi
 
 echo "Connect to Central"
 . deploy-link.sh
-
-echo "Setting up namespaces"
-for ns in observability mimir tempo loki tns; do
-  cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $ns
-  annotations:
-    linkerd.io/inject: enabled
-EOF
-done
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
@@ -59,4 +48,4 @@ helm upgrade --install grafana-agent grafana/grafana-agent \
   -n observability -f values-agent.yaml --wait
 
 echo "Deploying Grafana TNS application"
-kubectl apply -f grafana-tns-apps.yaml
+kubectl apply -n ${APP_NS} -f grafana-tns-apps.yaml

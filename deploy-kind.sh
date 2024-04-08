@@ -31,7 +31,7 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
 fi
 
 # Abort if the cluster exists; if so, ensure the kubeconfig is exported
-if [[ $(kind get clusters | tr '\n' ' ') = *${CONTEXT}* ]]; then
+if echo $(kind get clusters | tr '\n' ' ') | grep -q "\b${CONTEXT}\b"; then
   echo "Cluster ${CONTEXT} already started"
   kubectl config use-context kind-${CONTEXT}
   return

@@ -17,8 +17,8 @@ CLUSTER_ID=${CLUSTER_ID-3}
 POD_CIDR=${POD_CIDR-10.31.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.32.0.0/16}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
-
 LINKERD_JAEGER_ENABLED=no # Linkerd Jaeger doesn't support OTLP
+APP_NS="otel"
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -34,18 +34,6 @@ fi
 echo "Connect to Central"
 . deploy-link.sh
 
-echo "Setting up namespaces"
-for ns in observability mimir tempo loki otel; do
-  cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $ns
-  annotations:
-    linkerd.io/inject: enabled
-EOF
-done
-
 echo "Deploying Prometheus (for local Kubernetes Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f values-prometheus-remote-otel.yaml \
@@ -53,5 +41,5 @@ helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
 
 echo "Deploying OpenTelemetry Demo application"
 helm upgrade --install demo open-telemetry/opentelemetry-demo \
-  -n otel -f values-opentelemetry-demo.yaml
+  -n ${APP_NS} -f values-opentelemetry-demo.yaml
 kubectl rollout status -n otel deployment/demo-otelcol
