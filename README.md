@@ -16,7 +16,7 @@ In the first scenario, we have Prometheus collecting data from the Kubernetes cl
 
 In the second scenario, we have Grafana Agent either on [static](https://grafana.com/docs/agent/latest/static/) or [flow](https://grafana.com/docs/agent/latest/flow/) mode handling all the observability data (metrics, logs, and traces) and forward it to the LGTM stack.
 
-In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
+In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces received via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
 
 Each cluster (including the central one) will be a tenant on Mimir, Loki, and Tempo to separate the data from each other.
 
@@ -45,6 +45,14 @@ The Multi-Cluster Link is originated on the Remote Cluster, targeting the Centra
 Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
+
+As Cilium is available on each cluster, and the scripts are arranged in a way that there won't be IP Address collisions between all the clusters (for Pod and Services), it is possible to replace Linkerd with Cilium [ClusterMesh](https://cilium.io/use-cases/cluster-mesh/) with Encryption enabled. We will be using [Wireguard](https://www.wireguard.com/) as it is easier to deploy than IPSec and will encrypt the communication between worker nodes and clusters. The difference between Cilium and Linkerd is that Pod-to-Pod communication won't be encrypted when the instances run in the same worker node, and mTLS won't be involved.
+
+If you want to use Cilium ClusterMesh instead of Linkerd, run the following before deploying the clusters:
+
+```bash
+export CILIUM_CLUSTER_MESH_ENABLED=yes
+```
 
 > **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running Rocky Linux 9. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
 

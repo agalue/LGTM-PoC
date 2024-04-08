@@ -26,7 +26,13 @@ echo "Deploying Kubernetes"
 echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
-if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
+FILES=("values-opentelemetry-demo.yaml" "values-prometheus-remote-otel.yaml")
+cp "${FILES[@]}" /tmp
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
+  for FILE in "${FILES[@]}"; do
+    sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
+  done
+else
   echo "Deploying Linkerd"
   . deploy-linkerd.sh
 fi
@@ -36,10 +42,10 @@ echo "Connect to Central"
 
 echo "Deploying Prometheus (for local Kubernetes Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-remote-otel.yaml \
+  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote-otel.yaml \
   --set prometheusOperator.clusterDomain=$DOMAIN --wait
 
 echo "Deploying OpenTelemetry Demo application"
 helm upgrade --install demo open-telemetry/opentelemetry-demo \
-  -n ${APP_NS} -f values-opentelemetry-demo.yaml
+  -n ${APP_NS} -f /tmp/values-opentelemetry-demo.yaml
 kubectl rollout status -n otel deployment/demo-otelcol
