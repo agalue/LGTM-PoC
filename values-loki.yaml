@@ -57,6 +57,21 @@ loki:
     delete_request_cancel_period: 5m
     retention_delete_delay: 5m
 
+resultsCache:
+  allocatedMemory: 512
+  resources:
+    requests:
+      cpu: 25m
+
+chunksCache:
+  enabled: true
+  replicas: 1
+  allocatedMemory: 1024
+  resources:
+    requests:
+      cpu: 25m
+
+# The following section is marked as deprecated
 monitoring:
   selfMonitoring:
     enabled: false
