@@ -41,7 +41,7 @@ if [ ! -f "$CERT_ISSUER_ID.crt" ]; then
 fi
 
 echo "Update kube-system namespace"
-kubectl label ns kube-system config.linkerd.io/admission-webhooks=disabled
+kubectl label ns kube-system config.linkerd.io/admission-webhooks=disabled --overwrite
 
 echo "Deploying Linkerd CRDs"
 helm upgrade --install linkerd-crds linkerd/linkerd-crds \
@@ -65,7 +65,7 @@ helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
 
 echo "Update PodMonitor resources"
 for obj in "controller" "proxy" "service-mirror"; do
-  kubectl label -n linkerd podmonitor/linkerd-$obj release=monitor
+  kubectl label -n linkerd podmonitor/linkerd-$obj release=monitor --overwrite
 done
 
 # Requires Prometheus
