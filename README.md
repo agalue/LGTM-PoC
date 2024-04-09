@@ -54,6 +54,12 @@ If you want to use Cilium ClusterMesh instead of Linkerd, run the following befo
 export CILIUM_CLUSTER_MESH_ENABLED=yes
 ```
 
+In terms of the second diagram, Linkerd creates a mirrored service automatically when linking clusters, appending the name of the target service to it. For instance, in `lgtm-central`, accessing Mimir locally would be `mimir-distributor.mimir.svc`, whereas accessing it from the `lgtm-remote` cluster would be `mimir-distributor-lgtm-central.mimir.svc`.
+
+When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central`.
+
+All the scripts are smart enough to deal with all situations properly.
+
 > **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running Rocky Linux 9. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
 
 ### Data Sources
@@ -203,6 +209,59 @@ So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in th
 
 > If you're using the OpenTelemetry Demo cluster, replace `lgtm-remote` with `lgtm-remote-otel`.
 
+### Cilium ClusterMesh
+
+The `cilium` CLI can help to verify if the inter-cluster communication is working. From each context, you can run the following:
+
+```bash
+cilium clustermesh status --context ${ctx}
+```
+
+The following shows how it looks like when having both remote clusters deployed:
+
+```bash
+for ctx in central remote remote-otel; do
+  echo "Checking cluster ${ctx}"
+  cilium clustermesh status --context kind-lgtm-${ctx}
+  echo
+done
+```
+
+The result is:
+
+```
+Checking cluster central
+✅ Service "clustermesh-apiserver" of type "LoadBalancer" found
+✅ Cluster access information is available:
+  - 172.19.255.249:2379
+✅ Deployment clustermesh-apiserver is ready
+✅ All 4 nodes are connected to all clusters [min:2 / avg:2.0 / max:2]
+🔌 Cluster Connections:
+  - lgtm-remote: 4/4 configured, 4/4 connected
+  - lgtm-remote-otel: 4/4 configured, 4/4 connected
+🔀 Global services: [ min:0 / avg:0.0 / max:0 ]
+
+Checking cluster remote
+✅ Service "clustermesh-apiserver" of type "LoadBalancer" found
+✅ Cluster access information is available:
+  - 172.19.255.241:2379
+✅ Deployment clustermesh-apiserver is ready
+✅ All 2 nodes are connected to all clusters [min:1 / avg:1.0 / max:1]
+🔌 Cluster Connections:
+  - lgtm-central: 2/2 configured, 2/2 connected
+🔀 Global services: [ min:4 / avg:4.0 / max:4 ]
+
+Checking cluster remote-otel
+✅ Service "clustermesh-apiserver" of type "LoadBalancer" found
+✅ Cluster access information is available:
+  - 172.19.255.233:2379
+✅ Deployment clustermesh-apiserver is ready
+✅ All 2 nodes are connected to all clusters [min:1 / avg:1.0 / max:1]
+🔌 Cluster Connections:
+  - lgtm-central: 2/2 configured, 2/2 connected
+🔀 Global services: [ min:4 / avg:4.0 / max:4 ]
+```
+
 ### LGTM Stack
 
 If you're running on Linux or macOS with OrbStack, you should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
@@ -233,6 +292,14 @@ kind delete cluster --name lgtm-central
 kind delete cluster --name lgtm-remote
 kind delete cluster --name lgtm-remote-otel
 ```
+
+Or,
+
+```bash
+kind delete clusters --all
+```
+
+> **Warning**: Be careful with the above command if you have clusters you don't want to remove.
 
 If you started the HAProxy:
 

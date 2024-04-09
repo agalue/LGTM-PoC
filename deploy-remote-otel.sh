@@ -11,13 +11,12 @@ CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-otel}
 CONTEXT=${CONTEXT-lgtm-remote-otel}
 DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
-SUBNET=${SUBNET-240} # For Cilium L2/LB
+SUBNET=${SUBNET-232} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-1}
-CLUSTER_ID=${CLUSTER_ID-3}
-POD_CIDR=${POD_CIDR-10.31.0.0/16}
-SVC_CIDR=${SVC_CIDR-10.32.0.0/16}
+CLUSTER_ID=${CLUSTER_ID-3} # Unique on each cluster
+POD_CIDR=${POD_CIDR-10.31.0.0/16} # Unique on each cluster
+SVC_CIDR=${SVC_CIDR-10.32.0.0/16} # Unique on each cluster
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
-LINKERD_JAEGER_ENABLED=no # Linkerd Jaeger doesn't support OTLP
 APP_NS="otel"
 
 echo "Deploying Kubernetes"

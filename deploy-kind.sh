@@ -14,7 +14,6 @@ SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.244.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
-MASTER=${CONTEXT}-control-plane
 CILIUM_VERSION=${CILIUM_VERSION-1.15.3}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using OrbStack)
@@ -32,7 +31,7 @@ fi
 
 # Abort if the cluster exists; if so, ensure the kubeconfig is exported
 CLUSTERS=($(kind get clusters | tr '\n' ' '))
-if [[ ${CLUSTERS[@]} =~ "\<${CONTEXT}\>" ]]; then
+if [[ " ${CLUSTERS[@]} " =~ " ${CONTEXT} " ]]; then
   echo "Cluster ${CONTEXT} already started"
   kubectl config use-context kind-${CONTEXT}
   return
@@ -81,6 +80,7 @@ if [ -e cilium-ca.crt ] && [ -e cilium-ca.key ]; then
 fi
 
 cilium install --version ${CILIUM_VERSION} --wait \
+  --set ipv4NativeRoutingCIDR=10.0.0.0/8 \
   --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
   --set ipam.mode=kubernetes \
@@ -99,6 +99,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
 
 cilium status --wait --ignore-warnings
 
+# It is expected to get a /16 IPv4 CIDR
 NETWORK=$(docker network inspect kind \
   | jq -r '.[0].IPAM.Config[] | select(.Gateway != null) | .Subnet')
 
@@ -110,7 +111,7 @@ metadata:
   name: ${CONTEXT}-pool
 spec:
   cidrs:
-  - cidr: "${NETWORK%.*}.${SUBNET}/29"
+  - cidr: "${NETWORK%.*.*}.255.${SUBNET}/29"
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy

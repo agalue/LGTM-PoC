@@ -30,15 +30,20 @@ echo "Creating link from ${REMOTE_CTX} to ${CENTRAL_CTX}"
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
   cilium clustermesh connect --context ${REMOTE_CTX} --destination-context ${CENTRAL_CTX}
 
-  # Create copies of the global services
-  kubectl --context ${CENTRAL_CTX} get service/mimir-distributor -n mimir -o yaml | \
-    sed '/clusterIP:/,+2d' | kubectl --context ${REMOTE_CTX} apply -f -
-  kubectl --context ${CENTRAL_CTX} get service/tempo-distributor -n tempo -o yaml | \
-    sed '/clusterIP:/,+2d' | kubectl --context ${REMOTE_CTX} apply -f -
-  kubectl --context ${CENTRAL_CTX} get service/loki-write -n loki -o yaml | \
-    sed '/clusterIP:/,+2d' | kubectl --context ${REMOTE_CTX} apply -f -
-  kubectl --context ${CENTRAL_CTX} get service/monitor-alertmanager -n observability -o yaml | \
-    sed '/clusterIP:/,+2d' | kubectl --context ${REMOTE_CTX} apply -f -
+  # Create copies of the global services in the remote cluster
+  declare -a SERVICES=( \
+    "service/mimir-distributor -n mimir" \
+    "service/tempo-distributor -n tempo" \
+    "service/loki-write -n loki" \
+    "service/monitor-alertmanager -n observability"
+  )
+  for SVC in "${SERVICES[@]}"; do
+    kubectl --context ${CENTRAL_CTX} get ${SVC} -o yaml \
+      | sed -E '/(resourceVersion|uid|creationTimestamp):/d' \
+      | sed '/clusterIP:/,+2d' | sed '/^status:/,+2d' \
+      | sed '/service.cilium.io\/shared/s/true/false/' \
+      | kubectl --context ${REMOTE_CTX} apply -f -
+  done
 else
   # The following is required when using Kind/Docker without apiServerAddress on Kind config.
   API_SERVER=$(kubectl get node --context ${CENTRAL_CTX} -l node-role.kubernetes.io/control-plane -o json \
