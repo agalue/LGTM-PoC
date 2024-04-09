@@ -43,4 +43,11 @@ step certificate create \
   --ca ca.crt --ca-key ca.key \
   --force
 
+step certificate create \
+  root.cilium.io \
+  cilium-ca.crt cilium-ca.key \
+  --profile root-ca \
+  --no-password --insecure \
+  --force
+
 echo ${CERT_EXPIRY_DATE} > cert-expiry-date.txt

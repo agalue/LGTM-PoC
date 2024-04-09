@@ -10,12 +10,13 @@ done
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-central}
 CONTEXT=${CONTEXT-lgtm-central}
 DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
-SUBNET=${SUBNET-248} # For Cilium L2/LB
+SUBNET=${SUBNET-248} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-3}
-CLUSTER_ID=${CLUSTER_ID-1}
-POD_CIDR=${POD_CIDR-10.1.0.0/16}
-SVC_CIDR=${SVC_CIDR-10.2.0.0/16}
+CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
+POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
+SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
 LINKERD_HA=${LINKERD_HA-yes}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -37,8 +38,10 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace \
   -f values-certmanager.yaml --wait
 
-echo "Deploying Linkerd"
-. deploy-linkerd.sh
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
+  echo "Deploying Linkerd"
+  . deploy-linkerd.sh
+fi
 
 echo "Setting up namespaces"
 for ns in observability storage tempo loki mimir; do
@@ -91,11 +94,24 @@ echo "Deploying Nginx Ingress Controller"
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   -n ingress-nginx --create-namespace -f values-ingress.yaml --wait
 
-echo "Exporting Services via Linkerd Multicluster"
-kubectl -n tempo label service/tempo-distributor mirror.linkerd.io/exported=true
-kubectl -n mimir label service/mimir-distributor mirror.linkerd.io/exported=true
-kubectl -n loki label service/loki-write mirror.linkerd.io/exported=true
-kubectl -n observability label service/monitor-alertmanager mirror.linkerd.io/exported=true
+declare -a SERVICES=( \
+  "service/mimir-distributor -n mimir" \
+  "service/tempo-distributor -n tempo" \
+  "service/loki-write -n loki" \
+  "service/monitor-alertmanager -n observability"
+)
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
+  echo "Exporting Services via Cilium ClusterMesh"
+  for SVC in "${SERVICES[@]}"; do
+    kubectl annotate ${SVC} service.cilium.io/global=true --overwrite
+    kubectl annotate ${SVC} service.cilium.io/shared=true --overwrite
+  done
+else
+  echo "Exporting Services via Linkerd Multicluster"
+  for SVC in "${SERVICES[@]}"; do
+    kubectl label ${SVC} mirror.linkerd.io/exported=true
+  done
+fi
 
 # Update DNS
 INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
