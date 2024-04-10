@@ -21,6 +21,7 @@ CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
 helm repo add linkerd https://helm.linkerd.io/stable
+helm repo add linkerd-edge https://helm.linkerd.io/edge
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
