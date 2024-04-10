@@ -72,6 +72,13 @@ metricsGenerator:
 
 memcached:
   replicas: 2
+  extraArgs:
+  - -m 256 # To avoid the default of 64 (megabytes)
+  resources: # Memory must be greater than `-m`
+    requests:
+      memory: 284Mi
+    limits:
+      memory: 284Mi
 
 storage:
   trace:
