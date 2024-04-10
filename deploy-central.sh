@@ -69,7 +69,7 @@ helm upgrade --install tempo grafana/tempo-distributed \
   -n tempo -f values-tempo.yaml --set global.clusterDomain=$DOMAIN --wait
 
 echo "Deploying Grafana Loki"
-helm upgrade --install loki grafana/loki --version 5.47.2 \
+helm upgrade --install loki grafana/loki \
   -n loki -f values-loki.yaml --set global.clusterDomain=$DOMAIN --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
