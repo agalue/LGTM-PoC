@@ -12,6 +12,12 @@ DOMAIN=${DOMAIN-}
 LINKERD_HA=${LINKERD_HA-no}
 LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
 LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-yes}
+LINKERD_REPO=${LINKERD_REPO-stable} # Either stable (2.14) or edge
+
+REPOSITORY_NAME="linkerd"
+if [[ "$LINKERD_REPO" == "edge" ]]; then
+  REPOSITORY_NAME="linkerd-edge"
+fi
 
 if [[ "$CERT_ISSUER_ID" == "" ]]; then
   echo "CERT_ISSUER_ID env-var required"
@@ -44,7 +50,7 @@ echo "Update kube-system namespace"
 kubectl label ns kube-system config.linkerd.io/admission-webhooks=disabled --overwrite
 
 echo "Deploying Linkerd CRDs"
-helm upgrade --install linkerd-crds linkerd/linkerd-crds \
+helm upgrade --install linkerd-crds $REPOSITORY_NAME/linkerd-crds \
   --namespace linkerd --create-namespace
 
 echo "Deploying Linkerd"
@@ -52,7 +58,7 @@ helm_values_args=("-f" "values-linkerd.yaml")
 if [[ "$LINKERD_HA" == "yes" ]]; then
   helm_values_args+=("-f" "values-linkerd-ha.yaml")
 fi
-helm upgrade --install linkerd-control-plane linkerd/linkerd-control-plane \
+helm upgrade --install linkerd-control-plane $REPOSITORY_NAME/linkerd-control-plane \
   --namespace linkerd \
   --set clusterDomain=$DOMAIN \
   --set identityTrustDomain=$DOMAIN \
@@ -71,7 +77,7 @@ done
 # Requires Prometheus
 if [[ "$LINKERD_VIZ_ENABLED" == "yes" ]]; then
   echo "Deploying Linkerd-Viz"
-  helm upgrade --install linkerd-viz linkerd/linkerd-viz \
+  helm upgrade --install linkerd-viz $REPOSITORY_NAME/linkerd-viz \
   --namespace linkerd-viz --create-namespace \
   --set clusterDomain=$DOMAIN \
   --set identityTrustDomain=$DOMAIN \
@@ -85,7 +91,7 @@ fi
 # Requires Grafana Agent
 if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
   echo "Deploying Linkerd-Jaeger via Grafana Agent"
-  helm upgrade --install linkerd-jaeger linkerd/linkerd-jaeger \
+  helm upgrade --install linkerd-jaeger $REPOSITORY_NAME/linkerd-jaeger \
   --namespace linkerd-jaeger --create-namespace \
   --set clusterDomain=$DOMAIN \
   --set collector.enabled=false \
@@ -96,7 +102,7 @@ if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
 fi
 
 echo "Deploying Linkerd Multicluster"
-helm upgrade --install linkerd-multicluster linkerd/linkerd-multicluster \
+helm upgrade --install linkerd-multicluster $REPOSITORY_NAME/linkerd-multicluster \
   --namespace linkerd-multicluster --create-namespace \
   --set identityTrustDomain=$DOMAIN \
   --wait
