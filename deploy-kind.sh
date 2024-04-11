@@ -31,7 +31,7 @@ fi
 
 # Abort if the cluster exists; if so, ensure the kubeconfig is exported
 CLUSTERS=($(kind get clusters | tr '\n' ' '))
-if [[ " ${CLUSTERS[@]} " =~ " ${CONTEXT} " ]]; then
+if [[ ${#CLUSTERS[@]} > 0 ]] && [[ " ${CLUSTERS[@]} " =~ " ${CONTEXT} " ]]; then
   echo "Cluster ${CONTEXT} already started"
   kubectl config use-context kind-${CONTEXT}
   return
