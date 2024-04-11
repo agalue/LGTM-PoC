@@ -10,6 +10,10 @@ test:
 lokiCanary:
   enabled: false
 
+sidecar:
+  rules: # Rules stored on S3
+    enabled: false
+
 loki:
   auth_enabled: true
   commonConfig:
