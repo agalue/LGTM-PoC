@@ -3,7 +3,7 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "docker" "kind" "cilium" "kubectl" "jq"; do
+for cmd in "docker" "kind" "cilium" "kubectl" "jq" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
@@ -61,7 +61,7 @@ nodes:
     apiVersion: kubeadm.k8s.io/v1beta3
     kind: ClusterConfiguration
     networking:
-      dnsDomain: ${CONTEXT}.cluster.local
+      dnsDomain: ${DOMAIN}
 ${WORKER_YAML}
 networking:
   ipFamily: ipv4
@@ -99,9 +99,19 @@ cilium install --version ${CILIUM_VERSION} --wait \
 
 cilium status --wait --ignore-warnings
 
-# It is expected to get a /16 IPv4 CIDR
 NETWORK=$(docker network inspect kind \
-  | jq -r '.[0].IPAM.Config[] | select(.Gateway != null) | .Subnet')
+  | jq -r '.[0].IPAM.Config[] | select(.Gateway != null) | .Subnet' | grep -v ':')
+CIDR=""
+if [[ "$NETWORK" == *"/16" ]]; then
+  CIDR="${NETWORK%.*.*}.255.${SUBNET}/29"
+fi
+if [[ "$NETWORK" == *"/24" ]]; then
+  CIDR="${NETWORK%.*}.${SUBNET}/29"
+fi
+if [[ "$CIDR" == "" ]]; then
+  echo "cannot extract LB CIDR from network $NETWORK"
+  exit 1
+fi
 
 cat <<EOF | kubectl apply -f -
 ---
@@ -111,7 +121,7 @@ metadata:
   name: ${CONTEXT}-pool
 spec:
   cidrs:
-  - cidr: "${NETWORK%.*.*}.255.${SUBNET}/29"
+  - cidr: "${CIDR}"
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy
@@ -132,3 +142,6 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
   cilium clustermesh enable --service-type LoadBalancer
   cilium clustermesh status --wait
 fi
+
+helm upgrade --install metrics-server metrics-server/metrics-server \
+ -n kube-system --set args={--kubelet-insecure-tls}
