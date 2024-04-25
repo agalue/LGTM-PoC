@@ -78,10 +78,11 @@ echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f values-promtail-central.yaml --wait
 
-echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f grafana-agent-config-central.yaml
-helm upgrade --install grafana-agent grafana/grafana-agent \
-  -n observability -f values-agent.yaml --wait
+echo "Deplyoing Grafana Alloy (for Traces)"
+helm upgrade --install alloy -n observability grafana/alloy \
+  -f values-alloy.yaml \
+  --set-file alloy.configMap.content=grafana-central-config.alloy \
+  --wait
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \

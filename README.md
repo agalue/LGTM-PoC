@@ -1,8 +1,8 @@
 # LGTM PoC
 
-In the world of Kubernetes, Prometheus is considered the best tool to monitor the cluster and all its running components. Microservices, specifically those written in Go, can expose their metrics in Prometheus format. Additionally, there are numerous exporters available for applications that cannot natively do so. Therefore, Mimir is the ideal way to consolidate metrics from multiple Kubernetes clusters along with the applications running on each of them.
+In the world of Kubernetes, Prometheus is considered the best tool to monitor the cluster and all its running components. Microservices, specifically those written in Go, can expose their metrics in Prometheus format. Additionally, there are numerous exporters available for applications that cannot natively do so. Therefore, [Mimir](https://grafana.com/docs/mimir/latest/) is the ideal way to consolidate metrics from multiple Kubernetes clusters along with the applications running on each of them.
 
-When it comes to log aggregation solutions, Loki is a much simpler and easier-to-manage option compared to the traditional ELK stack. Similarly, Tempo is the best choice for traces due to similar reasons.
+When it comes to log aggregation solutions, [Loki](https://grafana.com/docs/loki/latest/) is a much simpler and easier-to-manage option compared to the traditional ELK stack. Similarly, [Tempo](https://grafana.com/docs/tempo/latest/) is the best choice for traces due to similar reasons.
 
 ## Architecture
 
@@ -12,15 +12,15 @@ We have a central cluster running Grafana's LGTM stack with Linkerd on Kubernete
 
 The remote clusters show different possibilities for deploying the solution.
 
-In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir (via Linkerd MC). Similarly, we have Promtail for logs (forwarding data to central Loki) and Grafana Agent for traces (forwarding data to central Tempo).
+In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir (via Linkerd MC). Similarly, we have [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
 
-In the second scenario, we have Grafana Agent either on [static](https://grafana.com/docs/agent/latest/static/) or [flow](https://grafana.com/docs/agent/latest/flow/) mode handling all the observability data (metrics, logs, and traces) and forward it to the LGTM stack.
+In the second scenario, we have Grafana Alloy mode handling all the observability data (metrics, logs, and traces) and forward it to the LGTM stack.
 
 In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces received via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
 
 Each cluster (including the central one) will be a tenant on Mimir, Loki, and Tempo to separate the data from each other.
 
-Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Promtail doing the same for logs to Loki, and Grafana Agent for traces to Tempo. Technically speaking, we don't need Grafana Agent on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
+Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Promtail doing the same for logs to Loki, and Grafana Alloy for traces to Tempo. Technically speaking, we don't need Grafana Alloy on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
 
 Promtail is deployed as a `DaemonSet` to forward logs to Loki.
 

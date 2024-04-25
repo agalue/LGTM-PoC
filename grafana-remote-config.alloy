@@ -1,0 +1,70 @@
+otelcol.receiver.otlp "default" {
+	grpc {
+		include_metadata = true
+	}
+
+	http {
+		include_metadata = true
+	}
+
+	output {
+		metrics = []
+		logs    = []
+		traces  = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.receiver.jaeger "default" {
+	protocols {
+		grpc { }
+
+		thrift_http { }
+
+		thrift_binary {
+			max_packet_size = "63KiB488B"
+		}
+
+		thrift_compact {
+			max_packet_size = "63KiB488B"
+		}
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.receiver.opencensus "default" {
+	output {
+		metrics = []
+		traces  = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	timeout         = "5s"
+	send_batch_size = 1000
+
+	output {
+		metrics = []
+		logs    = []
+		traces  = [otelcol.exporter.otlp.default_0.input]
+	}
+}
+
+otelcol.exporter.otlp "default_0" {
+	retry_on_failure {
+		max_elapsed_time = "1m0s"
+	}
+
+	client {
+		endpoint = "tempo-distributor-lgtm-central.tempo.svc:55680"
+
+		tls {
+			insecure = true
+		}
+		headers = {
+			"X-Scope-OrgID" = "remote01",
+		}
+	}
+}

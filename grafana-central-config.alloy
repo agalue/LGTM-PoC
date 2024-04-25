@@ -1,0 +1,61 @@
+// For Linkerd (port 55678)
+otelcol.receiver.opencensus "default" {
+	output {
+		metrics = []
+		traces  = [otelcol.processor.batch.default.input]
+	}
+}
+
+// For Nginx Ingress (port 4317)
+// https://kubernetes.github.io/ingress-nginx/user-guide/third-party-addons/opentelemetry/
+otelcol.receiver.otlp "default" {
+	grpc {
+		include_metadata = true
+	}
+
+	output {
+		metrics = []
+		logs    = []
+		traces  = [otelcol.processor.batch.default.input]
+	}
+}
+
+// For Mimir (port 14268)
+// https://grafana.com/docs/mimir/latest/configure/configure-tracing/
+otelcol.receiver.jaeger "default" {
+	protocols {
+		thrift_http { }
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	timeout         = "5s"
+	send_batch_size = 1000
+
+	output {
+		metrics = []
+		logs    = []
+		traces  = [otelcol.exporter.otlp.default_0.input]
+	}
+}
+
+otelcol.exporter.otlp "default_0" {
+	retry_on_failure {
+		max_elapsed_time = "1m0s"
+	}
+
+	client {
+		endpoint = "tempo-distributor.tempo.svc:55680"
+
+		tls {
+			insecure = true
+		}
+		headers = {
+			"X-Scope-OrgID" = "_local",
+		}
+	}
+}
