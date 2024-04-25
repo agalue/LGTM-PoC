@@ -25,7 +25,7 @@ echo "Deploying Kubernetes"
 echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
-FILES=("grafana-agent-config-remote.yaml" "values-prometheus-remote.yaml" "values-promtail-remote.yaml")
+FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-promtail-remote.yaml")
 cp "${FILES[@]}" /tmp
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
   for FILE in "${FILES[@]}"; do
@@ -48,10 +48,11 @@ echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f /tmp/values-promtail-remote.yaml --wait
 
-echo "Deplying Grafana Agent (for Traces)"
-kubectl apply -f /tmp/grafana-agent-config-remote.yaml
-helm upgrade --install grafana-agent grafana/grafana-agent \
-  -n observability -f values-agent.yaml --wait
+echo "Deplyoing Grafana Alloy (for Traces)"
+helm upgrade --install alloy -n observability grafana/alloy \
+  -f values-alloy.yaml \
+  --set-file alloy.configMap.content=/tmp/grafana-remote-config.alloy \
+  --wait
 
 echo "Deploying Grafana TNS application"
 kubectl apply -n ${APP_NS} -f grafana-tns-apps.yaml

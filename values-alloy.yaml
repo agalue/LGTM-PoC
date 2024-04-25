@@ -1,12 +1,11 @@
-# Warning: there won't be any resource requests/limits for any grafana agent-related container
-# To use more than one replica, follow load balancing examples from the documentation:
-# https://grafana.com/docs/agent/latest/static/set-up/deploy-agent/
+# Warning: there won't be any resource requests/limits for any grafana alloy-related container
 ---
-agent:
-  mode: static
-  configMap:
-    create: false
-  enableReporting: false
+fullnameOverride: grafana-agent # To simplify compatibility
+
+rbac:
+  create: false
+
+alloy:
   extraPorts:
   - name: thrift-compact
     port: 6831
@@ -31,8 +30,10 @@ agent:
   - name: oltp-http
     port: 4318
     targetPort: 4318
+
 controller:
   type: deployment
+
 serviceMonitor:
   enabled: true
   additionalLabels:
