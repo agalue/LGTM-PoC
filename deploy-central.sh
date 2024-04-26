@@ -78,7 +78,7 @@ echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
   -n observability -f values-promtail-common.yaml -f values-promtail-central.yaml --wait
 
-echo "Deplyoing Grafana Alloy (for Traces)"
+echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \
   -f values-alloy.yaml \
   --set-file alloy.configMap.content=grafana-central-config.alloy \

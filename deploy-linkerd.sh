@@ -11,7 +11,7 @@ CERT_ISSUER_ID=${CERT_ISSUER_ID-}
 DOMAIN=${DOMAIN-}
 LINKERD_HA=${LINKERD_HA-no}
 LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
-LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-yes}
+LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-no}
 LINKERD_REPO=${LINKERD_REPO-stable} # Either stable (2.14) or edge
 
 REPOSITORY_NAME="linkerd"
@@ -88,16 +88,16 @@ if [[ "$LINKERD_VIZ_ENABLED" == "yes" ]]; then
   --wait
 fi
 
-# Requires Grafana Agent
+# Requires Grafana Alloy or Tempo
 if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
-  echo "Deploying Linkerd-Jaeger via Grafana Agent"
+  echo "Deploying Linkerd-Jaeger via Grafana Alloy"
   helm upgrade --install linkerd-jaeger $REPOSITORY_NAME/linkerd-jaeger \
   --namespace linkerd-jaeger --create-namespace \
   --set clusterDomain=$DOMAIN \
   --set collector.enabled=false \
   --set jaeger.enabled=false \
-  --set webhook.collectorSvcAddr=grafana-agent.observability.svc:55678 \
-  --set webhook.collectorSvcAccount=grafana-agent \
+  --set webhook.collectorSvcAddr=grafana-alloy.observability.svc:55678 \
+  --set webhook.collectorSvcAccount=grafana-alloy \
   --wait
 fi
 

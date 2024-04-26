@@ -27,7 +27,7 @@ controller:
     enable-opentelemetry: "true"
     opentelemetry-trust-incoming-span: "false"
     opentelemetry-operation-name: HTTP $request_method $service_name $location_path
-    otlp-collector-host: grafana-agent.observability.svc
+    otlp-collector-host: grafana-alloy.observability.svc
     otel-service-name: nginx-internal
     otel-sampler: AlwaysOn
     otel-sampler-ratio: "1.0"

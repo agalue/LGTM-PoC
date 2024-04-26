@@ -14,7 +14,7 @@ SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.244.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
-CILIUM_VERSION=${CILIUM_VERSION-1.15.3}
+CILIUM_VERSION=${CILIUM_VERSION-1.15.4}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using OrbStack)
 
