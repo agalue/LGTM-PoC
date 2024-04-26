@@ -90,7 +90,7 @@ spec:
         - http://db
         env:
         - name: JAEGER_AGENT_HOST
-          value: grafana-agent.observability.svc
+          value: grafana-alloy.observability.svc
         - name: JAEGER_TAGS
           value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE
@@ -126,7 +126,7 @@ spec:
         - -log.level=debug
         env:
         - name: JAEGER_AGENT_HOST
-          value: grafana-agent.observability.svc
+          value: grafana-alloy.observability.svc
         - name: JAEGER_TAGS
           value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE
@@ -163,7 +163,7 @@ spec:
         - http://app
         env:
         - name: JAEGER_AGENT_HOST
-          value: grafana-agent.observability.svc
+          value: grafana-alloy.observability.svc
         - name: JAEGER_TAGS
           value: cluster=lgtm-remote,namespace=tns
         - name: JAEGER_SAMPLER_TYPE

@@ -1,4 +1,4 @@
-// For Linkerd (port 55678)
+// For Linkerd Jaeger when enabled (port 55678)
 otelcol.receiver.opencensus "default" {
 	output {
 		metrics = []

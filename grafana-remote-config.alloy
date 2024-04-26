@@ -1,43 +1,19 @@
-otelcol.receiver.otlp "default" {
-	grpc {
-		include_metadata = true
-	}
-
-	http {
-		include_metadata = true
-	}
-
-	output {
-		metrics = []
-		logs    = []
-		traces  = [otelcol.processor.batch.default.input]
-	}
-}
-
-otelcol.receiver.jaeger "default" {
-	protocols {
-		grpc { }
-
-		thrift_http { }
-
-		thrift_binary {
-			max_packet_size = "63KiB488B"
-		}
-
-		thrift_compact {
-			max_packet_size = "63KiB488B"
-		}
-	}
-
-	output {
-		traces = [otelcol.processor.batch.default.input]
-	}
-}
-
+// For Linkerd Jaeger when enabled (port 55678)
 otelcol.receiver.opencensus "default" {
 	output {
 		metrics = []
 		traces  = [otelcol.processor.batch.default.input]
+	}
+}
+
+// TNS Application (port 6831)
+otelcol.receiver.jaeger "default" {
+	protocols {
+		thrift_compact { }
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
 	}
 }
 
