@@ -17,7 +17,7 @@ CLUSTER_ID=${CLUSTER_ID-3} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.31.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.32.0.0/16} # Unique on each cluster
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
-APP_NS="otel"
+APP_NS="otel" # Used by deploy-link.sh
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh

@@ -14,6 +14,11 @@ sidecar:
   rules: # Rules stored on S3
     enabled: false
 
+gateway:
+  service:
+    labels:
+      prometheus.io/service-monitor: 'false' # nginx exporter unavailable
+
 loki:
   auth_enabled: true
   commonConfig:

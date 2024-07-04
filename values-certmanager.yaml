@@ -1,5 +1,6 @@
 ---
-installCRDs: true
+crds:
+  enabled: true
 
 prometheus:
   enabled: true

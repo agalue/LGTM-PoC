@@ -8,6 +8,6 @@ tolerations:
   operator: Exists
 
 serviceMonitor:
-  enabled: true
+  enabled: false # There are template issues
   labels:
     release: monitor

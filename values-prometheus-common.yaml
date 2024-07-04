@@ -35,7 +35,7 @@ grafana:
 
 prometheus-node-exporter:
   podAnnotations:
-    linkerd.io/inject: enabled
+    linkerd.io/inject: 'enabled'
 
 prometheusOperator:
   serviceAccount:
