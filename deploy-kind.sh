@@ -84,6 +84,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
   --set ipam.mode=kubernetes \
+  --set envoy.enabled=false \
   --set devices=eth+ \
   --set l2announcements.enabled=true \
   --set externalIPs.enabled=true \
