@@ -58,11 +58,7 @@ In terms of the second diagram, Linkerd creates a mirrored service automatically
 
 When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central`.
 
-Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-announcement) introduced by Buoyant about the Linkerd artifacts, the latest `stable` version available via Helm charts is 2.14 (even if the actual latest version is newer). Because of that, you might be interested in testing the `edge` releases. If you want to do that, run the following before deploying the clusters:
-
-```bash
-export LINKERD_REPO=edge
-```
+Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-announcement) introduced by Buoyant about the Linkerd artifacts, the latest `stable` version available via Helm charts is 2.14 (even if the actual latest version is newer). Because of that, we'll be using the `edge` release by default.
 
 All the scripts are smart enough to deal with all situations properly.
 
