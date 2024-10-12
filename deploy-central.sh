@@ -16,7 +16,8 @@ CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
 LINKERD_HA=${LINKERD_HA-yes}
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -41,8 +42,13 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   -f values-certmanager.yaml --wait
 
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
-  echo "Deploying Linkerd"
-  . deploy-linkerd.sh
+  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+    echo "Deploying Istio"
+    . deploy-istio.sh
+  else
+    echo "Deploying Linkerd"
+    . deploy-linkerd.sh
+  fi
 fi
 
 echo "Setting up namespaces"
@@ -52,6 +58,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: $ns
+  labels:
+    istio-injection: enabled
   annotations:
     linkerd.io/inject: enabled
 EOF
@@ -110,10 +118,12 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
     kubectl annotate ${SVC} service.cilium.io/shared=true --overwrite
   done
 else
-  echo "Exporting Services via Linkerd Multicluster"
-  for SVC in "${SERVICES[@]}"; do
-    kubectl label ${SVC} mirror.linkerd.io/exported=true
-  done
+  if [[ "${ISTIO_ENABLED}" != "yes" ]]; then
+    echo "Exporting Services via Linkerd Multicluster"
+    for SVC in "${SERVICES[@]}"; do
+      kubectl label ${SVC} mirror.linkerd.io/exported=true
+    done
+  fi
 fi
 
 # Update DNS

@@ -52,6 +52,7 @@ buckets:
 postJob:
   podAnnotations:
     linkerd.io/inject: 'disabled'
+    sidecar.istio.io/inject: 'false'
 
 metrics:
   serviceMonitor:

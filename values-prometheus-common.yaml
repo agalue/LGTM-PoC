@@ -34,6 +34,8 @@ grafana:
   enabled: false
 
 prometheus-node-exporter:
+  podLabels:
+    sidecar.istio.io/inject: 'true'
   podAnnotations:
     linkerd.io/inject: 'enabled'
 
@@ -45,6 +47,7 @@ prometheusOperator:
     patch:
       podAnnotations:
         linkerd.io/inject: 'disabled'
+        sidecar.istio.io/inject: 'false'
   prometheusConfigReloader:
     resources:
       requests:

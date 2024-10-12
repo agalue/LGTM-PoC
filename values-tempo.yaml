@@ -11,6 +11,8 @@ tempo:
   structuredConfig:
     usage_report:
       reporting_enabled: false
+  memberlist:
+    appProtocol: tcp
 
 multitenancyEnabled: true
 
@@ -37,9 +39,17 @@ minio:
 
 distributor:
   replicas: 2
+  appProtocol:
+    grpc: tcp
+
+ingester:
+  appProtocol:
+    grpc: tcp
 
 queryFrontend:
   replicas: 2
+  appProtocol:
+    grpc: tcp
   config:
     search:
       # The following are defaults but show how to control where to query
@@ -48,10 +58,14 @@ queryFrontend:
 
 querier:
   replicas: 3
+  appProtocol:
+    grpc: tcp
 
 metricsGenerator:
   enabled: true
   replicas: 2
+  appProtocol:
+    grpc: tcp
   config:
     processor:
       service_graphs:

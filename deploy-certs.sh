@@ -12,36 +12,26 @@ fi
 
 type step >/dev/null 2>&1 || { echo >&2 "step required but it's not installed; aborting."; exit 1; }
 
+# Linkerd
+
 step certificate create \
   root.linkerd.cluster.local \
-  ca.crt ca.key \
+  linkerd-ca.crt linkerd-ca.key \
   --profile root-ca \
   --no-password --insecure \
   --force
 
-step certificate create \
-  identity.linkerd.lgtm-central.cluster.local \
-  issuer-central.crt issuer-central.key \
-  --profile intermediate-ca \
-  --not-after ${CERT_EXPIRY_HOURS}h --no-password --insecure \
-  --ca ca.crt --ca-key ca.key \
-  --force
+for CLUSTER in "central" "remote" "otel"; do
+  step certificate create \
+    identity.linkerd.lgtm-${CLUSTER}.cluster.local \
+    linkerd-issuer-${CLUSTER}.crt linkerd-issuer-${CLUSTER}.key \
+    --profile intermediate-ca \
+    --not-after ${CERT_EXPIRY_HOURS}h --no-password --insecure \
+    --ca linkerd-ca.crt --ca-key linkerd-ca.key \
+    --force
+done
 
-step certificate create \
-  identity.linkerd.lgtm-remote.cluster.local \
-  issuer-remote.crt issuer-remote.key \
-  --profile intermediate-ca \
-  --not-after ${CERT_EXPIRY_HOURS}h --no-password --insecure \
-  --ca ca.crt --ca-key ca.key \
-  --force
-
-step certificate create \
-  identity.linkerd.lgtm-otel.cluster.local \
-  issuer-otel.crt issuer-otel.key \
-  --profile intermediate-ca \
-  --not-after ${CERT_EXPIRY_HOURS}h --no-password --insecure \
-  --ca ca.crt --ca-key ca.key \
-  --force
+# Cilium
 
 step certificate create \
   root.cilium.io \
@@ -49,5 +39,25 @@ step certificate create \
   --profile root-ca \
   --no-password --insecure \
   --force
+
+# Istio
+
+step certificate create \
+  "Istio Root CA" \
+  istio-root-ca.crt istio-root-ca.key \
+  --profile root-ca \
+  --no-password --insecure \
+  --force
+
+for CLUSTER in "central" "remote" "otel"; do
+  step certificate create \
+    "Istio ${CLUSTER} cluster" \
+    istio-issuer-${CLUSTER}.crt istio-issuer-${CLUSTER}.key \
+    --profile intermediate-ca \
+    --no-password --insecure \
+    --ca istio-root-ca.crt --ca-key istio-root-ca.key \
+    --force
+  cat istio-issuer-${CLUSTER}.crt istio-root-ca.crt > istio-issuer-${CLUSTER}-chain.crt
+done
 
 echo ${CERT_EXPIRY_DATE} > cert-expiry-date.txt

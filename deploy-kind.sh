@@ -14,7 +14,7 @@ SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.244.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
-CILIUM_VERSION=${CILIUM_VERSION-1.16.0}
+CILIUM_VERSION=${CILIUM_VERSION-1.16.2}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using Docker-based solutions)
 
@@ -84,6 +84,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
   --set ipam.mode=kubernetes \
+  --set cni.exclusive=false \
   --set envoy.enabled=false \
   --set devices=eth+ \
   --set l2announcements.enabled=true \

@@ -16,7 +16,8 @@ WORKERS=${WORKERS-1}
 CLUSTER_ID=${CLUSTER_ID-3} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.31.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.32.0.0/16} # Unique on each cluster
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 APP_NS="otel" # Used by deploy-link.sh
 
 echo "Deploying Kubernetes"
@@ -32,8 +33,13 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
     sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
   done
 else
-  echo "Deploying Linkerd"
-  . deploy-linkerd.sh
+  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+    echo "Deploying Istio"
+    . deploy-istio.sh
+  else
+    echo "Deploying Linkerd"
+    . deploy-linkerd.sh
+  fi
 fi
 
 echo "Connect to Central"

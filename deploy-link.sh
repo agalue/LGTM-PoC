@@ -14,6 +14,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: $ns
+  labels:
+    istio-injection: enabled
   annotations:
     linkerd.io/inject: enabled
 EOF
@@ -21,7 +23,8 @@ done
 
 CENTRAL=${CENTRAL-lgtm-central}
 CONTEXT=${CONTEXT-lgtm-remote}
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 
 CENTRAL_CTX=kind-${CENTRAL}
 REMOTE_CTX=kind-${CONTEXT}
@@ -48,8 +51,15 @@ else
   # The following is required when using Kind/Docker without apiServerAddress on Kind config.
   API_SERVER=$(kubectl get node --context ${CENTRAL_CTX} -l node-role.kubernetes.io/control-plane -o json \
     | jq -r '.items[] | .status.addresses[] | select(.type=="InternalIP") | .address')
-
-  linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
-    --api-server-address="https://${API_SERVER}:6443" \
-    | kubectl apply --context ${REMOTE_CTX} -f -
+  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+    istioctl create-remote-secret \
+      --context=${CENTRAL_CTX} \
+      --server https://${API_SERVER}:6443 \
+      --name=central | \
+      kubectl apply --context=${REMOTE_CTX} -f -
+  else
+    linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
+      --api-server-address="https://${API_SERVER}:6443" \
+      | kubectl apply --context ${REMOTE_CTX} -f -
+    fi
 fi

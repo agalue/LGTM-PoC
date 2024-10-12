@@ -36,13 +36,13 @@ if [ ! -f $CERT_EXPIRY_FILE ]; then
 fi
 CERT_EXPIRY_DATE=$(cat $CERT_EXPIRY_FILE)
 
-if [ ! -f ca.crt ]; then
-  echo "ca.crt not found; please run deploy-certs.sh"
+if [ ! -f "linkerd-ca.crt" ]; then
+  echo "linkerd-ca.crt not found; please run deploy-certs.sh"
   exit 1
 fi
 
-if [ ! -f "$CERT_ISSUER_ID.crt" ]; then
-  echo "$CERT_ISSUER_ID.crt not found; please run deploy-certs.sh"
+if [ ! -f "linkerd-$CERT_ISSUER_ID.crt" ]; then
+  echo "linkerd-$CERT_ISSUER_ID.crt not found; please run deploy-certs.sh"
   exit 1
 fi
 
@@ -62,9 +62,9 @@ helm upgrade --install linkerd-control-plane $REPOSITORY_NAME/linkerd-control-pl
   --namespace linkerd \
   --set clusterDomain=$DOMAIN \
   --set identityTrustDomain=$DOMAIN \
-  --set-file identityTrustAnchorsPEM=ca.crt \
-  --set-file identity.issuer.tls.crtPEM=$CERT_ISSUER_ID.crt \
-  --set-file identity.issuer.tls.keyPEM=$CERT_ISSUER_ID.key \
+  --set-file identityTrustAnchorsPEM=linkerd-ca.crt \
+  --set-file identity.issuer.tls.crtPEM=linkerd-$CERT_ISSUER_ID.crt \
+  --set-file identity.issuer.tls.keyPEM=linkerd-$CERT_ISSUER_ID.key \
   --set identity.issuer.crtExpiry=$CERT_EXPIRY_DATE \
   ${helm_values_args[@]} \
   --wait
