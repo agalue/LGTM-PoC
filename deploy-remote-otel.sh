@@ -10,14 +10,14 @@ done
 CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-otel}
 CONTEXT=${CONTEXT-lgtm-remote-otel}
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-232} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-1}
 CLUSTER_ID=${CLUSTER_ID-3} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.31.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.32.0.0/16} # Unique on each cluster
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
-APP_NS="otel" # Used by deploy-link.sh
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
+APP_NS="otel" # Used by deploy-mesh.sh
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -25,24 +25,13 @@ echo "Deploying Kubernetes"
 echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
+echo "Deploying Mesh"
 FILES=("values-opentelemetry-demo.yaml" "values-prometheus-remote-otel.yaml")
-cp "${FILES[@]}" /tmp
-if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
-  for FILE in "${FILES[@]}"; do
-    sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
-  done
-else
-  echo "Deploying Linkerd"
-  . deploy-linkerd.sh
-fi
-
-echo "Connect to Central"
-. deploy-link.sh
+. deploy-mesh.sh
 
 echo "Deploying Prometheus (for local Kubernetes Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote-otel.yaml \
-  --set prometheusOperator.clusterDomain=$DOMAIN --wait
+  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote-otel.yaml --wait
 
 echo "Deploying OpenTelemetry Demo application"
 helm upgrade --install demo open-telemetry/opentelemetry-demo \

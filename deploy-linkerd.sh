@@ -8,7 +8,6 @@ for cmd in "helm" "kubectl"; do
 done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
-DOMAIN=${DOMAIN-}
 LINKERD_HA=${LINKERD_HA-no}
 LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
 LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-no}
@@ -24,11 +23,6 @@ if [[ "$CERT_ISSUER_ID" == "" ]]; then
   exit 1
 fi
 
-if [[ "$DOMAIN" == "" ]]; then
-  echo "DOMAIN env-var required"
-  exit 1
-fi
-
 CERT_EXPIRY_FILE=cert-expiry-date.txt
 if [ ! -f $CERT_EXPIRY_FILE ]; then
   echo "$CERT_EXPIRY_FILE not found; please run deploy-certs.sh"
@@ -36,13 +30,13 @@ if [ ! -f $CERT_EXPIRY_FILE ]; then
 fi
 CERT_EXPIRY_DATE=$(cat $CERT_EXPIRY_FILE)
 
-if [ ! -f ca.crt ]; then
-  echo "ca.crt not found; please run deploy-certs.sh"
+if [ ! -f "linkerd-ca.crt" ]; then
+  echo "linkerd-ca.crt not found; please run deploy-certs.sh"
   exit 1
 fi
 
-if [ ! -f "$CERT_ISSUER_ID.crt" ]; then
-  echo "$CERT_ISSUER_ID.crt not found; please run deploy-certs.sh"
+if [ ! -f "linkerd-$CERT_ISSUER_ID.crt" ]; then
+  echo "linkerd-$CERT_ISSUER_ID.crt not found; please run deploy-certs.sh"
   exit 1
 fi
 
@@ -60,11 +54,9 @@ if [[ "$LINKERD_HA" == "yes" ]]; then
 fi
 helm upgrade --install linkerd-control-plane $REPOSITORY_NAME/linkerd-control-plane \
   --namespace linkerd \
-  --set clusterDomain=$DOMAIN \
-  --set identityTrustDomain=$DOMAIN \
-  --set-file identityTrustAnchorsPEM=ca.crt \
-  --set-file identity.issuer.tls.crtPEM=$CERT_ISSUER_ID.crt \
-  --set-file identity.issuer.tls.keyPEM=$CERT_ISSUER_ID.key \
+  --set-file identityTrustAnchorsPEM=linkerd-ca.crt \
+  --set-file identity.issuer.tls.crtPEM=linkerd-$CERT_ISSUER_ID.crt \
+  --set-file identity.issuer.tls.keyPEM=linkerd-$CERT_ISSUER_ID.key \
   --set identity.issuer.crtExpiry=$CERT_EXPIRY_DATE \
   ${helm_values_args[@]} \
   --wait
@@ -79,8 +71,6 @@ if [[ "$LINKERD_VIZ_ENABLED" == "yes" ]]; then
   echo "Deploying Linkerd-Viz"
   helm upgrade --install linkerd-viz $REPOSITORY_NAME/linkerd-viz \
   --namespace linkerd-viz --create-namespace \
-  --set clusterDomain=$DOMAIN \
-  --set identityTrustDomain=$DOMAIN \
   --set grafana.enabled=false \
   --set prometheus.enabled=false \
   --set prometheusUrl=http://monitor-prometheus.observability.svc:9090 \
@@ -93,7 +83,6 @@ if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
   echo "Deploying Linkerd-Jaeger via Grafana Alloy"
   helm upgrade --install linkerd-jaeger $REPOSITORY_NAME/linkerd-jaeger \
   --namespace linkerd-jaeger --create-namespace \
-  --set clusterDomain=$DOMAIN \
   --set collector.enabled=false \
   --set jaeger.enabled=false \
   --set webhook.collectorSvcAddr=grafana-alloy.observability.svc:55678 \
@@ -104,5 +93,4 @@ fi
 echo "Deploying Linkerd Multicluster"
 helm upgrade --install linkerd-multicluster $REPOSITORY_NAME/linkerd-multicluster \
   --namespace linkerd-multicluster --create-namespace \
-  --set identityTrustDomain=$DOMAIN \
   --wait

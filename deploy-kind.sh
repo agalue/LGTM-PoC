@@ -7,14 +7,13 @@ for cmd in "docker" "kind" "cilium" "kubectl" "jq" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CONTEXT=${CONTEXT-kind} # Kubeconfig profile and cluster domain
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
+CONTEXT=${CONTEXT-kind} # Kubeconfig profile
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/LB
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.244.0.0/16}
 SVC_CIDR=${SVC_CIDR-10.96.0.0/12}
-CILIUM_VERSION=${CILIUM_VERSION-1.16.0}
+CILIUM_VERSION=${CILIUM_VERSION-1.16.2}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using Docker-based solutions)
 
@@ -55,13 +54,6 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: ${CONTEXT}
 nodes:
 - role: control-plane
-  kubeadmConfigPatches:
-  - |
-    ---
-    apiVersion: kubeadm.k8s.io/v1beta3
-    kind: ClusterConfiguration
-    networking:
-      dnsDomain: ${DOMAIN}
 ${WORKER_YAML}
 networking:
   ipFamily: ipv4
@@ -84,6 +76,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
   --set ipam.mode=kubernetes \
+  --set cni.exclusive=false \
   --set envoy.enabled=false \
   --set devices=eth+ \
   --set l2announcements.enabled=true \
@@ -95,8 +88,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set encryption.enabled=${ENCRYPTION_ENABLED} \
   --set encryption.type=wireguard \
   --set hubble.relay.enabled=${HUBBLE_ENABLED} \
-  --set hubble.ui.enabled=${HUBBLE_ENABLED} \
-  --set hubble.peerService.clusterDomain=${DOMAIN}
+  --set hubble.ui.enabled=${HUBBLE_ENABLED}
 
 cilium status --wait --ignore-warnings
 

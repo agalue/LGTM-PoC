@@ -9,14 +9,14 @@ done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-central}
 CONTEXT=${CONTEXT-lgtm-central}
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-248} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
 LINKERD_HA=${LINKERD_HA-yes}
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -41,8 +41,13 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   -f values-certmanager.yaml --wait
 
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
-  echo "Deploying Linkerd"
-  . deploy-linkerd.sh
+  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+    echo "Deploying Istio"
+    . deploy-istio.sh
+  else
+    echo "Deploying Linkerd"
+    . deploy-linkerd.sh
+  fi
 fi
 
 echo "Setting up namespaces"
@@ -52,6 +57,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: $ns
+  labels:
+    istio-injection: enabled
   annotations:
     linkerd.io/inject: enabled
 EOF
@@ -59,20 +66,20 @@ done
 
 echo "Deploying Prometheus (for Local Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml \
-  --set prometheusOperator.clusterDomain=$DOMAIN --wait
+  -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml --wait
 
 echo "Deploying MinIO for Loki, Tempo and Mimir"
 helm upgrade --install minio minio/minio \
   -n storage -f values-minio.yaml --wait
+kubectl rollout status -n storage deployment/minio
 
 echo "Deploying Grafana Tempo"
 helm upgrade --install tempo grafana/tempo-distributed \
-  -n tempo -f values-tempo.yaml --set global.clusterDomain=$DOMAIN --wait
+  -n tempo -f values-tempo.yaml --wait
 
 echo "Deploying Grafana Loki"
 helm upgrade --install loki grafana/loki \
-  -n loki -f values-loki.yaml --set global.clusterDomain=$DOMAIN --wait
+  -n loki -f values-loki.yaml --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
@@ -86,7 +93,7 @@ helm upgrade --install alloy -n observability grafana/alloy \
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
-  -n mimir -f values-mimir.yaml --set global.clusterDomain=$DOMAIN
+  -n mimir -f values-mimir.yaml
 kubectl rollout status -n mimir deployment/mimir-distributor
 kubectl rollout status -n mimir deployment/mimir-query-frontend
 
@@ -110,10 +117,12 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
     kubectl annotate ${SVC} service.cilium.io/shared=true --overwrite
   done
 else
-  echo "Exporting Services via Linkerd Multicluster"
-  for SVC in "${SERVICES[@]}"; do
-    kubectl label ${SVC} mirror.linkerd.io/exported=true
-  done
+  if [[ "${ISTIO_ENABLED}" != "yes" ]]; then
+    echo "Exporting Services via Linkerd Multicluster"
+    for SVC in "${SERVICES[@]}"; do
+      kubectl label ${SVC} mirror.linkerd.io/exported=true
+    done
+  fi
 fi
 
 # Update DNS

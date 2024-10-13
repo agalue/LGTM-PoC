@@ -10,10 +10,14 @@ controller:
       namespace: ingress-nginx
       additionalLabels:
         release: monitor
+  podLabels:
+    sidecar.istio.io/inject: 'true'
   podAnnotations:
     linkerd.io/inject: enabled
     config.linkerd.io/skip-inbound-ports: "80,443"
   admissionWebhooks:
+    labels:
+      sidecar.istio.io/inject: 'false'
     annotations:
       linkerd.io/inject: disabled
   updateStrategy:
