@@ -71,9 +71,11 @@ Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-
 
 ### Istio Multi Cluster
 
-> **WARNING:** Istio support is a work in progress. In theory, setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) and ensuring the presence of headless services (i.e., `clusterIP: None`) to guarantee that the proxy will have endpoints per Pod IP address should allow all Grafana applications to work correctly. However, the integration with Prometheus and traces via Grafana Allow has not yet been enabled (as it exists for Linkerd).
+> **WARNING:** Istio support is a work in progress. In theory, setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) and ensuring the presence of headless services (i.e., `clusterIP: None`) guarantees that the proxy will have endpoints per Pod IP address should allow all Grafana applications to work correctly. Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
 
 The PoC assumes Istio [multi-cluster](https://istio.io/latest/docs/setup/install/multicluster/primary-remote_multi-network/) using multi-network, which requires an Istio Gateway. In other words, the environment assumes we're interconnecting two clusters from different networks using Istio.
+
+Please note that the integration with Prometheus and traces via Grafana Allow has not yet been enabled (as it exists for Linkerd).
 
 ### Cilium Cluster
 
@@ -334,6 +336,14 @@ Then, access the Grafana WebUI available at `https://grafana.example.com` and ac
 The password for the `admin` account is defined in [values-prometheus-central.yaml](./values-prometheus-central.yaml) (i.e., `Adm1nAdm1n`). From the Explore tab, you should be able to access the data collected locally and received from the remote location using the data sources described initially.
 
 Within the [dashboards](./dashboards/) subdirectory, you should find a sample dashboard for the TNS App that you can use to visualize metrics from more locations based on the metrics stored in the central location. If you check the logs for that application (`tns` namespace), you can visualize the remote logs stored on the central Loki and the traces.
+
+### Troubleshooting
+
+For some reason, sometimes the Ingress controller doesn't correctly apply the Ingress resource, and after updating `/etc/hosts`, the Grafana UI is still unreachable. If that happens, the easiest solution is to restart the Ingress controller:
+
+```bash
+kubectl rollout restart deployment -n ingress-nginx ingress-nginx-controller --context kind-lgtm-central
+```
 
 ## Shutdown
 
