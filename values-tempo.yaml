@@ -37,6 +37,10 @@ gateway:
 minio:
   enabled: false
 
+memberlist:
+  rejoin_interval: 60s
+  dead_node_reclaim_time: 60s
+
 distributor:
   replicas: 2
   appProtocol:

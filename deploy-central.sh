@@ -9,7 +9,6 @@ done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-central}
 CONTEXT=${CONTEXT-lgtm-central}
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-248} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
@@ -67,20 +66,20 @@ done
 
 echo "Deploying Prometheus (for Local Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml \
-  --set prometheusOperator.clusterDomain=$DOMAIN --wait
+  -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml --wait
 
 echo "Deploying MinIO for Loki, Tempo and Mimir"
 helm upgrade --install minio minio/minio \
   -n storage -f values-minio.yaml --wait
+kubectl rollout status -n storage deployment/minio
 
 echo "Deploying Grafana Tempo"
 helm upgrade --install tempo grafana/tempo-distributed \
-  -n tempo -f values-tempo.yaml --set global.clusterDomain=$DOMAIN --wait
+  -n tempo -f values-tempo.yaml --wait
 
 echo "Deploying Grafana Loki"
 helm upgrade --install loki grafana/loki \
-  -n loki -f values-loki.yaml --set global.clusterDomain=$DOMAIN --wait
+  -n loki -f values-loki.yaml --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \
@@ -94,7 +93,7 @@ helm upgrade --install alloy -n observability grafana/alloy \
 
 echo "Deploying Grafana Mimir"
 helm upgrade --install mimir grafana/mimir-distributed \
-  -n mimir -f values-mimir.yaml --set global.clusterDomain=$DOMAIN
+  -n mimir -f values-mimir.yaml
 kubectl rollout status -n mimir deployment/mimir-distributor
 kubectl rollout status -n mimir deployment/mimir-query-frontend
 

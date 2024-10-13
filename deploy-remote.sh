@@ -10,7 +10,6 @@ done
 CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
 CONTEXT=${CONTEXT-lgtm-remote}
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
 SUBNET=${SUBNET-240} # For Cilium L2/LB (must be unique across all clusters)
 WORKERS=${WORKERS-1}
 CLUSTER_ID=${CLUSTER_ID-2} # Unique on each cluster
@@ -18,7 +17,7 @@ POD_CIDR=${POD_CIDR-10.21.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.22.0.0/16} # Unique on each cluster
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
-APP_NS="tns"  # Used by deploy-link.sh
+APP_NS="tns"  # Used by deploy-mesh.sh
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -26,29 +25,13 @@ echo "Deploying Kubernetes"
 echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
+echo "Deploying Mesh"
 FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-promtail-remote.yaml")
-cp "${FILES[@]}" /tmp
-if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
-  for FILE in "${FILES[@]}"; do
-    sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
-  done
-else
-  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
-    echo "Deploying Istio"
-    . deploy-istio.sh
-  else
-    echo "Deploying Linkerd"
-    . deploy-linkerd.sh
-  fi
-fi
-
-echo "Connect to Central"
-. deploy-link.sh
+. deploy-mesh.sh
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote.yaml \
-  --set prometheusOperator.clusterDomain=$DOMAIN --wait
+  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote.yaml --wait
 
 echo "Deploying Grafana Promtail (for Logs)"
 helm upgrade --install promtail grafana/promtail \

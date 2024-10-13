@@ -3,9 +3,39 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "kubectl" "cilium" "linkerd"; do
-  type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
-done
+CENTRAL=${CENTRAL-lgtm-central}
+CONTEXT=${CONTEXT-lgtm-remote}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
+
+CENTRAL_CTX=kind-${CENTRAL}
+REMOTE_CTX=kind-${CONTEXT}
+
+# Configuration files designed for Linkerd MC that requires alterations to work with Istio or Cilium CM
+FILES=${FILES:-}
+
+# Application Namespace
+APP_NS=${APP_NS:-}
+
+patch_files() {
+  for FILE in "${FILES[@]}"; do
+    sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
+  done
+}
+
+cp "${FILES[@]}" /tmp
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
+  patch_files
+else
+  if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+    patch_files
+    echo "Deploying Istio"
+    . deploy-istio.sh
+  else
+    echo "Deploying Linkerd"
+    . deploy-linkerd.sh
+  fi
+fi
 
 echo "Setting up namespaces"
 for ns in observability mimir tempo loki $APP_NS; do
@@ -20,14 +50,6 @@ metadata:
     linkerd.io/inject: enabled
 EOF
 done
-
-CENTRAL=${CENTRAL-lgtm-central}
-CONTEXT=${CONTEXT-lgtm-remote}
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
-ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
-
-CENTRAL_CTX=kind-${CENTRAL}
-REMOTE_CTX=kind-${CONTEXT}
 
 echo "Creating link from ${REMOTE_CTX} to ${CENTRAL_CTX}"
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then

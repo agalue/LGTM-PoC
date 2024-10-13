@@ -26,11 +26,8 @@ kubectl create secret generic cacerts -n istio-system \
   --from-file=ca-key.pem=istio-${CERT_ISSUER_ID}.key \
   --from-file=cert-chain.pem=istio-${CERT_ISSUER_ID}-chain.crt
 
-# TODO clusterDomain, trustDomain
-
 # https://istio.io/latest/docs/setup/install/multicluster/multi-primary_multi-network/
 # https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
-# https://istio.io/v1.5/docs/reference/config/installation-options/
 cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -41,6 +38,29 @@ spec:
       multiCluster:
         clusterName: ${CONTEXT}
       network: ${CONTEXT}
+      proxy:
+        holdApplicationUntilProxyStarts: true
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+      proxy_init:
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+  meshConfig:
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true
+      proxyMetadata:
+        ISTIO_META_DNS_CAPTURE: "true"
+        ISTIO_META_DNS_AUTO_ALLOCATE: "true"
   components:
     ingressGateways:
     - name: lgtm-gateway
@@ -54,6 +74,13 @@ spec:
         # traffic through this gateway should be routed inside the network
         - name: ISTIO_META_REQUESTED_NETWORK_VIEW
           value: ${CONTEXT}
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
         service:
           ports:
           - name: status-port

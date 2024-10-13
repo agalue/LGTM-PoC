@@ -7,8 +7,7 @@ for cmd in "docker" "kind" "cilium" "kubectl" "jq" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CONTEXT=${CONTEXT-kind} # Kubeconfig profile and cluster domain
-DOMAIN=${DOMAIN-${CONTEXT}.cluster.local}
+CONTEXT=${CONTEXT-kind} # Kubeconfig profile
 WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
 SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/LB
 CLUSTER_ID=${CLUSTER_ID-1}
@@ -55,13 +54,6 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: ${CONTEXT}
 nodes:
 - role: control-plane
-  kubeadmConfigPatches:
-  - |
-    ---
-    apiVersion: kubeadm.k8s.io/v1beta3
-    kind: ClusterConfiguration
-    networking:
-      dnsDomain: ${DOMAIN}
 ${WORKER_YAML}
 networking:
   ipFamily: ipv4
@@ -96,8 +88,7 @@ cilium install --version ${CILIUM_VERSION} --wait \
   --set encryption.enabled=${ENCRYPTION_ENABLED} \
   --set encryption.type=wireguard \
   --set hubble.relay.enabled=${HUBBLE_ENABLED} \
-  --set hubble.ui.enabled=${HUBBLE_ENABLED} \
-  --set hubble.peerService.clusterDomain=${DOMAIN}
+  --set hubble.ui.enabled=${HUBBLE_ENABLED}
 
 cilium status --wait --ignore-warnings
 
