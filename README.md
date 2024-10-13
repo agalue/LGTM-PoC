@@ -8,13 +8,13 @@ When it comes to log aggregation solutions, [Loki](https://grafana.com/docs/loki
 
 ![Architecture](architecture-0.png)
 
-We have a central cluster running Grafana's LGTM stack with Linkerd on Kubernetes. Then, several client or remote clusters are connected via "Cluster Mesh" to the central cluster to send metrics, logs, and traces to the LGTM stack.
+We have a central cluster running Grafana's LGTM stack on Kubernetes. Then, several client or remote clusters connected via "Cluster Mesh" to the central cluster to send metrics, logs, and traces to the LGTM stack.
 
 The remote clusters show different possibilities for deploying the solution.
 
-In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir (via Linkerd MC). Similarly, we have [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
+In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir in the central cluster. Similarly, we have [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
 
-In the second scenario, Grafana Alloy handles all the observability data (metrics, logs, and traces) and forwards them to the LGTM stack. In this case, Alloy does the work of Promtail and Prometheus (including collecting metrics from the Kubernetes cluster and managing Prometheus CRDs).
+In the second scenario, Grafana Alloy handles all the observability data (metrics, logs, and traces) and forwards them to the central LGTM stack. In this case, Alloy does the work of Promtail and Prometheus (including collecting metrics from the Kubernetes cluster and managing Prometheus CRDs).
 
 In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces received via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
 
@@ -34,13 +34,13 @@ As Zero Trust is becoming more important nowadays, we'll either [Linkerd](https:
 
 We will use [Kind](https://kind.sigs.k8s.io/) via [Docker](https://www.docker.com/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as an L2/LB, mainly because the Service Mesh Gateway for Multi-Cluster requires a Load Balancer service (that way we wouldn't need MetalLB).
 
-For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` from the Docker network created by `kind`.
+For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` (and the OTEL remote would use `x.x.x.232/29`) from the Docker network created by `kind`.
 
 Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
 
 Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
 
-As Cilium is available on each cluster, and the scripts are arranged in a way that there won't be IP Address collisions between all the clusters (for Pod and Services), it is possible to replace Linkerd with Cilium [ClusterMesh](https://cilium.io/use-cases/cluster-mesh/) with Encryption enabled. We will be using [Wireguard](https://www.wireguard.com/) as it is easier to deploy than IPSec and will encrypt the communication between worker nodes and clusters. The difference between Cilium and Linkerd is that Pod-to-Pod communication won't be encrypted when the instances run in the same worker node, and mTLS won't be involved.
+As Cilium is available on each cluster, and the scripts are arranged in a way that there won't be IP Address collisions between all the clusters (for Pod and Services), it is possible to replace Linkerd or Istio with Cilium [ClusterMesh](https://cilium.io/use-cases/cluster-mesh/) with Encryption enabled. We will be using [Wireguard](https://www.wireguard.com/) as it is easier to deploy than IPSec and will encrypt the communication between worker nodes and clusters. The difference between Cilium and a Service Mesh like Istio or Linkerd is that Pod-to-Pod communication won't be encrypted when the instances run in the same worker node, and mTLS won't be involved.
 
 If you want to use Cilium ClusterMesh instead of Linkerd, run the following before deploying the clusters:
 
@@ -65,21 +65,25 @@ All the scripts are smart enough to deal with all situations properly.
 
 ![Linkerd MC Architecture](architecture-1.png)
 
-In terms of the second diagram, Linkerd creates a mirrored service automatically when linking clusters, appending the name of the target service to it. For instance, in `lgtm-central`, accessing Mimir locally would be `mimir-distributor.mimir.svc`, whereas accessing it from the `lgtm-remote` cluster would be `mimir-distributor-lgtm-central.mimir.svc`.
+Linkerd creates a mirrored service automatically when linking clusters, appending the name of the target service to it. For instance, in `lgtm-central`, accessing Mimir locally would be `mimir-distributor.mimir.svc`, whereas accessing it from the `lgtm-remote` cluster would be `mimir-distributor-lgtm-central.mimir.svc`.
 
 Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-announcement) introduced by Buoyant about the Linkerd artifacts, the latest `stable` version available via Helm charts is 2.14 (even if the actual latest version is newer). Because of that, we'll be using the `edge` release by default.
 
 ### Istio Multi Cluster
 
-> **WARNING:** Istio support is a work in progress. In theory, setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) and ensuring the presence of headless services (i.e., `clusterIP: None`) guarantees that the proxy will have endpoints per Pod IP address should allow all Grafana applications to work correctly. Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
+> **WARNING:** Istio support is a work in progress.
+
+In theory, setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) and ensuring the presence of headless services (i.e., `clusterIP: None`) guarantees that the proxy will have endpoints per Pod IP address, allowing all Grafana applications to work correctly (as some microservices require direct pod-to-pod communication by Pod IP). Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
 
 The PoC assumes Istio [multi-cluster](https://istio.io/latest/docs/setup/install/multicluster/primary-remote_multi-network/) using multi-network, which requires an Istio Gateway. In other words, the environment assumes we're interconnecting two clusters from different networks using Istio.
 
 Please note that the integration with Prometheus and traces via Grafana Allow has not yet been enabled (as it exists for Linkerd).
 
+Unlike Linkerd, the services declared on the central cluster are reachable using the same FQDN as in the local cluster. The Istio Proxies are configured so that the DNS resolution and routing works as intended.
+
 ### Cilium Cluster
 
-When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central`.
+When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central` (similar to Istio).
 
 ### Data Sources
 
@@ -117,7 +121,9 @@ The solution has been designed and tested only on an Intel-based Mac and a Linux
 
 ## Start
 
-* Create anchor and issuer certificates for Linkerd:
+> Remember that the scripts use Linkerd by default. Check the notes above to use Istio or Cilium ClusterMesh.
+
+* Create anchor and issuer certificates for Cilium, Linkerd and Istio:
 
 ```bash
 ./deploy-certs.sh
