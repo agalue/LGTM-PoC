@@ -30,7 +30,7 @@ For this PoC, we will have *two* Kubernetes clusters, one with the LGTM Stack ex
 
 Optionally, there is a third cluster running the [OpenTelemetry Demo App](https://opentelemetry.io/docs/demo/), which is configured via Helm to send metrics to the LGTM stack using the OTEL Collector (`lgtm-remote-otel`, based on the third scenario).
 
-As Zero Trust is becoming more important nowadays, we'll either [Linkerd](https://linkerd.io/), [Istio](https://istio.io/), or [Cilium Cluster Mesh](https://cilium.io/use-cases/cluster-mesh/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption on our own.
+As Zero Trust is becoming more important nowadays, we'll use either [Linkerd](https://linkerd.io/), [Istio](https://istio.io/), or [Cilium Cluster Mesh](https://cilium.io/use-cases/cluster-mesh/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption ourselves.
 
 We will use [Kind](https://kind.sigs.k8s.io/) via [Docker](https://www.docker.com/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as an L2/LB, mainly because the Service Mesh Gateway for Multi-Cluster requires a Load Balancer service (that way we wouldn't need MetalLB).
 
@@ -73,11 +73,9 @@ Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-
 
 > **WARNING:** Istio support is a work in progress.
 
-In theory, setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) and ensuring the presence of headless services (i.e., `clusterIP: None`) guarantees that the proxy will have endpoints per Pod IP address, allowing all Grafana applications to work correctly (as some microservices require direct pod-to-pod communication by Pod IP). Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
+Setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) helps with [protocol selection](https://istio.io/latest/docs/ops/configuration/traffic-management/protocol-selection/) and ensuring the presence of [headless services](https://istio.io/latest/docs/ops/configuration/traffic-management/traffic-routing/#headless-services) (i.e., `clusterIP: None`) improves traffic routing guaranteeing that the proxy will have endpoints per Pod IP address, allowing all Grafana applications to work correctly (as some microservices require direct pod-to-pod communication by Pod IP). Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
 
 The PoC assumes Istio [multi-cluster](https://istio.io/latest/docs/setup/install/multicluster/primary-remote_multi-network/) using multi-network, which requires an Istio Gateway. In other words, the environment assumes we're interconnecting two clusters from different networks using Istio.
-
-Please note that the integration with Prometheus and traces via Grafana Allow has not yet been enabled (as it exists for Linkerd).
 
 Unlike Linkerd, the services declared on the central cluster are reachable using the same FQDN as in the local cluster. The Istio Proxies are configured so that the DNS resolution and routing works as intended.
 
