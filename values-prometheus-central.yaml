@@ -245,75 +245,96 @@ grafana:
       # Linkerd Dashboards
       # All these charts are hosted at https://grafana.com/grafana/dashboards/{id}
       # All of them tested on Grafana 7.1 and need a scrape interval of 10 seconds.
-      top-line:
+      linkerd-top-line:
         gnetId: 15474
         revision: 3
         datasource: prometheus
-      health:
+      linkerd-health:
         gnetId: 15486
         revision: 2
         datasource: prometheus
-      kubernetes:
+      linkerd-kubernetes:
         gnetId: 15479
         revision: 2
         datasource: prometheus
-      namespace:
+      linkerd-namespace:
         gnetId: 15478
         revision: 2
         datasource: prometheus
-      deployment:
+      linkerd-deployment:
         gnetId: 15475
         revision: 5
         datasource: prometheus
-      pod:
+      linkerd-pod:
         gnetId: 15477
         revision: 2
         datasource: prometheus
-      service:
+      linkerd-service:
         gnetId: 15480
         revision: 2
         datasource: prometheus
-      route:
+      linkerd-route:
         gnetId: 15481
         revision: 2
         datasource: prometheus
-      authority:
+      linkerd-authority:
         gnetId: 15482
         revision: 2
         datasource: prometheus
-      cronjob:
+      linkerd-cronjob:
         gnetId: 15483
         revision: 2
         datasource: prometheus
-      job:
+      linkerd-job:
         gnetId: 15487
         revision: 2
         datasource: prometheus
-      daemonset:
+      linkerd-daemonset:
         gnetId: 15484
         revision: 2
         datasource: prometheus
-      replicaset:
+      linkerd-replicaset:
         gnetId: 15491
         revision: 2
         datasource: prometheus
-      statefulset:
+      linkerd-statefulset:
         gnetId: 15493
         revision: 2
         datasource: prometheus
-      replicationcontroller:
+      linkerd-replicationcontroller:
         gnetId: 15492
         revision: 2
         datasource: prometheus
-      prometheus:
+      linkerd-prometheus:
         gnetId: 15489
         revision: 2
         datasource: prometheus
-      prometheus-benchmark:
+      linkerd-prometheus-benchmark:
         gnetId: 15490
         revision: 2
         datasource: prometheus
-      multicluster:
+      linkerd-multicluster:
         gnetId: 15488
         revision: 2
+        datasource: prometheus
+      # Istio Dashboards
+      istio-control-plane:
+        gnetId: 7645
+        revision: 231
+        datasource: prometheus
+      istio-mesh:
+        gnetId: 7639
+        revision: 231
+        datasource: prometheus
+      istio-service:
+        gnetId: 7636
+        revision: 231
+        datasource: prometheus
+      istio-workload:
+        gnetId: 7630
+        revision: 231
+        datasource: prometheus
+      istio-performance:
+        gnetId: 11829
+        revision: 231
         datasource: prometheus

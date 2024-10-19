@@ -8,9 +8,9 @@ for cmd in "helm" "kubectl"; do
 done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
-LINKERD_HA=${LINKERD_HA-no}
+SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
+SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
 LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
-LINKERD_JAEGER_ENABLED=${LINKERD_JAEGER_ENABLED-no}
 LINKERD_REPO=${LINKERD_REPO-edge} # Either stable (2.14) or edge
 
 REPOSITORY_NAME="linkerd"
@@ -49,7 +49,7 @@ helm upgrade --install linkerd-crds $REPOSITORY_NAME/linkerd-crds \
 
 echo "Deploying Linkerd"
 helm_values_args=("-f" "values-linkerd.yaml")
-if [[ "$LINKERD_HA" == "yes" ]]; then
+if [[ "$SERVICE_MESH_HA" == "yes" ]]; then
   helm_values_args+=("-f" "values-linkerd-ha.yaml")
 fi
 helm upgrade --install linkerd-control-plane $REPOSITORY_NAME/linkerd-control-plane \
@@ -79,7 +79,7 @@ if [[ "$LINKERD_VIZ_ENABLED" == "yes" ]]; then
 fi
 
 # Requires Grafana Alloy or Tempo
-if [[ "$LINKERD_JAEGER_ENABLED" == "yes" ]]; then
+if [[ "$SERVICE_MESH_TRACES_ENABLED" == "yes" ]]; then
   echo "Deploying Linkerd-Jaeger via Grafana Alloy"
   helm upgrade --install linkerd-jaeger $REPOSITORY_NAME/linkerd-jaeger \
   --namespace linkerd-jaeger --create-namespace \

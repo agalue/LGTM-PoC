@@ -6,7 +6,7 @@ otelcol.receiver.opencensus "default" {
 	}
 }
 
-// For Nginx Ingress (port 4317)
+// For Nginx Ingress and Istio (port 4317)
 // https://kubernetes.github.io/ingress-nginx/user-guide/third-party-addons/opentelemetry/
 otelcol.receiver.otlp "default" {
 	grpc {

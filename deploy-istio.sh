@@ -9,6 +9,17 @@ done
 
 CONTEXT=${CONTEXT-}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
+SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
+SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
+
+PILOT_REPLICAS="1"
+if [[ "${SERVICE_MESH_HA}" == "yes" ]]; then
+  PILOT_REPLICAS="3"
+fi
+TRACES_ENABLED="false"
+if [[ "${SERVICE_MESH_TRACES_ENABLED}" == "yes" ]]; then
+  TRACES_ENABLED="true"
+fi
 
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -61,7 +72,25 @@ spec:
       proxyMetadata:
         ISTIO_META_DNS_CAPTURE: "true"
         ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+    enableTracing: ${TRACES_ENABLED}
+    extensionProviders:
+    - name: otel-tracing
+      opentelemetry:
+        port: 4317
+        service: grafana-alloy.observability.svc.cluster.local
+        resource_detectors:
+          environment: {}
   components:
+    pilot:
+      k8s:
+        replicaCount: ${PILOT_REPLICAS}
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: istiod
+              topologyKey: kubernetes.io/hostname
     ingressGateways:
     - name: lgtm-gateway
       label:
@@ -97,6 +126,7 @@ spec:
             targetPort: 15017
 EOF
 
+# Multi-Cluster communication
 cat <<EOF | kubectl apply -f -
 apiVersion: networking.istio.io/v1
 kind: Gateway
@@ -117,3 +147,7 @@ spec:
     hosts:
     - "*.local"
 EOF
+
+# Istio Monitoring
+curl https://raw.githubusercontent.com/istio/istio/refs/heads/master/samples/addons/extras/prometheus-operator.yaml 2>/dev/null \
+  | sed '/release/s/istio/monitor/' | kubectl apply -f -

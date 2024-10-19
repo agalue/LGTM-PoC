@@ -14,7 +14,7 @@ WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
-LINKERD_HA=${LINKERD_HA-yes}
+SERVICE_MESH_HA=${SERVICE_MESH_HA-yes}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 
