@@ -50,7 +50,6 @@ spec:
         clusterName: ${CONTEXT}
       network: ${CONTEXT}
       proxy:
-        holdApplicationUntilProxyStarts: true
         resources:
           limits:
             cpu: '0'
