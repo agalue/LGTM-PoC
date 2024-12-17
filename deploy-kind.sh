@@ -13,7 +13,6 @@ SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for Cilium L2/
 CLUSTER_ID=${CLUSTER_ID-1}
 POD_CIDR=${POD_CIDR-10.244.0.0/16} # Must be under 10.0.0.0/8 for Cilium ipv4NativeRoutingCIDR
 SVC_CIDR=${SVC_CIDR-10.96.0.0/16} # Node that Kind Docker Network is 172.18.0.0/16 by default (worker nodes)
-CILIUM_VERSION=${CILIUM_VERSION-1.16.3}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
 HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using Docker-based solutions)
 
@@ -71,7 +70,7 @@ if [ -e cilium-ca.crt ] && [ -e cilium-ca.key ]; then
   kubectl annotate secret -n kube-system cilium-ca meta.helm.sh/release-namespace=kube-system
 fi
 
-cilium install --version ${CILIUM_VERSION} --wait \
+cilium install --wait \
   --set ipv4NativeRoutingCIDR=10.0.0.0/8 \
   --set cluster.id=${CLUSTER_ID} \
   --set cluster.name=${CONTEXT} \
