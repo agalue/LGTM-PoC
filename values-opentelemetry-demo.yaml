@@ -12,8 +12,6 @@ opentelemetry-collector:
     enabled: true
   config:
     exporters:
-      opensearch: null
-      otlphttp/prometheus: null
       otlp:
         endpoint: http://tempo-distributor-lgtm-central.tempo.svc:4317
         tls:
