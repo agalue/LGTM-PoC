@@ -37,7 +37,7 @@ grafana:
   serviceAccount:
     create: true
     name: grafana-sa
-  resources: null
+  resources: {}
   deploymentStrategy:
     type: Recreate # Required when using a PVC
   persistence:
