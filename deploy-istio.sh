@@ -39,6 +39,7 @@ kubectl create secret generic cacerts -n istio-system \
 
 # https://istio.io/latest/docs/setup/install/multicluster/multi-primary_multi-network/
 # https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
+# Removing resource requests and limits for demo purposes
 cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -68,9 +69,6 @@ spec:
   meshConfig:
     defaultConfig:
       holdApplicationUntilProxyStarts: true
-      proxyMetadata:
-        ISTIO_META_DNS_CAPTURE: "true"
-        ISTIO_META_DNS_AUTO_ALLOCATE: "true"
     enableTracing: ${TRACES_ENABLED}
     extensionProviders:
     - name: otel-tracing
