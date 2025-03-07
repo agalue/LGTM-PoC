@@ -36,4 +36,3 @@ helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
 echo "Deploying OpenTelemetry Demo application"
 helm upgrade --install demo open-telemetry/opentelemetry-demo \
   -n ${APP_NS} -f /tmp/values-opentelemetry-demo.yaml
-kubectl rollout status -n otel deployment/demo-otelcol
