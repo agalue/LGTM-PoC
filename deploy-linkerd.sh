@@ -62,8 +62,8 @@ helm upgrade --install linkerd-control-plane $REPOSITORY_NAME/linkerd-control-pl
   --wait
 
 echo "Update PodMonitor resources"
-for obj in "controller" "proxy" "service-mirror"; do
-  kubectl label -n linkerd podmonitor/linkerd-$obj release=monitor --overwrite
+for obj in $(kubectl get podmonitor -n linkerd -o name); do
+  kubectl label -n linkerd $obj release=monitor --overwrite
 done
 
 # Requires Prometheus
