@@ -235,7 +235,7 @@ So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in th
 
 ### Istio Multi-Cluster
 
-Here is a sequence of commands that demonstrate that multi-cluster works:
+Here is a sequence of commands that demonstrate that multi-cluster works, assuming you deployed the TLS remote cluster:
 
 ```bash
 ❯ istioctl remote-clusters --context kind-lgtm-remote
@@ -243,7 +243,7 @@ NAME            SECRET                                       STATUS     ISTIOD
 lgtm-remote                                                  synced     istiod-64f7d85469-ljhhm
 central         istio-system/istio-remote-secret-central     synced     istiod-64f7d85469-ljhhm
 
-❯ istioctl proxy-config endpoint $(kubectl get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
+❯ istioctl --context kind-lgtm-remote proxy-config endpoint $(kubectl --context kind-lgtm-remote get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
 192.168.97.249:15443                                    HEALTHY     OK                outbound|8080||mimir-distributor.mimir.svc.cluster.local
 192.168.97.249:15443                                    HEALTHY     OK                outbound|9095||mimir-distributor.mimir.svc.cluster.local
 
@@ -251,15 +251,15 @@ central         istio-system/istio-remote-secret-central     synced     istiod-6
 NAME           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                                                           AGE
 lgtm-gateway   LoadBalancer   10.12.201.116   192.168.97.249   15021:31614/TCP,15443:32226/TCP,15012:32733/TCP,15017:30681/TCP   21m
 
-❯ kubectl exec -it -n tns $(kubectl get pod -n tns -l name=app -o name --context kind-lgtm-remote) --context kind-lgtm-remote -- nslookup mimir-distributor.mimir.svc.cluster.local
+❯ kubectl --context kind-lgtm-remote exec -it -n tns $(kubectl --context kind-lgtm-remote get pod -n tns -l name=app -o name) -- nslookup mimir-distributor.mimir.svc.cluster.local
 Name:      mimir-distributor.mimir.svc.cluster.local
 Address 1: 10.12.92.57
 
-❯ kubectl get svc -n mimir mimir-distributor --context kind-lgtm-central
+❯ kubectl --context kind-lgtm-central get svc -n mimir mimir-distributor
 NAME                TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)             AGE
 mimir-distributor   ClusterIP   10.12.92.57   <none>        8080/TCP,9095/TCP   17m
 
-❯ kubectl get pod -n mimir -l app.kubernetes.io/component=distributor --context kind-lgtm-central -o wide
+❯ kubectl --context kind-lgtm-central get pod -n mimir -l app.kubernetes.io/component=distributor -o wide
 NAME                                 READY   STATUS    RESTARTS   AGE   IP           NODE                   NOMINATED NODE   READINESS GATES
 mimir-distributor-78b6d8b96b-72cmn   2/2     Running   0          15m   10.11.3.14   lgtm-central-worker2   <none>           <none>
 mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.59   lgtm-central-worker    <none>           <none>

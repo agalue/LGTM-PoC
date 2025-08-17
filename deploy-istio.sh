@@ -11,6 +11,7 @@ CONTEXT=${CONTEXT-}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
 SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
 SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
+ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
 
 PILOT_REPLICAS="1"
 if [[ "${SERVICE_MESH_HA}" == "yes" ]]; then
@@ -20,6 +21,9 @@ TRACES_ENABLED="false"
 if [[ "${SERVICE_MESH_TRACES_ENABLED}" == "yes" ]]; then
   TRACES_ENABLED="true"
 fi
+
+kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
 
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -39,8 +43,48 @@ kubectl create secret generic cacerts -n istio-system \
 
 # https://istio.io/latest/docs/setup/install/multicluster/multi-primary_multi-network/
 # https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
-# Removing resource requests and limits for demo purposes
-cat <<EOF | istioctl install -y -f -
+if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
+  # https://istio.io/latest/docs/ambient/install/multicluster/
+  cat <<EOF | istioctl install -y -f -
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: ambient
+  meshConfig:
+    accessLogFile: /dev/stdout
+    enableTracing: ${TRACES_ENABLED}
+    extensionProviders:
+    - name: otel-tracing
+      opentelemetry:
+        port: 4317
+        service: grafana-alloy.observability.svc.cluster.local
+        resource_detectors:
+          environment: {}
+  components:
+    pilot:
+      k8s:
+        replicaCount: ${PILOT_REPLICAS}
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: istiod
+              topologyKey: kubernetes.io/hostname
+        env:
+        - name: AMBIENT_ENABLE_MULTI_NETWORK
+          value: "true"
+  values:
+    global:
+      meshID: mesh1
+      multiCluster:
+        clusterName: ${CONTEXT}
+      network: ${CONTEXT}
+EOF
+else
+  # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
+  # Removing resource requests and limits for demo purposes
+  cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -67,6 +111,7 @@ spec:
             cpu: '0'
             memory: '0'
   meshConfig:
+    accessLogFile: /dev/stdout
     defaultConfig:
       holdApplicationUntilProxyStarts: true
     enableTracing: ${TRACES_ENABLED}
@@ -123,8 +168,8 @@ spec:
             targetPort: 15017
 EOF
 
-# Multi-Cluster communication
-cat <<EOF | kubectl apply -f -
+  # Multi-Cluster communication
+  cat <<EOF | kubectl apply -f -
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -144,6 +189,7 @@ spec:
     hosts:
     - "*.local"
 EOF
+fi
 
 # Istio Monitoring
 curl https://raw.githubusercontent.com/istio/istio/refs/heads/master/samples/addons/extras/prometheus-operator.yaml 2>/dev/null \

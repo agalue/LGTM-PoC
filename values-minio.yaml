@@ -53,6 +53,7 @@ postJob:
   podAnnotations:
     linkerd.io/inject: 'disabled'
     sidecar.istio.io/inject: 'false' # should be a label but cannot be configured
+    istio.io/dataplane-mode: 'none' # should be a label but cannot be configured
 
 metrics:
   serviceMonitor:

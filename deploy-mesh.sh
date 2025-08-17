@@ -11,7 +11,7 @@ CENTRAL=${CENTRAL-lgtm-central}
 CONTEXT=${CONTEXT-lgtm-remote}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
-
+ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
 CENTRAL_CTX=kind-${CENTRAL}
 REMOTE_CTX=kind-${CONTEXT}
 LINKERD_REMOTE=true
@@ -43,6 +43,10 @@ else
 fi
 
 echo "Setting up namespaces"
+ISTIO_ANNOTATION="istio-injection: enabled"
+if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
+  ISTIO_ANNOTATION="istio.io/dataplane-mode: ambient"
+fi
 for ns in observability mimir tempo loki $APP_NS; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -50,7 +54,7 @@ kind: Namespace
 metadata:
   name: $ns
   labels:
-    istio-injection: enabled
+    $ISTIO_ANNOTATION
   annotations:
     linkerd.io/inject: enabled
 EOF
@@ -76,17 +80,17 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
   done
 else
   # The following is required when using Kind/Docker without apiServerAddress on Kind config.
-  API_SERVER=$(kubectl get node --context ${CENTRAL_CTX} -l node-role.kubernetes.io/control-plane -o json \
+  API_SERVER=$(kubectl --context ${CENTRAL_CTX} get node -l node-role.kubernetes.io/control-plane -o json \
     | jq -r '.items[] | .status.addresses[] | select(.type=="InternalIP") | .address')
   if [[ "${ISTIO_ENABLED}" == "yes" ]]; then
     istioctl create-remote-secret \
       --context=${CENTRAL_CTX} \
       --server https://${API_SERVER}:6443 \
       --name=central | \
-      kubectl apply --context=${REMOTE_CTX} -f -
+      kubectl --context ${REMOTE_CTX} apply -f -
   else
     linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
       --api-server-address="https://${API_SERVER}:6443" \
-      | kubectl apply --context ${REMOTE_CTX} -f -
-    fi
+      | kubectl --context ${REMOTE_CTX} apply -f -
+  fi
 fi
