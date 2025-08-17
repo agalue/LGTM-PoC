@@ -1,0 +1,7 @@
+---
+controllers:
+- link:
+    ref:
+      name: lgtm-central
+    gateway:
+      enabled: true

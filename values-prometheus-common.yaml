@@ -33,12 +33,6 @@ alertmanager:
 grafana:
   enabled: false
 
-prometheus-node-exporter:
-  podLabels:
-    sidecar.istio.io/inject: 'true'
-  podAnnotations:
-    linkerd.io/inject: 'enabled'
-
 prometheusOperator:
   serviceAccount:
     create: true
@@ -47,7 +41,7 @@ prometheusOperator:
     patch:
       podAnnotations:
         linkerd.io/inject: 'disabled'
-        sidecar.istio.io/inject: 'false'
+        sidecar.istio.io/inject: 'false' # should be a label but cannot be configured
   prometheusConfigReloader:
     resources:
       requests:

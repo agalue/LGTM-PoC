@@ -1,5 +1,0 @@
----
-config:
-  clients:
-  - url: http://loki-write.loki.svc:3100/loki/api/v1/push
-    tenant_id: _local
