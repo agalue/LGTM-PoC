@@ -12,6 +12,7 @@ SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
 SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
 LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
 LINKERD_REPO=${LINKERD_REPO-edge} # Either stable (2.14) or edge
+LINKERD_REMOTE=${LINKERD_REMOTE-false} # true for remote clusters, false for central cluster
 
 REPOSITORY_NAME="linkerd"
 if [[ "$LINKERD_REPO" == "edge" ]]; then
@@ -91,6 +92,12 @@ if [[ "$SERVICE_MESH_TRACES_ENABLED" == "yes" ]]; then
 fi
 
 echo "Deploying Linkerd Multicluster"
+helm_multicluster_args=(" ")
+if [[ "$LINKERD_REMOTE" == "true" ]]; then
+  helm_multicluster_args+=("-f" "values-linkerd-mc-remote.yaml")
+fi
+
 helm upgrade --install linkerd-multicluster $REPOSITORY_NAME/linkerd-multicluster \
   --namespace linkerd-multicluster --create-namespace \
+  ${helm_multicluster_args[@]} \
   --wait

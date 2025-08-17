@@ -1,0 +1,6 @@
+---
+customConfig:
+  sinks:
+    loki:
+      endpoint: http://loki-write.loki.svc:3100
+      tenant_id: _local

@@ -12,17 +12,17 @@ We have a central cluster running Grafana's LGTM stack on Kubernetes. Then, seve
 
 The remote clusters show different possibilities for deploying the solution.
 
-In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir in the central cluster. Similarly, we have [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
+In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir in the central cluster. Similarly, we have [Vector](https://vector.dev/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
 
-In the second scenario, Grafana Alloy handles all the observability data (metrics, logs, and traces) and forwards them to the central LGTM stack. In this case, Alloy does the work of Promtail and Prometheus (including collecting metrics from the Kubernetes cluster and managing Prometheus CRDs).
+In the second scenario, Grafana Alloy handles all the observability data (metrics, logs, and traces) and forwards them to the central LGTM stack. In this case, Alloy does the work of Vector and Prometheus (including collecting metrics from the Kubernetes cluster and managing Prometheus CRDs).
 
 In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces received via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
 
 Each cluster (including the central one) will be a tenant on Mimir, Loki, and Tempo to separate the data from each other.
 
-Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Promtail doing the same for logs to Loki, and Grafana Alloy for traces to Tempo. Technically speaking, we don't need Grafana Alloy on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
+Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Vector doing the same for logs to Loki, and Grafana Alloy for traces to Tempo. Technically speaking, we don't need Grafana Alloy on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
 
-Promtail is deployed as a `DaemonSet` to forward logs to Loki.
+Vector is deployed as a `DaemonSet` (Agent mode) to forward logs to Loki.
 
 When using Prometheus to send metrics to Mimir, the idea is to utilize the CRDs (`ServiceMonitor` and `PodMonitor` resources) to monitor local applications (when deployed with the operator or through the Kube Stack).
 

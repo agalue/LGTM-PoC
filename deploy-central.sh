@@ -26,8 +26,9 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add vector https://helm.vector.dev
 helm repo add minio https://charts.min.io/
-helm repo update
+helm repo update &> /dev/null
 
 echo "Deploying Kubernetes"
 . deploy-kind.sh
@@ -51,7 +52,7 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
 fi
 
 echo "Setting up namespaces"
-for ns in observability storage tempo loki mimir; do
+for ns in observability storage tempo loki mimir ingress-nginx; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
@@ -81,9 +82,9 @@ echo "Deploying Grafana Loki"
 helm upgrade --install loki grafana/loki \
   -n loki -f values-loki.yaml --wait
 
-echo "Deploying Grafana Promtail (for Logs)"
-helm upgrade --install promtail grafana/promtail \
-  -n observability -f values-promtail-common.yaml -f values-promtail-central.yaml --wait
+echo "Deploying Vector (for Logs)"
+helm upgrade --install vector vector/vector \
+  -n observability -f values-vector-common.yaml -f values-vector-central.yaml --wait
 
 echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \

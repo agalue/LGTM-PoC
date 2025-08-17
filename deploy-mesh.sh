@@ -3,6 +3,10 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
+for cmd in "kubectl" "linkerd" "istioctl" "jq"; do
+  type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
+done
+
 CENTRAL=${CENTRAL-lgtm-central}
 CONTEXT=${CONTEXT-lgtm-remote}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
@@ -10,6 +14,7 @@ ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
 
 CENTRAL_CTX=kind-${CENTRAL}
 REMOTE_CTX=kind-${CONTEXT}
+LINKERD_REMOTE=true
 
 # Configuration files designed for Linkerd MC that requires alterations to work with Istio or Cilium CM
 FILES=${FILES:-}

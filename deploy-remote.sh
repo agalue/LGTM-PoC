@@ -3,7 +3,7 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "kubectl" "helm" "linkerd" "jq"; do
+for cmd in "kubectl" "helm" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
@@ -26,16 +26,16 @@ echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
 echo "Deploying Mesh"
-FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-promtail-remote.yaml")
+FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-vector-remote.yaml")
 . deploy-mesh.sh
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote.yaml --wait
 
-echo "Deploying Grafana Promtail (for Logs)"
-helm upgrade --install promtail grafana/promtail \
-  -n observability -f values-promtail-common.yaml -f /tmp/values-promtail-remote.yaml --wait
+echo "Deploying Vector (for Logs)"
+helm upgrade --install vector vector/vector \
+  -n observability -f values-vector-common.yaml -f values-vector-remote.yaml --wait
 
 echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \

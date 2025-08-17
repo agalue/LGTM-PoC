@@ -1,0 +1,50 @@
+---
+role: Agent
+
+service:
+  enabled: false
+
+podMonitor:
+  enabled: true
+  port: metrics
+  additionalLabels:
+    release: monitor
+
+customConfig:
+  data_dir: /vector-data-dir
+  api:
+    enabled: false
+  sources:
+    k8s:
+      type: kubernetes_logs
+      namespace_annotation_fields:
+        namespace_labels: ""
+      node_annotation_fields:
+        node_labels: ""
+      pod_annotation_fields:
+        pod_annotations: ""
+        pod_labels: ""
+        pod_ips: ""
+  transforms:
+    k8s_parser:
+      type: remap
+      inputs:
+      - k8s
+      source: |
+        .log = parse_json(.message) ?? .message
+        del(.message)
+  sinks:
+    loki:
+      type: loki
+      inputs:
+      - k8s_parser
+      compression: snappy
+      encoding:
+        codec: json
+      labels:
+        pod_namespace: '{{ "{{ kubernetes.pod_namespace }}" }}'
+        pod_name: '{{ "{{ kubernetes.pod_name }}" }}'
+        pod_owner: '{{ "{{ kubernetes.pod_owner }}" }}'
+        container_name: '{{ "{{ kubernetes.container_name }}" }}'
+      healthcheck:
+        enabled: false

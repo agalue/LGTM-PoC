@@ -1,0 +1,6 @@
+---
+customConfig:
+  sinks:
+    loki:
+      endpoint: http://loki-write-lgtm-central.loki.svc:3100
+      tenant_id: remote01
