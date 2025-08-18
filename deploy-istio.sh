@@ -108,6 +108,26 @@ spec:
         clusterName: ${CONTEXT}
       network: ${CONTEXT}
 EOF
+
+  cat <<EOF | kubectl apply -f -
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: istio-eastwestgateway
+  namespace: istio-system
+  labels:
+    topology.istio.io/network: ${CONTEXT}
+spec:
+  gatewayClassName: istio-east-west
+  listeners:
+  - name: mesh
+    port: 15008
+    protocol: HBONE
+    tls:
+      mode: Terminate # represents double-HBONE
+      options:
+        gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL
+EOF
 else
   # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
   # https://istio.io/latest/docs/ops/configuration/traffic-management/dns-proxy/#sidecar-mode

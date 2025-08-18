@@ -252,7 +252,7 @@ lgtm-remote                                                  synced     istiod-6
 central         istio-system/istio-remote-secret-central     synced     istiod-64f7d85469-ljhhm
 ```
 
-If you're running in proxy-mode:
+If you're running in proxy-mode (using mimir-distributor as reference):
 
 ```bash
 ❯ istioctl --context kind-lgtm-remote proxy-config endpoint $(kubectl --context kind-lgtm-remote get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
@@ -277,15 +277,74 @@ mimir-distributor-78b6d8b96b-72cmn   2/2     Running   0          15m   10.11.3.
 mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.59   lgtm-central-worker    <none>           <none>
 ```
 
-If you're running in ambient-mode:
+If you're running in ambient-mode (using mimir-distributor as reference):
 
-> *WARNING*: This is a work in progress, it is not fully working yet.
+> *WARNING*: work in progress
 
-It is not working yet:
 ```bash
 ❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
 NAMESPACE SERVICE NAME      SERVICE VIP  WAYPOINT ENDPOINTS
-mimir     mimir-distributor 10.12.81.157 None     0/0
+mimir     mimir-distributor 10.12.81.157 None     1/1
+
+❯ istioctl zc workload --workload-namespace mimir -o json --context kind-lgtm-remote
+[
+    {
+        "uid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "workloadIps": [],
+        "networkGateway": {
+            "destination": "lgtm-central/192.168.97.249"
+        },
+        "protocol": "HBONE",
+        "name": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "namespace": "mimir",
+        "serviceAccount": "default",
+        "workloadName": "",
+        "workloadType": "pod",
+        "canonicalName": "",
+        "canonicalRevision": "",
+        "clusterId": "central",
+        "trustDomain": "cluster.local",
+        "locality": {},
+        "node": "",
+        "network": "lgtm-central",
+        "status": "Healthy",
+        "hostname": "",
+        "capacity": 2,
+        "applicationTunnel": {
+            "protocol": ""
+        }
+    }
+]
+
+❯ istioctl zc services --service-namespace mimir -o json --context kind-lgtm-remote
+[
+    {
+        "name": "mimir-distributor",
+        "namespace": "mimir",
+        "hostname": "mimir-distributor.mimir.svc.cluster.local",
+        "vips": [
+            "lgtm-central/10.12.81.157"
+        ],
+        "ports": {
+            "8080": 0,
+            "9095": 0
+        },
+        "endpoints": {
+            "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local": {
+                "workloadUid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+                "service": "",
+                "port": {
+                    "8080": 0,
+                    "9095": 0
+                }
+            }
+        },
+        "subjectAltNames": [
+            "spiffe://cluster.local/ns/mimir/sa/mimir-sa"
+        ],
+        "ipFamilies": "IPv4"
+    }
+]
 ```
 
 ### Cilium ClusterMesh
