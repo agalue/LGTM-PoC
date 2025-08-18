@@ -11,6 +11,7 @@ CONTEXT=${CONTEXT-}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-}
 SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
 SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
+ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
 
 PILOT_REPLICAS="1"
 if [[ "${SERVICE_MESH_HA}" == "yes" ]]; then
@@ -20,6 +21,9 @@ TRACES_ENABLED="false"
 if [[ "${SERVICE_MESH_TRACES_ENABLED}" == "yes" ]]; then
   TRACES_ENABLED="true"
 fi
+
+kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
 
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -35,12 +39,99 @@ kubectl create secret generic cacerts -n istio-system \
   --from-file=root-cert.pem=istio-root-ca.crt \
   --from-file=ca-cert.pem=istio-${CERT_ISSUER_ID}.crt \
   --from-file=ca-key.pem=istio-${CERT_ISSUER_ID}.key \
-  --from-file=cert-chain.pem=istio-${CERT_ISSUER_ID}-chain.crt
+  --from-file=cert-chain.pem=istio-${CERT_ISSUER_ID}-chain.crt \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 # https://istio.io/latest/docs/setup/install/multicluster/multi-primary_multi-network/
 # https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
 # Removing resource requests and limits for demo purposes
-cat <<EOF | istioctl install -y -f -
+if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
+  # https://istio.io/latest/docs/ambient/install/multicluster/
+  cat <<EOF | istioctl install -y -f -
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: ambient
+  meshConfig:
+    accessLogFile: /dev/stdout
+    enableTracing: ${TRACES_ENABLED}
+    extensionProviders:
+    - name: otel-tracing
+      opentelemetry:
+        port: 4317
+        service: grafana-alloy.observability.svc.cluster.local
+        resource_detectors:
+          environment: {}
+  components:
+    cni:
+      k8s:
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+    ztunnel:
+      k8s:
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+    pilot:
+      k8s:
+        replicaCount: ${PILOT_REPLICAS}
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: istiod
+              topologyKey: kubernetes.io/hostname
+        env:
+        - name: AMBIENT_ENABLE_MULTI_NETWORK
+          value: "true"
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+  values:
+    global:
+      meshID: mesh1
+      multiCluster:
+        clusterName: ${CONTEXT}
+      network: ${CONTEXT}
+EOF
+
+  cat <<EOF | kubectl apply -f -
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: istio-eastwestgateway
+  namespace: istio-system
+  labels:
+    topology.istio.io/network: ${CONTEXT}
+spec:
+  gatewayClassName: istio-east-west
+  listeners:
+  - name: mesh
+    port: 15008
+    protocol: HBONE
+    tls:
+      mode: Terminate # represents double-HBONE
+      options:
+        gateway.istio.io/tls-terminate-mode: ISTIO_MUTUAL
+EOF
+else
+  # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
+  # https://istio.io/latest/docs/ops/configuration/traffic-management/dns-proxy/#sidecar-mode
+  cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
@@ -67,8 +158,12 @@ spec:
             cpu: '0'
             memory: '0'
   meshConfig:
+    accessLogFile: /dev/stdout
     defaultConfig:
       holdApplicationUntilProxyStarts: true
+      proxyMetadata:
+        # Enable basic DNS proxying
+        ISTIO_META_DNS_CAPTURE: "true"
     enableTracing: ${TRACES_ENABLED}
     extensionProviders:
     - name: otel-tracing
@@ -88,6 +183,13 @@ spec:
                 matchLabels:
                   app: istiod
               topologyKey: kubernetes.io/hostname
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
     ingressGateways:
     - name: lgtm-gateway
       label:
@@ -123,8 +225,8 @@ spec:
             targetPort: 15017
 EOF
 
-# Multi-Cluster communication
-cat <<EOF | kubectl apply -f -
+  # Multi-Cluster communication
+  cat <<EOF | kubectl apply -f -
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -144,6 +246,7 @@ spec:
     hosts:
     - "*.local"
 EOF
+fi
 
 # Istio Monitoring
 curl https://raw.githubusercontent.com/istio/istio/refs/heads/master/samples/addons/extras/prometheus-operator.yaml 2>/dev/null \

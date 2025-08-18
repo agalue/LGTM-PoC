@@ -15,11 +15,13 @@ controller:
   admissionWebhooks:
     labels:
       sidecar.istio.io/inject: 'false'
+      istio.io/dataplane-mode: 'none'
     annotations:
       linkerd.io/inject: 'disabled'
     patch:
       labels:
         sidecar.istio.io/inject: 'false'
+        istio.io/dataplane-mode: 'none'
       podAnnotations:
         linkerd.io/inject: 'disabled'
   updateStrategy:

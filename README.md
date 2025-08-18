@@ -50,12 +50,22 @@ export CILIUM_CLUSTER_MESH_ENABLED=yes
 
 > The above will disable Linkerd and Istio.
 
-To enable Istio:
+To enable Istio in proxy-mode:
 
-```
+```bash
 export CILIUM_CLUSTER_MESH_ENABLED=no
 export ISTIO_ENABLED=yes
 ```
+
+To enable Istio in ambient-mode:
+
+```bash
+export CILIUM_CLUSTER_MESH_ENABLED=no
+export ISTIO_ENABLED=yes
+export ISTIO_PROFILE=ambient
+```
+
+> **WARNING**: With Istio version 1.27.0, there are DNS issues for cross-cluster resolution, so ambient is not fully working for multi-cluster.
 
 All the scripts are smart enough to deal with all situations properly.
 
@@ -235,15 +245,19 @@ So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in th
 
 ### Istio Multi-Cluster
 
-Here is a sequence of commands that demonstrate that multi-cluster works:
+Here is a sequence of commands that demonstrate that multi-cluster works, assuming you deployed the TLS remote cluster:
 
 ```bash
 ❯ istioctl remote-clusters --context kind-lgtm-remote
 NAME            SECRET                                       STATUS     ISTIOD
 lgtm-remote                                                  synced     istiod-64f7d85469-ljhhm
 central         istio-system/istio-remote-secret-central     synced     istiod-64f7d85469-ljhhm
+```
 
-❯ istioctl proxy-config endpoint $(kubectl get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
+If you're running in proxy-mode (using mimir-distributor as reference):
+
+```bash
+❯ istioctl --context kind-lgtm-remote proxy-config endpoint $(kubectl --context kind-lgtm-remote get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
 192.168.97.249:15443                                    HEALTHY     OK                outbound|8080||mimir-distributor.mimir.svc.cluster.local
 192.168.97.249:15443                                    HEALTHY     OK                outbound|9095||mimir-distributor.mimir.svc.cluster.local
 
@@ -251,18 +265,88 @@ central         istio-system/istio-remote-secret-central     synced     istiod-6
 NAME           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                                                           AGE
 lgtm-gateway   LoadBalancer   10.12.201.116   192.168.97.249   15021:31614/TCP,15443:32226/TCP,15012:32733/TCP,15017:30681/TCP   21m
 
-❯ kubectl exec -it -n tns $(kubectl get pod -n tns -l name=app -o name --context kind-lgtm-remote) --context kind-lgtm-remote -- nslookup mimir-distributor.mimir.svc.cluster.local
+❯ kubectl --context kind-lgtm-remote exec -it -n tns $(kubectl --context kind-lgtm-remote get pod -n tns -l name=app -o name) -- nslookup mimir-distributor.mimir.svc.cluster.local
 Name:      mimir-distributor.mimir.svc.cluster.local
 Address 1: 10.12.92.57
 
-❯ kubectl get svc -n mimir mimir-distributor --context kind-lgtm-central
+❯ kubectl --context kind-lgtm-central get svc -n mimir mimir-distributor
 NAME                TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)             AGE
 mimir-distributor   ClusterIP   10.12.92.57   <none>        8080/TCP,9095/TCP   17m
 
-❯ kubectl get pod -n mimir -l app.kubernetes.io/component=distributor --context kind-lgtm-central -o wide
+❯ kubectl --context kind-lgtm-central get pod -n mimir -l app.kubernetes.io/component=distributor -o wide
 NAME                                 READY   STATUS    RESTARTS   AGE   IP           NODE                   NOMINATED NODE   READINESS GATES
 mimir-distributor-78b6d8b96b-72cmn   2/2     Running   0          15m   10.11.3.14   lgtm-central-worker2   <none>           <none>
 mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.59   lgtm-central-worker    <none>           <none>
+```
+
+If you're running in ambient-mode (using mimir-distributor as reference):
+
+> **WARNING**: there are DNS issues for cross-cluster resolution.
+
+```bash
+❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
+NAMESPACE SERVICE NAME      SERVICE VIP  WAYPOINT ENDPOINTS
+mimir     mimir-distributor 10.12.81.157 None     1/1
+
+❯ istioctl zc workload --workload-namespace mimir -o json --context kind-lgtm-remote
+[
+    {
+        "uid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "workloadIps": [],
+        "networkGateway": {
+            "destination": "lgtm-central/192.168.97.249"
+        },
+        "protocol": "HBONE",
+        "name": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "namespace": "mimir",
+        "serviceAccount": "default",
+        "workloadName": "",
+        "workloadType": "pod",
+        "canonicalName": "",
+        "canonicalRevision": "",
+        "clusterId": "central",
+        "trustDomain": "cluster.local",
+        "locality": {},
+        "node": "",
+        "network": "lgtm-central",
+        "status": "Healthy",
+        "hostname": "",
+        "capacity": 2,
+        "applicationTunnel": {
+            "protocol": ""
+        }
+    }
+]
+
+❯ istioctl zc services --service-namespace mimir -o json --context kind-lgtm-remote
+[
+    {
+        "name": "mimir-distributor",
+        "namespace": "mimir",
+        "hostname": "mimir-distributor.mimir.svc.cluster.local",
+        "vips": [
+            "lgtm-central/10.12.81.157"
+        ],
+        "ports": {
+            "8080": 0,
+            "9095": 0
+        },
+        "endpoints": {
+            "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local": {
+                "workloadUid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+                "service": "",
+                "port": {
+                    "8080": 0,
+                    "9095": 0
+                }
+            }
+        },
+        "subjectAltNames": [
+            "spiffe://cluster.local/ns/mimir/sa/mimir-sa"
+        ],
+        "ipFamilies": "IPv4"
+    }
+]
 ```
 
 ### Cilium ClusterMesh

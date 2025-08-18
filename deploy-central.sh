@@ -17,6 +17,7 @@ SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
 SERVICE_MESH_HA=${SERVICE_MESH_HA-yes}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
+ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -52,6 +53,10 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
 fi
 
 echo "Setting up namespaces"
+ISTIO_ANNOTATION="istio-injection: enabled"
+if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
+  ISTIO_ANNOTATION="istio.io/dataplane-mode: ambient"
+fi
 for ns in observability storage tempo loki mimir ingress-nginx; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -59,7 +64,7 @@ kind: Namespace
 metadata:
   name: $ns
   labels:
-    istio-injection: enabled
+    $ISTIO_ANNOTATION
   annotations:
     linkerd.io/inject: enabled
 EOF
@@ -121,8 +126,15 @@ else
   if [[ "${ISTIO_ENABLED}" != "yes" ]]; then
     echo "Exporting Services via Linkerd Multicluster"
     for SVC in "${SERVICES[@]}"; do
-      kubectl label ${SVC} mirror.linkerd.io/exported=true
+      kubectl label ${SVC} mirror.linkerd.io/exported=true --overwrite
     done
+  else
+    if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
+      echo "Exporting Services via Istio Ambient Multicluster"
+      for SVC in "${SERVICES[@]}"; do
+        kubectl label ${SVC} istio.io/global="true" --overwrite
+      done
+    fi
   fi
 fi
 
