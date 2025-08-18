@@ -65,6 +65,8 @@ export ISTIO_ENABLED=yes
 export ISTIO_PROFILE=ambient
 ```
 
+> **WARNING**: With Istio version 1.27.0, there are DNS issues for cross-cluster resolution, so ambient is not fully working for multi-cluster.
+
 All the scripts are smart enough to deal with all situations properly.
 
 > **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running Rocky Linux 9. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
@@ -279,7 +281,7 @@ mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.
 
 If you're running in ambient-mode (using mimir-distributor as reference):
 
-> *WARNING*: work in progress
+> **WARNING**: there are DNS issues for cross-cluster resolution.
 
 ```bash
 ❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
