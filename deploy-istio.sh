@@ -83,6 +83,7 @@ spec:
 EOF
 else
   # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
+  # https://istio.io/latest/docs/ops/configuration/traffic-management/dns-proxy/#sidecar-mode
   # Removing resource requests and limits for demo purposes
   cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
@@ -114,6 +115,9 @@ spec:
     accessLogFile: /dev/stdout
     defaultConfig:
       holdApplicationUntilProxyStarts: true
+      proxyMetadata:
+        # Enable basic DNS proxying
+        ISTIO_META_DNS_CAPTURE: "true"
     enableTracing: ${TRACES_ENABLED}
     extensionProviders:
     - name: otel-tracing
