@@ -35,7 +35,7 @@ helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
 
 echo "Deploying Vector (for Logs)"
 helm upgrade --install vector vector/vector \
-  -n observability -f values-vector-common.yaml -f values-vector-remote.yaml --wait
+  -n observability -f values-vector-common.yaml -f /tmp/values-vector-remote.yaml --wait
 
 echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \

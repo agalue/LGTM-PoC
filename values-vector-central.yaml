@@ -2,5 +2,5 @@
 customConfig:
   sinks:
     loki:
-      endpoint: http://loki-write.loki.svc:3100
+      endpoint: http://loki-write.loki.svc.cluster.local:3100
       tenant_id: _local
