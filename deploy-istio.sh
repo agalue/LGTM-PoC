@@ -39,10 +39,12 @@ kubectl create secret generic cacerts -n istio-system \
   --from-file=root-cert.pem=istio-root-ca.crt \
   --from-file=ca-cert.pem=istio-${CERT_ISSUER_ID}.crt \
   --from-file=ca-key.pem=istio-${CERT_ISSUER_ID}.key \
-  --from-file=cert-chain.pem=istio-${CERT_ISSUER_ID}-chain.crt
+  --from-file=cert-chain.pem=istio-${CERT_ISSUER_ID}-chain.crt \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 # https://istio.io/latest/docs/setup/install/multicluster/multi-primary_multi-network/
 # https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/
+# Removing resource requests and limits for demo purposes
 if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
   # https://istio.io/latest/docs/ambient/install/multicluster/
   cat <<EOF | istioctl install -y -f -
@@ -61,6 +63,24 @@ spec:
         resource_detectors:
           environment: {}
   components:
+    cni:
+      k8s:
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
+    ztunnel:
+      k8s:
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
     pilot:
       k8s:
         replicaCount: ${PILOT_REPLICAS}
@@ -74,6 +94,13 @@ spec:
         env:
         - name: AMBIENT_ENABLE_MULTI_NETWORK
           value: "true"
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
   values:
     global:
       meshID: mesh1
@@ -84,7 +111,6 @@ EOF
 else
   # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
   # https://istio.io/latest/docs/ops/configuration/traffic-management/dns-proxy/#sidecar-mode
-  # Removing resource requests and limits for demo purposes
   cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -137,6 +163,13 @@ spec:
                 matchLabels:
                   app: istiod
               topologyKey: kubernetes.io/hostname
+        resources:
+          limits:
+            cpu: '0'
+            memory: '0'
+          requests:
+            cpu: '0'
+            memory: '0'
     ingressGateways:
     - name: lgtm-gateway
       label:

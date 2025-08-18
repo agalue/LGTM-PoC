@@ -50,11 +50,19 @@ export CILIUM_CLUSTER_MESH_ENABLED=yes
 
 > The above will disable Linkerd and Istio.
 
-To enable Istio:
+To enable Istio in proxy-mode:
 
-```
+```bash
 export CILIUM_CLUSTER_MESH_ENABLED=no
 export ISTIO_ENABLED=yes
+```
+
+To enable Istio in ambient-mode:
+
+```bash
+export CILIUM_CLUSTER_MESH_ENABLED=no
+export ISTIO_ENABLED=yes
+export ISTIO_PROFILE=ambient
 ```
 
 All the scripts are smart enough to deal with all situations properly.
@@ -242,7 +250,11 @@ Here is a sequence of commands that demonstrate that multi-cluster works, assumi
 NAME            SECRET                                       STATUS     ISTIOD
 lgtm-remote                                                  synced     istiod-64f7d85469-ljhhm
 central         istio-system/istio-remote-secret-central     synced     istiod-64f7d85469-ljhhm
+```
 
+If you're running in proxy-mode:
+
+```bash
 ❯ istioctl --context kind-lgtm-remote proxy-config endpoint $(kubectl --context kind-lgtm-remote get pod -l name=app -n tns -o name | sed 's|.*/||').tns | grep mimir-distributor
 192.168.97.249:15443                                    HEALTHY     OK                outbound|8080||mimir-distributor.mimir.svc.cluster.local
 192.168.97.249:15443                                    HEALTHY     OK                outbound|9095||mimir-distributor.mimir.svc.cluster.local
@@ -263,6 +275,17 @@ mimir-distributor   ClusterIP   10.12.92.57   <none>        8080/TCP,9095/TCP   
 NAME                                 READY   STATUS    RESTARTS   AGE   IP           NODE                   NOMINATED NODE   READINESS GATES
 mimir-distributor-78b6d8b96b-72cmn   2/2     Running   0          15m   10.11.3.14   lgtm-central-worker2   <none>           <none>
 mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.59   lgtm-central-worker    <none>           <none>
+```
+
+If you're running in ambient-mode:
+
+> *WARNING*: This is a work in progress, it is not fully working yet.
+
+It is not working yet:
+```bash
+❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
+NAMESPACE SERVICE NAME      SERVICE VIP  WAYPOINT ENDPOINTS
+mimir     mimir-distributor 10.12.81.157 None     0/0
 ```
 
 ### Cilium ClusterMesh
