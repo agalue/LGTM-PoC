@@ -85,7 +85,7 @@ grafana:
         type: tempo
         uid: tempo_remote_tns_ds
         access: proxy
-        url: http://tempo-query-frontend.tempo.svc:3100
+        url: http://tempo-query-frontend.tempo.svc:3200
         isDefault: false
         editable: true
         jsonData:
@@ -134,7 +134,7 @@ grafana:
         type: tempo
         uid: tempo_remote_otel_ds
         access: proxy
-        url: http://tempo-query-frontend.tempo.svc:3100
+        url: http://tempo-query-frontend.tempo.svc:3200
         isDefault: false
         editable: true
         jsonData:
@@ -183,7 +183,7 @@ grafana:
         type: tempo
         uid: tempo_ds
         access: proxy
-        url: http://tempo-query-frontend.tempo.svc:3100
+        url: http://tempo-query-frontend.tempo.svc:3200
         isDefault: false
         editable: true
         jsonData:
