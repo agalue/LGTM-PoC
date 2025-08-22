@@ -10,7 +10,7 @@ done
 CENTRAL=${CENTRAL-lgtm-central}
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
 CONTEXT=${CONTEXT-lgtm-remote}
-SUBNET=${SUBNET-240} # For Cilium L2/LB (must be unique across all clusters)
+SUBNET=${SUBNET-240} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
 WORKERS=${WORKERS-1}
 CLUSTER_ID=${CLUSTER_ID-2} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.21.0.0/16} # Unique on each cluster

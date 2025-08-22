@@ -60,12 +60,13 @@ export ISTIO_ENABLED=yes
 To enable Istio in ambient-mode:
 
 ```bash
+export CILIUM_ENABLED=no
 export CILIUM_CLUSTER_MESH_ENABLED=no
 export ISTIO_ENABLED=yes
 export ISTIO_PROFILE=ambient
 ```
 
-> **WARNING**: With Istio version 1.27.0, there are DNS issues for cross-cluster resolution, so ambient is not fully working for multi-cluster.
+> **WARNING**: With Istio version 1.27.0, there are DNS issues for cross-cluster resolution when Cilium is enabled. That's why I suggest disabling Cilium and relying on MetalLB for LoadBalancers.
 
 All the scripts are smart enough to deal with all situations properly.
 
@@ -147,6 +148,12 @@ The solution has been designed and tested only on an Intel-based Mac and a Linux
 
 ```bash
 ./deploy-remote.sh
+```
+
+If you encounter issues on Linux, Kind recommends running the following:
+```bash
+sudo sysctl fs.inotify.max_user_watches=524288
+sudo sysctl fs.inotify.max_user_instances=512
 ```
 
 * To deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote-otel`), run the following:
@@ -249,9 +256,9 @@ Here is a sequence of commands that demonstrate that multi-cluster works, assumi
 
 ```bash
 ❯ istioctl remote-clusters --context kind-lgtm-remote
-NAME            SECRET                                       STATUS     ISTIOD
-lgtm-remote                                                  synced     istiod-64f7d85469-ljhhm
-central         istio-system/istio-remote-secret-central     synced     istiod-64f7d85469-ljhhm
+NAME             SECRET                                            STATUS     ISTIOD
+lgtm-remote                                                        synced     istiod-64f7d85469-ljhhm
+lgtm-central     istio-system/istio-remote-secret-lgtm-central     synced     istiod-64f7d85469-ljhhm
 ```
 
 If you're running in proxy-mode (using mimir-distributor as reference):
@@ -280,8 +287,6 @@ mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.
 ```
 
 If you're running in ambient-mode (using mimir-distributor as reference):
-
-> **WARNING**: there are DNS issues for cross-cluster resolution.
 
 ```bash
 ❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
@@ -347,6 +352,16 @@ mimir     mimir-distributor 10.12.81.157 None     1/1
         "ipFamilies": "IPv4"
     }
 ]
+```
+
+> **WARNING**: there are DNS issues for cross-cluster resolution, even with Cilium disabled.
+
+```bash
+❯ kubectl --context kind-lgtm-remote exec -it -n tns $(kubectl --context kind-lgtm-remote get pod -n tns -l name=app -o name) -- nslookup mimir-distributor.mimir.svc.cluster.local
+nslookup: can't resolve '(null)': Name does not resolve
+
+nslookup: can't resolve 'mimir-distributor.mimir.svc.cluster.local': Name does not resolve
+command terminated with exit code 1
 ```
 
 ### Cilium ClusterMesh

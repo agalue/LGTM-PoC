@@ -9,7 +9,7 @@ done
 
 CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-central}
 CONTEXT=${CONTEXT-lgtm-central}
-SUBNET=${SUBNET-248} # For Cilium L2/LB (must be unique across all clusters)
+SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
 WORKERS=${WORKERS-3}
 CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
 POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
@@ -29,6 +29,7 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add vector https://helm.vector.dev
 helm repo add minio https://charts.min.io/
+helm repo add metallb https://metallb.github.io/metallb
 helm repo update &> /dev/null
 
 echo "Deploying Kubernetes"
