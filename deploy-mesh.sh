@@ -86,7 +86,7 @@ else
     istioctl create-remote-secret \
       --context=${CENTRAL_CTX} \
       --server https://${API_SERVER}:6443 \
-      --name=central | \
+      --name=${CENTRAL} | \
       kubectl --context ${REMOTE_CTX} apply -f -
   else
     linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
