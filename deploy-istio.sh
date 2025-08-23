@@ -123,6 +123,9 @@ spec:
   - name: mesh
     port: 15008
     protocol: HBONE
+    allowedRoutes:
+      namespaces:
+        from: All
     tls:
       mode: Terminate # represents double-HBONE
       options:
