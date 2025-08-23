@@ -43,9 +43,9 @@ else
 fi
 
 echo "Setting up namespaces"
-ISTIO_ANNOTATION="istio-injection: enabled"
+ISTIO_LABEL="istio-injection: enabled"
 if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
-  ISTIO_ANNOTATION="istio.io/dataplane-mode: ambient"
+  ISTIO_LABEL="istio.io/dataplane-mode: ambient"
 fi
 for ns in observability mimir tempo loki $APP_NS; do
   cat <<EOF | kubectl apply -f -
@@ -54,9 +54,7 @@ kind: Namespace
 metadata:
   name: $ns
   labels:
-    $ISTIO_ANNOTATION
-  annotations:
-    linkerd.io/inject: enabled
+    $ISTIO_LABEL
 EOF
 done
 

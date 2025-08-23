@@ -286,7 +286,22 @@ mimir-distributor-78b6d8b96b-72cmn   2/2     Running   0          15m   10.11.3.
 mimir-distributor-78b6d8b96b-k8w6g   2/2     Running   0          15m   10.11.2.59   lgtm-central-worker    <none>           <none>
 ```
 
-If you're running in ambient-mode (using mimir-distributor as reference):
+If you're running in ambient-mode:
+
+```bash
+❯ kubectl get gatewayclass
+NAME              CONTROLLER                     ACCEPTED   AGE
+istio             istio.io/gateway-controller    True       4m30s
+istio-east-west   istio.io/eastwest-controller   True       4m30s
+istio-remote      istio.io/unmanaged-gateway     True       4m30s
+istio-waypoint    istio.io/mesh-controller       True       4m30s
+
+❯ kubectl get gateway -A
+NAMESPACE      NAME                    CLASS             ADDRESS          PROGRAMMED   AGE
+istio-system   istio-eastwestgateway   istio-east-west   192.168.97.248   True         4m13s
+```
+
+The following uses the mimir-distributor as reference:
 
 ```bash
 ❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
