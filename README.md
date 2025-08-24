@@ -293,78 +293,9 @@ The PoC assumes Istio [multi-cluster](https://istio.io/latest/docs/setup/install
 
 Unlike Linkerd, the services declared on the central cluster are reachable using the same FQDN as in the local cluster. The Istio Proxies are configured so that the DNS resolution and routing works as intended.
 
-### Cilium Cluster
+### Cilium ClusterMesh
 
 When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central` (similar to Istio).
-
-### Data Sources for Grafana
-
-The following is the list of Data Sources on the Central Grafana:
-
-* `Mimir Local` to get metrics from the local Mimir (long term). The default DS for Prometheus, can also be used, for short periods.
-* `Tempo Local` to get traces from the local cluster.
-* `Loki Local` to get logs from the local cluster.
-
-If you're running the remote cluster with the TNS Demo Application:
-
-* `Mimir Remote TNS` to get metrics from the remote cluster.
-* `Tempo Remote TNS` to get traces from the remote cluster.
-* `Loki Remote TNS` to get logs from the remote cluster.
-
-If you're running the remote cluster with the OTEL Demo Application:
-
-* `Mimir Remote OTEL` to get metrics from the second remote cluster running the OTEL Demo.
-* `Tempo Remote OTEL` to get traces from the second remote cluster running the OTEL Demo.
-* `Loki Remote OTEL` to get logs from the second remote cluster running the OTEL Demo.
-
-## Requirements
-
-* [Docker](https://www.docker.com/) ([OrbStack](https://orbstack.dev/) recommended when running on macOS)
-* [Kubectl](https://kubernetes.io/docs/tasks/tools/)
-* [Kind](https://kind.sigs.k8s.io/)
-* [Helm](https://helm.sh/)
-* [Step CLI](https://smallstep.com/docs/step-cli)
-* [Linkerd CLI](https://linkerd.io/2.16/getting-started/#step-1-install-the-cli), if you're going to use Linkerd
-* [Istio CLI](https://istio.io/latest/docs/setup/install/istioctl/), if you're going to use Istio
-* [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli)
-* [Jq](https://jqlang.github.io/jq/)
-
-The solution has been designed and tested only on an Intel-based Mac and a Linux Server. You might need to change the scripts to run them on a different operating system.
-
-## Start
-
-> Remember that the scripts use Linkerd by default. Check the notes above to use Istio or Cilium ClusterMesh.
-
-* Create anchor and issuer certificates for Cilium, Linkerd and Istio:
-
-```bash
-./deploy-certs.sh
-```
-
-* To deploy Central Cluster with LGTM stack (K8s context: `lgtm-central`), run the following:
-
-```bash
-./deploy-central.sh
-```
-
-* To deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote`), run the following:
-
-```bash
-./deploy-remote.sh
-```
-
-If you encounter issues on Linux, Kind recommends running the following:
-```bash
-sudo sysctl fs.inotify.max_user_watches=524288
-sudo sysctl fs.inotify.max_user_instances=512
-```
-
-* To deploy Remote Cluster with sample application linked to the Central Cluster (K8s context: `lgtm-remote-otel`), run the following:
-
-```bash
-./deploy-remote-otel.sh
-```
-> Note that running both remote clusters simultaneously would require having enough resources on your machine.
 
 ## Validation
 
@@ -634,37 +565,6 @@ Checking cluster remote-otel
 🔌 Cluster Connections:
   - lgtm-central: 2/2 configured, 2/2 connected
 🔀 Global services: [ min:4 / avg:4.0 / max:4 ]
-```
-
-### LGTM Stack
-
-If you're running on Linux or macOS with OrbStack, you should add an entry to `/etc/hosts` for `grafana.example.com` pointing to the IP that the Ingress will get on the Central cluster (the script will tell you that IP), or:
-
-```bash
-kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-```
-
-If you're using Docker for Desktop on macOS, I created a script to deploy HAProxy which allows you to access the Ingress Service via localhost:
-
-```bash
-./deploy-proxy.sh
-```
-
-In that case, use `127.0.0.1` when modifying `/etc/hosts` instead of the LB IP.
-
-Then, access the Grafana WebUI available at `https://grafana.example.com` and accept the warning as the site uses a certificate signed by a self-signed CA.
-
-The password for the `admin` account is defined in [values-prometheus-central.yaml](./values-prometheus-central.yaml) (i.e., `Adm1nAdm1n`). From the Explore tab, you should be able to access the data collected locally and received from the remote location using the data sources described initially.
-
-Within the [dashboards](./dashboards/) subdirectory, you should find a sample dashboard for the TNS App that you can use to visualize metrics from more locations based on the metrics stored in the central location. If you check the logs for that application (`tns` namespace), you can visualize the remote logs stored on the central Loki and the traces.
-
-### Troubleshooting
-
-For some reason, sometimes the Ingress controller doesn't correctly apply the Ingress resource, and after updating `/etc/hosts`, the Grafana UI is still unreachable. If that happens, the easiest solution is to restart the Ingress controller:
-
-```bash
-kubectl rollout restart deployment -n ingress-nginx ingress-nginx-controller --context kind-lgtm-central
 ```
 
 ## 🔧 Troubleshooting
