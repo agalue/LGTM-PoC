@@ -130,7 +130,7 @@ Hybrid approach combining cloud-native standards:
 ### System Requirements
 - **CPU**: 8 cores minimum (tested on Intel i3-8350K @ 4.00GHz and Intel i9 @ 2.4GHz)
 - **RAM**: 32GB recommended (16GB minimum for central + one remote cluster)
-- **OS**: macOS or Linux (tested on macOS with OrbStack and Rocky Linux 9/10)
+- **OS**: macOS or Linux (tested on Intel-based MBP with macOS and OrbStack, and [Rocky Linux](https://rockylinux.org/) 9/10)
 
 > 💡 **Performance Tip**: [OrbStack](https://orbstack.dev/) significantly outperforms Docker Desktop on macOS and provides native IP access to containers.
 
@@ -224,8 +224,6 @@ kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-contr
 Visit: `https://grafana.example.com` (accept the self-signed certificate warning)
 
 > 🐳 **Docker Desktop Users**: Run `./deploy-proxy.sh` and use `127.0.0.1 grafana.example.com` instead.
-
-> **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running [Rocky Linux](https://rockylinux.org/) 9 and 10. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
 
 ## 🎯 Success Criteria
 
