@@ -58,17 +58,18 @@ metadata:
 EOF
 done
 
+declare -a SERVICES=( \
+  "service/mimir-distributor -n mimir" \
+  "service/tempo-distributor -n tempo" \
+  "service/loki-write -n loki" \
+  "service/monitor-alertmanager -n observability"
+)
+
 echo "Creating link from ${REMOTE_CTX} to ${CENTRAL_CTX}"
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
   cilium clustermesh connect --context ${REMOTE_CTX} --destination-context ${CENTRAL_CTX}
 
   # Create copies of the global services in the remote cluster
-  declare -a SERVICES=( \
-    "service/mimir-distributor -n mimir" \
-    "service/tempo-distributor -n tempo" \
-    "service/loki-write -n loki" \
-    "service/monitor-alertmanager -n observability"
-  )
   for SVC in "${SERVICES[@]}"; do
     kubectl --context ${CENTRAL_CTX} get ${SVC} -o yaml \
       | sed -E '/(resourceVersion|uid|creationTimestamp):/d' \
@@ -86,6 +87,12 @@ else
       --server https://${API_SERVER}:6443 \
       --name=${CENTRAL} | \
       kubectl --context ${REMOTE_CTX} apply -f -
+    if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
+      for SVC in "${SERVICES[@]}"; do
+        kubectl --context ${CENTRAL_CTX} get $SVC -o yaml | sed '/clusterIP:/,+6d' | \
+          kubectl --context ${REMOTE_CTX} apply -f -
+      done
+    fi
   else
     linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
       --api-server-address="https://${API_SERVER}:6443" \
