@@ -1,78 +1,283 @@
-# LGTM PoC
+# LGTM PoC: Multi-Tenant Centralized Observability
 
-In the world of Kubernetes, Prometheus is considered the best tool to monitor the cluster and all its running components. Microservices, specifically those written in Go, can expose their metrics in Prometheus format. Additionally, there are numerous exporters available for applications that cannot natively do so. Therefore, [Mimir](https://grafana.com/docs/mimir/latest/) is the ideal way to consolidate metrics from multiple Kubernetes clusters along with the applications running on each of them.
+**Transform your multi-cluster Kubernetes observability with a centralized, scalable, and secure LGTM stack.**
 
-When it comes to log aggregation solutions, [Loki](https://grafana.com/docs/loki/latest/) is a much simpler and easier-to-manage option compared to the traditional ELK stack. Similarly, [Tempo](https://grafana.com/docs/tempo/latest/) is the best choice for traces due to similar reasons.
+This Proof of Concept demonstrates how to deploy Grafana's LGTM Stack (**L**oki + **G**rafana + **T**empo + **M**imir) on a central Kubernetes cluster, enabling secure collection of metrics, logs, and traces from multiple remote clusters with proper tenant isolation.
 
-## Architecture
+## 🎯 What You'll Achieve
+
+- **Centralized Observability**: Consolidate telemetry data from multiple Kubernetes clusters
+- **Multi-Tenant Architecture**: Secure data isolation between different teams/environments
+- **Zero Trust Security**: Encrypted inter-cluster communication via Service Mesh or Cilium ClusterMesh
+- **Scalable Design**: Battle-tested components that grow with your infrastructure
+- **Flexible Deployment**: Multiple agent configurations (Prometheus + Vector + Alloy, Alloy-only, or OpenTelemetry Collector)
+
+## 🏗️ Key Technologies
+
+| Component | Purpose | Why This Choice |
+|-----------|---------|-----------------|
+| **[Mimir](https://grafana.com/docs/mimir/latest/)** | Metrics storage | Horizontally scalable Prometheus backend with multi-tenancy |
+| **[Loki](https://grafana.com/docs/loki/latest/)** | Log aggregation | Simpler than ELK stack, designed for cloud-native environments |
+| **[Tempo](https://grafana.com/docs/tempo/latest/)** | Distributed tracing | Cost-effective trace storage with seamless Grafana integration |
+| **[Grafana](https://grafana.com/)** | Visualization | Unified dashboards for metrics, logs, and traces |
+
+**Service Mesh Options**: [Linkerd](https://linkerd.io/), [Istio](https://istio.io/), or [Cilium ClusterMesh](https://cilium.io/use-cases/cluster-mesh/) for secure inter-cluster communication.
+
+## Architecture Overview
 
 ![Architecture](architecture-0.png)
+
+### Core Design Principles
+
+Our architecture follows these principles:
+- **Security First**: All inter-cluster communication is encrypted and authenticated
+- **Tenant Isolation**: Each cluster operates as a separate tenant with data isolation
+- **Observability Coverage**: Complete telemetry collection (metrics, logs, traces)
+- **Operational Simplicity**: Minimal configuration required for new cluster onboarding
+
+### Deployment Scenarios
+
+We demonstrate three different agent deployment patterns:
+
+#### Scenario 1: Traditional Stack
+- **Prometheus**: Kubernetes metrics + ServiceMonitor/PodMonitor CRDs
+- **Vector**: Log collection and forwarding  
+- **Grafana Alloy**: Trace collection and processing
+
+#### Scenario 2: Unified Agent (Grafana Alloy)
+- **Single Agent**: Alloy handles all telemetry types
+- **Simplified Operations**: Fewer components to manage
+- **Prometheus Compatibility**: Supports existing ServiceMonitor configurations
+
+#### Scenario 3: OpenTelemetry Native
+- **OTEL Collector**: Industry-standard telemetry pipeline
+- **OTLP Protocol**: Direct application instrumentation support
+- **Hybrid Approach**: Can coexist with Prometheus for cluster metrics
 
 We have a central cluster running Grafana's LGTM stack on Kubernetes. Then, several client or remote clusters connected via "Cluster Mesh" to the central cluster to send metrics, logs, and traces to the LGTM stack.
 
 The remote clusters show different possibilities for deploying the solution.
 
-In the first scenario, we have Prometheus collecting data from the Kubernetes clusters and the applications, and it uses the Remote Write API to forward data to Mimir in the central cluster. Similarly, we have [Vector](https://vector.dev/) for logs (forwarding data to central Loki) and [Grafana Alloy](https://grafana.com/docs/alloy/latest/) for traces (forwarding data to central Tempo).
+### Detailed Architecture
 
-In the second scenario, Grafana Alloy handles all the observability data (metrics, logs, and traces) and forwards them to the central LGTM stack. In this case, Alloy does the work of Vector and Prometheus (including collecting metrics from the Kubernetes cluster and managing Prometheus CRDs).
+This PoC implements a **hub-and-spoke model** where:
+- **Central cluster** (`lgtm-central`): Hosts the complete LGTM stack with Grafana UI
+- **Remote clusters**: Send telemetry data to the central cluster via secure service mesh connections
+- **Tenant isolation**: Each cluster operates as a separate tenant in Mimir, Loki, and Tempo
 
-In the third scenario, we have Prometheus handling the cluster metrics and the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) handling metrics, logs, and traces received via OTLP from the applications running in the cluster and forwarding the data to the central LGTM stack.
+#### Data Flow Patterns
 
-Each cluster (including the central one) will be a tenant on Mimir, Loki, and Tempo to separate the data from each other.
+**Scenario 1: Traditional Stack**
+Remote clusters use specialized agents for each telemetry type:
+- **Prometheus** → Remote Write → **Central Mimir** (metrics)
+- **Vector DaemonSet** → **Central Loki** (logs)  
+- **Grafana Alloy** → **Central Tempo** (traces)
 
-Finally, on the central cluster, we have Prometheus collecting metrics and sending them to the local Mimir via Remote Write API, Vector doing the same for logs to Loki, and Grafana Alloy for traces to Tempo. Technically speaking, we don't need Grafana Alloy on the central cluster as Tempo is running there, but it is deployed for consistency, or if you eventually need to perform advanced tasks like [Tail-based sampling](https://grafana.com/docs/tempo/latest/configuration/grafana-agent/tail-based-sampling/).
+**Scenario 2: Unified Agent (Grafana Alloy)**
+Single agent handles all telemetry types:
+- **Alloy** collects metrics, logs, and traces
+- Supports existing Prometheus ServiceMonitor/PodMonitor CRDs
+- Forwards all data to central LGTM components
 
-Vector is deployed as a `DaemonSet` (Agent mode) to forward logs to Loki.
+**Scenario 3: OpenTelemetry Native**
+Hybrid approach combining cloud-native standards:
+- **Prometheus** → **Central Mimir** (cluster metrics)
+- **OTEL Collector** → **Central LGTM Stack** (application telemetry via OTLP)
 
-When using Prometheus to send metrics to Mimir, the idea is to utilize the CRDs (`ServiceMonitor` and `PodMonitor` resources) to monitor local applications (when deployed with the operator or through the Kube Stack).
+#### Demo Clusters
 
-For this PoC, we will have *two* Kubernetes clusters, one with the LGTM Stack exposing Grafana via Ingress (`lgtm-central`) and another with a sample application, generating metrics, logs, and traces using the [TNS](https://github.com/grafana/tns) Observability Demo App from Grafana (`lgtm-remote`, based on the first scenario).
+| Cluster | Purpose | Demo Application |
+|---------|---------|------------------|
+| `lgtm-central` | LGTM Stack + Grafana UI | Internal monitoring |
+| `lgtm-remote` | Scenario 1 demonstration | [TNS Demo App](https://github.com/grafana/tns) |
+| `lgtm-remote-otel` | Scenario 3 demonstration | [OpenTelemetry Demo](https://opentelemetry.io/docs/demo/) |
 
-Optionally, there is a third cluster running the [OpenTelemetry Demo App](https://opentelemetry.io/docs/demo/), which is configured via Helm to send metrics to the LGTM stack using the OTEL Collector (`lgtm-remote-otel`, based on the third scenario).
+### Infrastructure Details
 
-As Zero Trust is becoming more important nowadays, we'll use either [Linkerd](https://linkerd.io/), [Istio](https://istio.io/), or [Cilium Cluster Mesh](https://cilium.io/use-cases/cluster-mesh/) to secure the communication within each cluster and the communication between the clusters, which gives us the ability to have a secure channel without implementing authentication, authorization, and encryption ourselves.
+**Kubernetes Distribution**: [Kind](https://kind.sigs.k8s.io/) for local development
+- Better performance than minikube for multi-node clusters
+- Excellent ARM Mac compatibility
+- Native Docker integration
 
-We will use [Kind](https://kind.sigs.k8s.io/) via [Docker](https://www.docker.com/) for the clusters. Each cluster would have [Cilium](https://cilium.io/) deployed as CNI and as an L2/LB, mainly because the Service Mesh Gateway for Multi-Cluster requires a Load Balancer service (that way we wouldn't need MetalLB).
+**Container Networking Interface (CNI)**: [Cilium](https://cilium.io/)
+- eBPF-based networking for performance
+- Built-in LoadBalancer capabilities (eliminates MetalLB dependency)
+- Optional: Can be disabled in favor of default CNI + MetalLB
 
-For the LB, the Central cluster will use segment `x.x.x.248/29`, and the Remote cluster will employ `x.x.x.240/29` (and the OTEL remote would use `x.x.x.232/29`) from the Docker network created by `kind`.
+**Load Balancer IP Segments**:
+- Central cluster: `x.x.x.248/29`
+- Remote cluster: `x.x.x.240/29`  
+- OTEL remote cluster: `x.x.x.232/29`
 
-Each remote cluster would be a Tenant in terms of Mimir, Tempo and Loki. For demo purposes, Grafana has Data Sources to get data from the Local components and Remote components.
+**Security**: Zero Trust communication via Service Mesh
+- **Automatic encryption** for inter-cluster communication
+- **Mutual TLS (mTLS)** without manual certificate management
+- **Service discovery** across cluster boundaries
 
-Mimir supports Tenant Federation if you need to look at metrics from different tenants simultaneously.
+### Service Mesh Options
 
-As Cilium is available on each cluster, and the scripts are arranged in a way that there won't be IP Address collisions between all the clusters (for Pod and Services), it is possible to replace Linkerd or Istio with Cilium [ClusterMesh](https://cilium.io/use-cases/cluster-mesh/) with Encryption enabled. We will be using [Wireguard](https://www.wireguard.com/) as it is easier to deploy than IPSec and will encrypt the communication between worker nodes and clusters. The difference between Cilium and a Service Mesh like Istio or Linkerd is that Pod-to-Pod communication won't be encrypted when the instances run in the same worker node, and mTLS won't be involved.
+**Why Service Mesh?** Traditional Kubernetes networking lacks:
+- Automatic encryption between clusters
+- Identity-based access control
+- Advanced traffic management
 
-If you want to use Cilium ClusterMesh instead of Linkerd, run the following before deploying the clusters:
+**Cilium ClusterMesh vs Traditional Service Mesh**:
+- **Cilium**: eBPF kernel-level performance, WireGuard encryption between nodes
+- **Linkerd/Istio**: Full mTLS encryption including same-node pod communication
 
+## Prerequisites
+
+### System Requirements
+- **CPU**: 8 cores minimum (tested on Intel i3-8350K @ 4.00GHz and Intel i9 @ 2.4GHz)
+- **RAM**: 32GB recommended (16GB minimum for central + one remote cluster)
+- **OS**: macOS or Linux (tested on macOS with OrbStack and Rocky Linux 9/10)
+
+> 💡 **Performance Tip**: [OrbStack](https://orbstack.dev/) significantly outperforms Docker Desktop on macOS and provides native IP access to containers.
+
+### Required Tools
+
+| Tool | Purpose | Installation |
+|------|---------|-------------|
+| **[Docker](https://www.docker.com/)** | Container runtime | [Download](https://docs.docker.com/get-docker/) |
+| **[Kind](https://kind.sigs.k8s.io/)** | Local Kubernetes clusters | `brew install kind` or [releases](https://kind.sigs.k8s.io/docs/user/quick-start/) |
+| **[Kubectl](https://kubernetes.io/docs/tasks/tools/)** | Kubernetes CLI | [Installation guide](https://kubernetes.io/docs/tasks/tools/) |
+| **[Helm](https://helm.sh/)** | Package manager for Kubernetes | [Installation guide](https://helm.sh/docs/intro/install/) |
+| **[Step CLI](https://smallstep.com/docs/step-cli)** | Certificate generation | [Installation guide](https://smallstep.com/docs/step-cli/installation/) |
+| **[Jq](https://jqlang.github.io/jq/)** | JSON processing | `brew install jq` or [download](https://jqlang.github.io/jq/download/) |
+
+### Service Mesh Tools (Choose One)
+
+| Service Mesh | CLI Tool | When to Use |
+|--------------|----------|-------------|
+| **[Linkerd](https://linkerd.io/)** | [Linkerd CLI](https://linkerd.io/2.16/getting-started/#step-1-install-the-cli) | Simplicity, automatic mTLS, low resource overhead |
+| **[Istio](https://istio.io/)** | [Istio CLI](https://istio.io/latest/docs/setup/install/istioctl/) | Advanced traffic management, enterprise features |
+| **[Cilium](https://cilium.io/)** | [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli) | eBPF-based networking, kernel-level performance |
+
+## 🚀 Quick Start
+
+### Choose Your Service Mesh
+
+**Default (Linkerd)** - Best for getting started:
 ```bash
-export CILIUM_CLUSTER_MESH_ENABLED=yes
+# No additional setup required - Linkerd is the default
 ```
 
-> The above will disable Linkerd and Istio.
-
-To enable Istio in proxy-mode:
-
+**Istio with Proxy Mode** - For advanced traffic management:
 ```bash
 export CILIUM_CLUSTER_MESH_ENABLED=no
 export ISTIO_ENABLED=yes
 ```
 
-To enable Istio in ambient-mode:
-
+**Istio with Ambient Mode** - For sidecar-less mesh:
 ```bash
-export CILIUM_ENABLED=no
 export CILIUM_CLUSTER_MESH_ENABLED=no
 export ISTIO_ENABLED=yes
 export ISTIO_PROFILE=ambient
 ```
 
-> **WARNING**: With Istio version 1.27.0, there are DNS issues for cross-cluster resolution when Cilium is enabled. That's why I suggest disabling Cilium and relying on MetalLB for LoadBalancers.
+**Cilium ClusterMesh** - For eBPF-based networking:
+```bash
+export CILIUM_CLUSTER_MESH_ENABLED=yes
+```
 
-All the scripts are smart enough to deal with all situations properly.
+**Disable Cilium** - Use Kind's default CNI + MetalLB:
+```bash
+export CILIUM_ENABLED=no
+```
 
-> **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running Rocky Linux 9. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
+> 💡 **Note**: All scripts automatically handle these configurations. The above commands disable conflicting service mesh options as needed.
 
-### Linkerd Multi Cluster
+### Deploy the Stack
+
+1. **Generate certificates**:
+   ```bash
+   ./deploy-certs.sh
+   ```
+
+2. **Deploy central cluster** (LGTM Stack):
+   ```bash
+   ./deploy-central.sh
+   ```
+
+3. **Deploy remote cluster** (TNS Demo App):
+   ```bash
+   ./deploy-remote.sh
+   ```
+
+4. **Optional: Deploy OTEL demo cluster**:
+   ```bash
+   ./deploy-remote-otel.sh
+   ```
+
+### Access Grafana
+
+Add to `/etc/hosts`:
+```bash
+# Get the ingress IP
+kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+# Add to /etc/hosts (replace with actual IP)
+192.168.x.x grafana.example.com
+```
+
+Visit: `https://grafana.example.com` (accept the self-signed certificate warning)
+
+> 🐳 **Docker Desktop Users**: Run `./deploy-proxy.sh` and use `127.0.0.1 grafana.example.com` instead.
+
+> **WARNING:** There will be several worker nodes between both clusters, so we recommend having a machine with 8 Cores and 32GB of RAM to deploy the lab, or you would have to make manual adjustments. I choose `kind` instead of `minikube` as I feel the performance is better; having multiple nodes is more manageable and works better on ARM-based Macs. All the work done here was tested on an Intel-based Mac running [OrbStack](https://orbstack.dev/) instead of Docker Desktop and on a Linux Server running [Rocky Linux](https://rockylinux.org/) 9 and 10. It is worth noticing that OrbStack outperforms Docker Desktop and allows you to access all containers and IPs (which also applies to Kubernetes services) as if you were running on Linux.
+
+## 🎯 Success Criteria
+
+After completing the deployment, you should be able to:
+
+### ✅ Access Grafana Dashboard
+- Navigate to `https://grafana.example.com` 
+- Login with `admin` / `Adm1nAdm1n`
+- See healthy data sources in **Configuration > Data Sources**
+
+### ✅ Query Telemetry Data
+Verify data collection using Grafana's **Explore** tab:
+
+| Query Type | Example Query | Expected Result |
+|------------|---------------|-----------------|
+| **Metrics (PromQL)** | `up{cluster="lgtm-central"}` | Show healthy targets from central cluster |
+| **Logs (LogQL)** | `{cluster="lgtm-remote"} \| json` | Display structured logs from remote cluster |
+| **Traces (TraceQL)** | `{service.name="tns-app"}` | Show distributed traces from TNS application |
+
+### ✅ Multi-Cluster Visibility
+Confirm tenant isolation by switching between data sources:
+- **Local data sources**: `Mimir Local`, `Loki Local`, `Tempo Local`
+- **Remote data sources**: `Mimir Remote TNS`, `Loki Remote TNS`, `Tempo Remote TNS`
+
+### ✅ Service Mesh Connectivity
+Use the validation commands in the respective service mesh sections to verify secure inter-cluster communication.
+
+> 📚 **Learn More**: New to observability query languages? Check out [PromQL tutorial](https://prometheus.io/docs/prometheus/latest/querying/basics/), [LogQL guide](https://grafana.com/docs/loki/latest/logql/), and [TraceQL documentation](https://grafana.com/docs/tempo/latest/traceql/).
+
+## 🔗 Understanding Service Mesh Integration
+
+Each service mesh approach provides different trade-offs:
+
+### Linkerd Multi-Cluster
+- **Automatic mTLS**: Zero-configuration mutual TLS between clusters
+- **Service Mirroring**: Creates `servicename-clustername` mirrors automatically
+- **Low Overhead**: Minimal resource consumption with Rust-based proxy
+- **Example**: Access central Mimir from remote: `mimir-distributor-lgtm-central.mimir.svc`
+
+### Istio Multi-Cluster  
+- **Cross-Network Support**: Designed for clusters across different networks
+- **Gateway-Based**: Uses Istio Gateway for secure inter-cluster communication
+- **Transparent Routing**: Services accessible via original FQDN across clusters
+- **Protocol Intelligence**: Automatic protocol detection with `appProtocol` hints
+
+### Cilium ClusterMesh
+- **eBPF Foundation**: Kernel-level networking with superior performance
+- **Shared Services**: Manual service replication with `service.cilium.io/shared=false`
+- **WireGuard Encryption**: Secure node-to-node communication
+- **Limitation**: No pod-to-pod encryption within the same node
+
+## Linkerd Multi Cluster
 
 ![Linkerd MC Architecture](architecture-1.png)
 
@@ -92,7 +297,7 @@ Unlike Linkerd, the services declared on the central cluster are reachable using
 
 When using Cilium ClusterMesh, the user is responsible for creating the service with the same configuration on each cluster (although annotated with `service.cilium.io/shared=false`). That means reaching Mimir from `lgtm-remote` would be exactly like accessing it from `lgtm-central` (similar to Istio).
 
-### Data Sources
+### Data Sources for Grafana
 
 The following is the list of Data Sources on the Central Grafana:
 
@@ -461,6 +666,42 @@ For some reason, sometimes the Ingress controller doesn't correctly apply the In
 ```bash
 kubectl rollout restart deployment -n ingress-nginx ingress-nginx-controller --context kind-lgtm-central
 ```
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+| Problem | Solution |
+|---------|----------|
+| **Grafana UI unreachable after updating /etc/hosts** | `kubectl rollout restart deployment -n ingress-nginx ingress-nginx-controller --context kind-lgtm-central` |
+| **"too many open files" on Linux** | `sudo sysctl fs.inotify.max_user_watches=524288 fs.inotify.max_user_instances=512` |
+| **High resource usage** | Deploy only central + one remote cluster, or increase system resources |
+| **Certificate errors** | Regenerate with `./deploy-certs.sh` and redeploy affected clusters |
+| **Service mesh connectivity issues** | Check validation commands in respective service mesh sections |
+| **Kind cluster creation fails** | Ensure Docker has sufficient resources allocated (8GB+ recommended) |
+| **Pods stuck in Pending state** | Check node resources with `kubectl top nodes --context <cluster-context>` |
+
+### Validation Commands
+
+**Check cluster connectivity:**
+```bash
+# Linkerd
+linkerd --context kind-lgtm-central multicluster gateways
+linkerd --context kind-lgtm-remote multicluster gateways
+
+# Istio
+istioctl --context kind-lgtm-central proxy-status
+istioctl --context kind-lgtm-remote proxy-status
+
+# Cilium
+cilium --context kind-lgtm-central status
+cilium --context kind-lgtm-remote status
+```
+
+**Verify data sources in Grafana:**
+1. Navigate to **Configuration > Data Sources**
+2. Test each data source connection
+3. Look for green "Data source is working" messages
 
 ## Shutdown
 
