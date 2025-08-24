@@ -82,8 +82,6 @@ Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-
 
 ### Istio Multi Cluster
 
-> **WARNING:** Istio support is a work in progress.
-
 Setting `appProtocol: tcp` for all GRPC services (especially `memberlist`) helps with [protocol selection](https://istio.io/latest/docs/ops/configuration/traffic-management/protocol-selection/) and ensuring the presence of [headless services](https://istio.io/latest/docs/ops/configuration/traffic-management/traffic-routing/#headless-services) (i.e., `clusterIP: None`) improves traffic routing guaranteeing that the proxy will have endpoints per Pod IP address, allowing all Grafana applications to work correctly (as some microservices require direct pod-to-pod communication by Pod IP). Modern Helm charts for Loki, Tempo, and Mimir allow configuration `appProtocol`; there are already headless services for all the microservices. The configuration flexibility varies, but everything seems to be working.
 
 The PoC assumes Istio [multi-cluster](https://istio.io/latest/docs/setup/install/multicluster/primary-remote_multi-network/) using multi-network, which requires an Istio Gateway. In other words, the environment assumes we're interconnecting two clusters from different networks using Istio.
@@ -305,26 +303,26 @@ The following uses the mimir-distributor as reference:
 
 ```bash
 ❯ istioctl zc service --service-namespace mimir --context kind-lgtm-remote
-NAMESPACE SERVICE NAME      SERVICE VIP  WAYPOINT ENDPOINTS
-mimir     mimir-distributor 10.12.81.157 None     1/1
+NAMESPACE SERVICE NAME      SERVICE VIP                 WAYPOINT ENDPOINTS
+mimir     mimir-distributor 10.12.168.116,10.22.130.140 None     1/1
 
 ❯ istioctl zc workload --workload-namespace mimir -o json --context kind-lgtm-remote
 [
     {
-        "uid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "uid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.248/mimir/mimir-distributor.mimir.svc.cluster.local",
         "workloadIps": [],
         "networkGateway": {
-            "destination": "lgtm-central/192.168.97.249"
+            "destination": "lgtm-central/192.168.97.248"
         },
         "protocol": "HBONE",
-        "name": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+        "name": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.248/mimir/mimir-distributor.mimir.svc.cluster.local",
         "namespace": "mimir",
         "serviceAccount": "default",
         "workloadName": "",
         "workloadType": "pod",
         "canonicalName": "",
         "canonicalRevision": "",
-        "clusterId": "central",
+        "clusterId": "lgtm-central",
         "trustDomain": "cluster.local",
         "locality": {},
         "node": "",
@@ -345,15 +343,16 @@ mimir     mimir-distributor 10.12.81.157 None     1/1
         "namespace": "mimir",
         "hostname": "mimir-distributor.mimir.svc.cluster.local",
         "vips": [
-            "lgtm-central/10.12.81.157"
+            "lgtm-central/10.12.168.116",
+            "lgtm-remote/10.22.130.140"
         ],
         "ports": {
             "8080": 0,
             "9095": 0
         },
         "endpoints": {
-            "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local": {
-                "workloadUid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.249/mimir/mimir-distributor.mimir.svc.cluster.local",
+            "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.248/mimir/mimir-distributor.mimir.svc.cluster.local": {
+                "workloadUid": "lgtm-central/SplitHorizonWorkload/istio-system/istio-eastwestgateway/192.168.97.248/mimir/mimir-distributor.mimir.svc.cluster.local",
                 "service": "",
                 "port": {
                     "8080": 0,
@@ -369,14 +368,14 @@ mimir     mimir-distributor 10.12.81.157 None     1/1
 ]
 ```
 
-> **WARNING**: there are DNS issues for cross-cluster resolution, even with Cilium disabled.
+From DNS resolution perspective:
 
 ```bash
 ❯ kubectl --context kind-lgtm-remote exec -it -n tns $(kubectl --context kind-lgtm-remote get pod -n tns -l name=app -o name) -- nslookup mimir-distributor.mimir.svc.cluster.local
 nslookup: can't resolve '(null)': Name does not resolve
 
-nslookup: can't resolve 'mimir-distributor.mimir.svc.cluster.local': Name does not resolve
-command terminated with exit code 1
+Name:      mimir-distributor.mimir.svc.cluster.local
+Address 1: 10.22.130.140 mimir-distributor.mimir.svc.cluster.local
 ```
 
 ### Cilium ClusterMesh
