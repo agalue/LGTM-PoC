@@ -99,6 +99,20 @@ ruler:
   resources:
     <<: *no_resources
   initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
   - name: wait-chunks
     image: busybox:1.28
     imagePullPolicy: IfNotPresent
@@ -128,6 +142,21 @@ distributor:
   replicas: 2
   resources:
     <<: *no_resources
+  initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
 
 ingester:
   replicas: 3
@@ -137,6 +166,21 @@ ingester:
     <<: *no_resources
   zoneAwareReplication:
     enabled: false
+  initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
 
 compactor:
   replicas: 2
@@ -150,6 +194,20 @@ querier:
   resources:
     <<: *no_resources
   initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
   - name: wait-metadata
     image: busybox:1.28
     imagePullPolicy: IfNotPresent
@@ -188,8 +246,8 @@ store_gateway:
     imagePullPolicy: IfNotPresent
     command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 1; done']
 
+# Warning: the Helm chart doesn't properly support having more than one replica
 kafka:
-  replicas: 3
   resources:
     <<: *no_resources
 
