@@ -6,20 +6,6 @@ otelcol.receiver.opencensus "default" {
 	}
 }
 
-// For Nginx Ingress and Istio (port 4317)
-// https://kubernetes.github.io/ingress-nginx/user-guide/third-party-addons/opentelemetry/
-otelcol.receiver.otlp "default" {
-	grpc {
-		include_metadata = true
-	}
-
-	output {
-		metrics = []
-		logs    = []
-		traces  = [otelcol.processor.batch.default.input]
-	}
-}
-
 // For Mimir (port 14268)
 // https://grafana.com/docs/mimir/latest/configure/configure-tracing/
 otelcol.receiver.jaeger "default" {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INGRESS_IP=$(kubectl --context kind-lgtm-central get service \
-  -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  -n observability cilium-gateway-lgtm-external-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 cat <<EOF > haproxy.cfg
 global

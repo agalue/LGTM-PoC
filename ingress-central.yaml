@@ -44,32 +44,65 @@ spec:
     secretName: monitor-ca
 
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: cert-manager.io/v1
+kind: Certificate
 metadata:
-  name: grafana-ingress
+  name: lgtm-wildcard-cert
   namespace: observability
-  annotations:
-    cert-manager.io/issuer: monitor-issuer
-    ingress.kubernetes.io/affinity: cookie
-    ingress.kubernetes.io/session-cookie-name: route
-    ingress.kubernetes.io/session-cookie-hash: sha1
-    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
-    nginx.ingress.kubernetes.io/service-upstream: 'true'
 spec:
-  ingressClassName: nginx
+  # secretName MUST match the name in your Gateway's certificateRefs
+  secretName: lgtm-wildcard-tls
+  issuerRef:
+    name: monitor-issuer
+    kind: Issuer
+    group: cert-manager.io
+  dnsNames:
+    - "*.example.com"
+    - "example.com"
+  # Essential for a Gateway that terminates TLS
+  usages:
+  - server auth
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: cilium
+spec:
+  controllerName: io.cilium/gateway-controller
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: lgtm-external-gateway
+  namespace: observability
+spec:
+  gatewayClassName: cilium
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+        - name: lgtm-wildcard-tls
+          kind: Secret
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-route
+  namespace: observability
+spec:
+  parentRefs:
+    - name: lgtm-external-gateway
+      namespace: observability
+  hostnames:
+  - "grafana.example.com"
   rules:
-  - host: grafana.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: monitor-grafana
-            port:
-              name: http-web
-  tls:
-  - hosts:
-    - grafana.example.com
-    secretName: grafana.example.com
+  - backendRefs:
+    - name: monitor-grafana
+      port: 80
