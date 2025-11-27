@@ -105,4 +105,5 @@ spec:
   rules:
   - backendRefs:
     - name: monitor-grafana
+      kind: Service
       port: 80
