@@ -22,9 +22,6 @@ if [[ "${SERVICE_MESH_TRACES_ENABLED}" == "yes" ]]; then
   TRACES_ENABLED="true"
 fi
 
-kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-  kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace

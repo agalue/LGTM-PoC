@@ -25,7 +25,6 @@ helm repo add linkerd https://helm.linkerd.io/stable
 helm repo add linkerd-edge https://helm.linkerd.io/edge
 helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add vector https://helm.vector.dev
 helm repo add minio https://charts.min.io/
@@ -58,7 +57,7 @@ ISTIO_LABEL="istio-injection: enabled"
 if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
   ISTIO_LABEL="istio.io/dataplane-mode: ambient"
 fi
-for ns in observability storage tempo loki mimir ingress-nginx; do
+for ns in observability storage tempo loki mimir; do
   cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
@@ -102,12 +101,8 @@ helm upgrade --install mimir grafana/mimir-distributed \
 kubectl rollout status -n mimir deployment/mimir-distributor
 kubectl rollout status -n mimir deployment/mimir-query-frontend
 
-echo "Create Ingress resources"
+echo "Create Ingress resources (using Gateway API via Cilium)"
 kubectl apply -f ingress-central.yaml
-
-echo "Deploying Nginx Ingress Controller"
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  -n ingress-nginx --create-namespace -f values-ingress.yaml --wait
 
 declare -a SERVICES=( \
   "service/mimir-distributor -n mimir" \
@@ -138,5 +133,5 @@ else
 fi
 
 # Update DNS
-INGRESS_IP=$(kubectl get service -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+INGRESS_IP=$(kubectl get service -n observability cilium-gateway-lgtm-external-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "Remember to append an entry for grafana.example.com pointing to $INGRESS_IP in /etc/hosts to test the Ingress resources"

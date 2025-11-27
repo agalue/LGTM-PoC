@@ -211,12 +211,16 @@ export CILIUM_ENABLED=no
 
 ### Access Grafana
 
+Get the ingress gateway IP:
+
+```bash
+kubectl get service --context kind-lgtm-central \
+  -n observability cilium-gateway-lgtm-external-gateway \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+
 Add to `/etc/hosts`:
 ```bash
-# Get the ingress IP
-kubectl get svc --context kind-lgtm-central -n ingress-nginx ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-
 # Add to /etc/hosts (replace with actual IP)
 192.168.x.x grafana.example.com
 ```
@@ -571,7 +575,6 @@ Checking cluster remote-otel
 
 | Problem | Solution |
 |---------|----------|
-| **Grafana UI unreachable after updating /etc/hosts** | `kubectl rollout restart deployment -n ingress-nginx ingress-nginx-controller --context kind-lgtm-central` |
 | **"too many open files" on Linux** | `sudo sysctl fs.inotify.max_user_watches=524288 fs.inotify.max_user_instances=512` |
 | **High resource usage** | Deploy only central + one remote cluster, or increase system resources |
 | **Certificate errors** | Regenerate with `./deploy-certs.sh` and redeploy affected clusters |

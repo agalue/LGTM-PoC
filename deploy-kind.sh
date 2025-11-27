@@ -82,6 +82,10 @@ if [[ "$CIDR" == "" ]]; then
   exit 1
 fi
 
+# Install Gateway API CRDs
+kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+  kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
+
 if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
   echo "Installing Cilium CNI..."
 
@@ -96,6 +100,8 @@ if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
     --set ipv4NativeRoutingCIDR=10.0.0.0/8 \
     --set routingMode=native \
     --set autoDirectNodeRoutes=true \
+    --set kubeProxyReplacement=true \
+    --set gatewayAPI.enabled=true \
     --set bpf.masquerade=false \
     --set cluster.id=${CLUSTER_ID} \
     --set cluster.name=${CONTEXT} \
