@@ -91,6 +91,9 @@ spec:
         env:
         - name: AMBIENT_ENABLE_MULTI_NETWORK
           value: "true"
+        # Disable new waypoint behavior in Istio 1.28 due to known issues with ambient multicluster (still in alpha)
+        - name: AMBIENT_ENABLE_MULTI_NETWORK_WAYPOINT
+          value: "false"
         resources:
           limits:
             cpu: '0'

@@ -46,6 +46,8 @@ kubectl --context kind-lgtm-central create cm tns -n observability --from-file=t
 kubectl --context kind-lgtm-central label cm tns -n observability grafana_dashboard=1 release=monitor
 ```
 
+> **Note**: The TNS dashboard works with both the traditional stack (`lgtm-remote`) and unified Alloy deployment (`lgtm-remote-alloy`) since Grafana Alloy is fully compatible with Prometheus metrics. Simply switch between the `Mimir Remote TNS` and `Mimir Remote Alloy` data sources in Grafana.
+
 ## OTEL Demo Application
 
 > *WARNING:* Consider the following a work in progress.

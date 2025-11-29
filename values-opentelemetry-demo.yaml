@@ -17,19 +17,19 @@ opentelemetry-collector:
         tls:
           insecure: true # Linkerd uses mTLS behind the scenes
         headers:
-          X-Scope-OrgID: remote02
+          X-Scope-OrgID: remote03
       prometheusremotewrite:
         endpoint: http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push
         tls:
           insecure: true # Linkerd uses mTLS behind the scenes
         headers:
-          X-Scope-OrgID: remote02
+          X-Scope-OrgID: remote03
       loki:
         endpoint: http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push
         tls:
           insecure: true # Linkerd uses mTLS behind the scenes
         headers:
-          X-Scope-OrgID: remote02
+          X-Scope-OrgID: remote03
     processors:
       tail_sampling:
         policies:

@@ -21,7 +21,7 @@ step certificate create \
   --no-password --insecure \
   --force
 
-for CLUSTER in "central" "remote" "otel"; do
+for CLUSTER in "central" "remote" "otel" "alloy"; do
   step certificate create \
     identity.linkerd.lgtm-${CLUSTER}.cluster.local \
     linkerd-issuer-${CLUSTER}.crt linkerd-issuer-${CLUSTER}.key \
@@ -49,7 +49,7 @@ step certificate create \
   --no-password --insecure \
   --force
 
-for CLUSTER in "central" "remote" "otel"; do
+for CLUSTER in "central" "remote" "otel" "alloy"; do
   step certificate create \
     "Istio ${CLUSTER} cluster" \
     istio-issuer-${CLUSTER}.crt istio-issuer-${CLUSTER}.key \

@@ -45,6 +45,15 @@ grafana:
     enabled: true
     accessModes: ["ReadWriteOnce"]
     size: 1Gi
+  initChownData:
+    enabled: false
+  # Ensure proper security context for Grafana
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+    fsGroupChangePolicy: "OnRootMismatch"  # Only change permissions on the root directory if needed
   sidecar:
     alerts:
       searchNamespace: ALL
@@ -81,6 +90,7 @@ grafana:
     datasources.yaml:
       apiVersion: 1
       datasources:
+      # Scenario 1
       - name: Tempo Remote TNS
         type: tempo
         uid: tempo_remote_tns_ds
@@ -130,6 +140,57 @@ grafana:
           httpMethod: POST
         secureJsonData:
           httpHeaderValue1: remote01
+      # Scenario 2
+      - name: Tempo Remote ALLOY
+        type: tempo
+        uid: tempo_remote_alloy_ds
+        access: proxy
+        url: http://tempo-query-frontend.tempo.svc:3200
+        isDefault: false
+        editable: true
+        jsonData:
+          lokiSearch:
+            datasourceUid: loki_remote_alloy_ds
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir_remote_alloy_ds
+          tracesToLogs:
+            datasourceUid: loki_remote_alloy_ds
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Loki Remote ALLOY
+        type: loki
+        uid: loki_remote_alloy_ds
+        access: proxy
+        url: http://loki-gateway.loki.svc
+        isDefault: false
+        editable: true
+        jsonData:
+          derivedFields:
+          - name: TraceID
+            datasourceUid: tempo_remote_alloy_ds
+            matcherRegex: traceID=(\w+)
+            url: $${__value.raw}
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
+      - name: Mimir Remote ALLOY
+        type: prometheus
+        uid: mimir_remote_alloy_ds
+        isDefault: false
+        editable: true
+        access: proxy
+        url: http://mimir-gateway.mimir.svc/prometheus
+        jsonData:
+          httpHeaderName1: X-Scope-OrgID
+          httpMethod: POST
+        secureJsonData:
+          httpHeaderValue1: remote02
+      # Scenario 3
       - name: Tempo Remote OTEL
         type: tempo
         uid: tempo_remote_otel_ds
@@ -149,7 +210,7 @@ grafana:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
         secureJsonData:
-          httpHeaderValue1: remote02
+          httpHeaderValue1: remote03
       - name: Loki Remote OTEL
         type: loki
         uid: loki_remote_otel_ds
@@ -166,7 +227,7 @@ grafana:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
         secureJsonData:
-          httpHeaderValue1: remote02
+          httpHeaderValue1: remote03
       - name: Mimir Remote OTEL
         type: prometheus
         uid: mimir_remote_otel_ds
@@ -178,7 +239,8 @@ grafana:
           httpHeaderName1: X-Scope-OrgID
           httpMethod: POST
         secureJsonData:
-          httpHeaderValue1: remote02
+          httpHeaderValue1: remote03
+      # Local Datasources
       - name: Tempo Local
         type: tempo
         uid: tempo_ds
