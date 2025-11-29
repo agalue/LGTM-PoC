@@ -394,7 +394,7 @@ alloy:
 
 **Deployment**: `./deploy-remote-alloy.sh`
 
-**Tenant ID**: `remote-alloy`
+**Tenant ID**: `remote02`
 
 **Verification**:
 ```bash
@@ -434,7 +434,7 @@ kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafan
 
 **Deployment**: `./deploy-remote-otel.sh`
 
-**Tenant ID**: `remote-otel`
+**Tenant ID**: `remote03`
 
 ---
 

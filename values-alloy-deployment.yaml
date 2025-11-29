@@ -1,7 +1,4 @@
 # Warning: there won't be any resource requests/limits for any grafana alloy-related container
-# Grafana Alloy Deployment Configuration
-# Purpose: Cluster-wide discovery (ServiceMonitor/PodMonitor scraping, trace reception)
-# Deployment: Runs as stateless replicas with HA clustering
 ---
 fullnameOverride: alloy
 
@@ -132,7 +129,7 @@ alloy:
           url = "http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push"
           
           headers = {
-            "X-Scope-OrgID" = "remote-alloy",
+            "X-Scope-OrgID" = "remote02",
           }
           
           queue_config {
@@ -175,9 +172,9 @@ alloy:
       // Write events to central Loki
       loki.write "central" {
         endpoint {
-          url = "http://loki-write-lgtm-central.loki.svc.cluster.local:3100/loki/api/v1/push"
+          url = "http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push"
           
-          tenant_id = "remote-alloy"
+          tenant_id = "remote02"
           
           // Retry configuration
           max_backoff_period = "30s"
@@ -269,7 +266,7 @@ alloy:
           }
           
           headers = {
-            "X-Scope-OrgID" = "remote-alloy",
+            "X-Scope-OrgID" = "remote02",
           }
         }
         

@@ -1,7 +1,4 @@
 # Warning: there won't be any resource requests/limits for any grafana alloy-related container
-# Grafana Alloy DaemonSet Configuration
-# Purpose: Node-local data collection (logs from /var/log, kubelet/cAdvisor metrics)
-# Deployment: Runs on every node for host-level observability
 ---
 fullnameOverride: alloy-ds
 
@@ -110,9 +107,9 @@ alloy:
       // Write logs to central Loki
       loki.write "central" {
         endpoint {
-          url = "http://loki-write-lgtm-central.loki.svc.cluster.local:3100/loki/api/v1/push"
+          url = "http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push"
           
-          tenant_id = "remote-alloy"
+          tenant_id = "remote02"
           
           // Retry configuration
           max_backoff_period = "30s"
@@ -235,7 +232,7 @@ alloy:
           url = "http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push"
           
           headers = {
-            "X-Scope-OrgID" = "remote-alloy",
+            "X-Scope-OrgID" = "remote02",
           }
           
           queue_config {
