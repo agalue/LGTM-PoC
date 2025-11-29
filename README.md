@@ -74,10 +74,11 @@ Remote clusters use specialized agents for each telemetry type:
 - **Grafana Alloy** → **Central Tempo** (traces)
 
 **Scenario 2: Unified Agent (Grafana Alloy)**
-Single agent handles all telemetry types:
-- **Alloy** collects metrics, logs, and traces
-- Supports existing Prometheus ServiceMonitor/PodMonitor CRDs
-- Forwards all data to central LGTM components
+Hybrid architecture using two Alloy installations:
+- **Alloy DaemonSet** → Pod logs, kubelet metrics, cAdvisor metrics (node-local)
+- **Alloy Deployment** → ServiceMonitor/PodMonitor scraping, traces, events (cluster-wide)
+- Native support for Prometheus Operator CRDs (no Prometheus Operator required)
+- Single agent type reduces operational complexity
 
 **Scenario 3: OpenTelemetry Native**
 Hybrid approach combining cloud-native standards:
@@ -90,6 +91,7 @@ Hybrid approach combining cloud-native standards:
 |---------|---------|------------------|
 | `lgtm-central` | LGTM Stack + Grafana UI | Internal monitoring |
 | `lgtm-remote` | Scenario 1 demonstration | [TNS Demo App](https://github.com/grafana/tns) |
+| `lgtm-remote-alloy` | Scenario 2 demonstration | [TNS Demo App](https://github.com/grafana/tns) |
 | `lgtm-remote-otel` | Scenario 3 demonstration | [OpenTelemetry Demo](https://opentelemetry.io/docs/demo/) |
 
 ### Infrastructure Details
@@ -106,7 +108,8 @@ Hybrid approach combining cloud-native standards:
 
 **Load Balancer IP Segments**:
 - Central cluster: `x.x.x.248/29`
-- Remote cluster: `x.x.x.240/29`  
+- Remote cluster: `x.x.x.240/29`
+- Alloy remote cluster: `x.x.x.224/29`
 - OTEL remote cluster: `x.x.x.232/29`
 
 **Security**: Zero Trust communication via Service Mesh
@@ -199,12 +202,17 @@ export CILIUM_ENABLED=no
    ./deploy-central.sh
    ```
 
-3. **Deploy remote cluster** (TNS Demo App):
+3. **Deploy remote cluster** (TNS Demo App with Traditional Stack):
    ```bash
    ./deploy-remote.sh
    ```
 
-4. **Optional: Deploy OTEL demo cluster**:
+4. **Optional: Deploy unified Alloy cluster** (TNS Demo App with Alloy):
+   ```bash
+   ./deploy-remote-alloy.sh
+   ```
+
+5. **Optional: Deploy OTEL demo cluster**:
    ```bash
    ./deploy-remote-otel.sh
    ```
@@ -278,6 +286,157 @@ Each service mesh approach provides different trade-offs:
 - **Shared Services**: Manual service replication with `service.cilium.io/shared=false`
 - **WireGuard Encryption**: Secure node-to-node communication
 - **Limitation**: No pod-to-pod encryption within the same node
+
+## 🎨 Deployment Scenario Details
+
+### Scenario 1: Traditional Multi-Agent Stack
+
+**Architecture**: Specialized agents for each telemetry type
+
+**Components**:
+- **Prometheus Operator + Prometheus**: Metrics collection with ServiceMonitor/PodMonitor CRDs
+- **Vector DaemonSet**: Log collection from `/var/log` and container logs
+- **Grafana Alloy Deployment**: Trace collection (OTLP, Jaeger, OpenCensus)
+
+**Pros**:
+- Mature, battle-tested components
+- Rich ecosystem of ServiceMonitor configurations
+- Separate resource allocation per telemetry type
+
+**Cons**:
+- Multiple components to manage and upgrade
+- Higher resource overhead (3 different agents)
+- Complex troubleshooting across multiple systems
+
+**Deployment**: `./deploy-remote.sh`
+
+**Tenant ID**: `remote01`
+
+---
+
+### Scenario 2: Unified Grafana Alloy
+
+**Architecture**: Hybrid DaemonSet + Deployment with single agent type
+
+![Unified Alloy Architecture](https://grafana.com/docs/alloy/latest/shared/alloy-arch.png)
+
+**Why Hybrid?** The Grafana Alloy Helm chart supports only one `controller.type` per installation. To achieve complete observability coverage, we deploy two separate Helm releases:
+
+#### Alloy DaemonSet (`alloy-daemonset`)
+**Purpose**: Node-local data collection requiring host path access
+
+**Responsibilities**:
+- **Pod Logs**: Collects logs from all pods via `loki.source.kubernetes`
+  - Mounts `/var/log` and `/var/lib/docker/containers` from host
+  - Filters out service mesh proxy logs (linkerd-proxy, istio-proxy)
+  - Adds cluster labels for multi-tenant routing
+- **Kubelet Metrics**: Scrapes node-level metrics from kubelet API
+  - CPU, memory, disk usage per node
+  - Requires service account with node proxy access
+- **cAdvisor Metrics**: Container runtime metrics
+  - Per-container resource usage
+  - Network and filesystem statistics
+
+**Key Configuration**:
+```yaml
+controller:
+  type: daemonset
+alloy:
+  mounts:
+    varlog: true
+    dockercontainers: true
+```
+
+**Resource Profile**: `100m CPU / 128Mi memory per node`
+
+#### Alloy Deployment (`alloy-deployment`)
+**Purpose**: Cluster-wide discovery and trace collection
+
+**Responsibilities**:
+- **ServiceMonitor Discovery**: Native support via `prometheus.operator.servicemonitors`
+  - No Prometheus Operator installation required
+  - Automatic target discovery from CRDs
+  - Clustering enabled for distributed scrape load
+- **PodMonitor Discovery**: Support via `prometheus.operator.podmonitors`
+  - Direct pod-level metric collection
+  - Label-based pod selection
+- **Kubernetes Events**: Captures cluster events via `loki.source.kubernetes_events`
+- **Distributed Tracing**: Multi-protocol trace receivers
+  - OTLP (gRPC/HTTP): Modern instrumentation
+  - Jaeger (Thrift/gRPC): Legacy compatibility
+  - OpenCensus: Service mesh telemetry (Linkerd)
+
+**Key Configuration**:
+```yaml
+controller:
+  type: deployment
+  replicas: 2
+alloy:
+  clustering:
+    enabled: true
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+    - name: jaeger-thrift-compact
+      port: 6831
+```
+
+**Resource Profile**: `200m CPU / 256Mi memory per replica`
+
+**Benefits Over Traditional Stack**:
+- ✅ **Single Agent Type**: One component to learn, upgrade, and monitor
+- ✅ **Native CRD Support**: Use existing ServiceMonitor/PodMonitor without Prometheus Operator
+- ✅ **Reduced Resource Usage**: ~40% less memory than Prometheus + Vector + Alloy combined
+- ✅ **Simplified Configuration**: Unified Alloy configuration language for all telemetry
+- ✅ **Built-in Clustering**: HA support with automatic scrape target distribution
+
+**Migration Path**: Existing ServiceMonitor/PodMonitor resources work without modification
+
+**Deployment**: `./deploy-remote-alloy.sh`
+
+**Tenant ID**: `remote-alloy`
+
+**Verification**:
+```bash
+# Check DaemonSet (should have one pod per node)
+kubectl --context kind-lgtm-remote-alloy -n observability get ds grafana-alloy-daemonset
+
+# Check Deployment (should have 2 replicas)
+kubectl --context kind-lgtm-remote-alloy -n observability get deployment grafana-alloy-deployment
+
+# View DaemonSet logs (log collection)
+kubectl --context kind-lgtm-remote-alloy -n observability logs ds/grafana-alloy-daemonset
+
+# View Deployment logs (metrics and traces)
+kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafana-alloy-deployment
+```
+
+---
+
+### Scenario 3: OpenTelemetry Native
+
+**Architecture**: Hybrid Prometheus + OTEL Collector
+
+**Components**:
+- **Prometheus**: Cluster-level metrics (kubelet, cAdvisor, node-exporter)
+- **OpenTelemetry Collector**: Application telemetry via OTLP protocol
+- **OTEL Demo App**: Pre-instrumented microservices showing OTLP in action
+
+**Pros**:
+- Industry-standard OTLP protocol
+- Rich application instrumentation libraries
+- Vendor-neutral approach
+
+**Cons**:
+- Dual collection stack (Prometheus + OTEL)
+- ServiceMonitor support requires OTEL Collector configuration
+- Learning curve for OTLP instrumentation
+
+**Deployment**: `./deploy-remote-otel.sh`
+
+**Tenant ID**: `remote-otel`
+
+---
 
 ## Linkerd Multi Cluster
 

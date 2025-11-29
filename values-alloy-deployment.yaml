@@ -1,0 +1,314 @@
+# Warning: there won't be any resource requests/limits for any grafana alloy-related container
+# Grafana Alloy Deployment Configuration
+# Purpose: Cluster-wide discovery (ServiceMonitor/PodMonitor scraping, trace reception)
+# Deployment: Runs as stateless replicas with HA clustering
+---
+fullnameOverride: alloy
+
+controller:
+  type: deployment
+  replicas: 2
+  
+  # Pod disruption budget for HA
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+alloy:
+  # Enable clustering for distributed scrape target allocation
+  clustering:
+    enabled: true
+    name: alloy-cluster
+    portName: http
+  
+  # Extra ports for trace receivers
+  extraPorts:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  - name: jaeger-compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: jaeger-binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: jaeger-http
+    port: 14268
+    targetPort: 14268
+    protocol: TCP
+  - name: jaeger-grpc
+    port: 14250
+    targetPort: 14250
+    protocol: TCP
+  - name: opencensus
+    port: 55678
+    targetPort: 55678
+    protocol: TCP
+  
+  # Stability level for production components
+  stabilityLevel: "generally-available"
+  
+  # Storage path for WAL and other state
+  storagePath: /tmp/alloy
+
+  configMap:
+    create: true
+    content: |-
+      // Grafana Alloy Deployment Configuration
+      // Handles cluster-wide discovery and trace collection
+      
+      //
+      // Prometheus Operator CRD Discovery
+      //
+      
+      // Discover ServiceMonitor resources
+      prometheus.operator.servicemonitors "servicemonitors" {
+        forward_to = [prometheus.relabel.servicemonitors.receiver]
+        
+        // Include all namespaces
+        namespaces = []
+        
+        clustering {
+          enabled = true
+        }
+      }
+      
+      // Add cluster label to ServiceMonitor metrics
+      prometheus.relabel "servicemonitors" {
+        forward_to = [prometheus.remote_write.central.receiver]
+        
+        rule {
+          target_label = "cluster"
+          replacement  = "remote-alloy"
+        }
+        
+        // Drop metrics from mesh proxies to reduce cardinality
+        rule {
+          source_labels = ["namespace"]
+          regex         = "^linkerd.*"
+          action        = "drop"
+        }
+      }
+      
+      // Discover PodMonitor resources
+      prometheus.operator.podmonitors "podmonitors" {
+        forward_to = [prometheus.relabel.podmonitors.receiver]
+        
+        // Include all namespaces
+        namespaces = []
+        
+        clustering {
+          enabled = true
+        }
+      }
+      
+      // Add cluster label to PodMonitor metrics
+      prometheus.relabel "podmonitors" {
+        forward_to = [prometheus.remote_write.central.receiver]
+        
+        rule {
+          target_label = "cluster"
+          replacement  = "remote-alloy"
+        }
+        
+        // Drop metrics from mesh proxies
+        rule {
+          source_labels = ["namespace"]
+          regex         = "^linkerd.*"
+          action        = "drop"
+        }
+      }
+      
+      // Remote write to central Mimir
+      prometheus.remote_write "central" {
+        endpoint {
+          url = "http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push"
+          
+          headers = {
+            "X-Scope-OrgID" = "remote-alloy",
+          }
+          
+          queue_config {
+            capacity          = 10000
+            max_shards        = 50
+            min_shards        = 1
+            max_samples_per_send = 5000
+            batch_send_deadline  = "5s"
+            retry_on_http_429 = true
+          }
+        }
+        
+        // External labels applied to all metrics
+        external_labels = {
+          cluster = "remote-alloy",
+        }
+      }
+      
+      //
+      // Kubernetes Events Collection
+      //
+      
+      loki.source.kubernetes_events "cluster_events" {
+        job_name   = "integrations/kubernetes/eventhandler"
+        log_format = "logfmt"
+        forward_to = [loki.process.events.receiver]
+      }
+      
+      // Add cluster label to events
+      loki.process "events" {
+        stage.static_labels {
+          values = {
+            cluster = "remote-alloy",
+          }
+        }
+        
+        forward_to = [loki.write.central.receiver]
+      }
+      
+      // Write events to central Loki
+      loki.write "central" {
+        endpoint {
+          url = "http://loki-write-lgtm-central.loki.svc.cluster.local:3100/loki/api/v1/push"
+          
+          tenant_id = "remote-alloy"
+          
+          // Retry configuration
+          max_backoff_period = "30s"
+          min_backoff_period = "1s"
+          max_backoff_retries = 10
+        }
+        
+        external_labels = {
+          cluster = "remote-alloy",
+        }
+      }
+      
+      //
+      // Trace Collection
+      //
+      
+      // OTLP gRPC receiver (port 4317)
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          logs    = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+      
+      // Jaeger receiver for legacy apps
+      otelcol.receiver.jaeger "default" {
+        protocols {
+          grpc {
+            endpoint = "0.0.0.0:14250"
+          }
+          
+          thrift_http {
+            endpoint = "0.0.0.0:14268"
+          }
+          
+          thrift_binary {
+            endpoint = "0.0.0.0:6832"
+          }
+          
+          thrift_compact {
+            endpoint = "0.0.0.0:6831"
+          }
+        }
+        
+        output {
+          traces = [otelcol.processor.batch.default.input]
+        }
+      }
+      
+      // OpenCensus receiver (for Linkerd)
+      otelcol.receiver.opencensus "default" {
+        endpoint = "0.0.0.0:55678"
+        
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+        }
+      }
+      
+      // Batch processor for efficient forwarding
+      otelcol.processor.batch "default" {
+        timeout             = "5s"
+        send_batch_size     = 1000
+        send_batch_max_size = 1500
+        
+        output {
+          metrics = [otelcol.exporter.otlp.tempo.input]
+          logs    = [otelcol.exporter.otlp.tempo.input]
+          traces  = [otelcol.exporter.otlp.tempo.input]
+        }
+      }
+      
+      // Export to central Tempo
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo-distributor-lgtm-central.tempo.svc:4317"
+          
+          tls {
+            insecure = true
+          }
+          
+          headers = {
+            "X-Scope-OrgID" = "remote-alloy",
+          }
+        }
+        
+        retry_on_failure {
+          enabled          = true
+          initial_interval = "1s"
+          max_interval     = "30s"
+          max_elapsed_time = "5m"
+        }
+      }
+
+rbac:
+  create: true
+  # Rules for ServiceMonitor/PodMonitor discovery
+  rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors", "podmonitors"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+
+serviceAccount:
+  create: true
+  name: grafana-alloy-deployment
+
+service:
+  enabled: true
+  type: ClusterIP
+  annotations: {}
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitor
+  interval: 30s

@@ -1,0 +1,268 @@
+# Warning: there won't be any resource requests/limits for any grafana alloy-related container
+# Grafana Alloy DaemonSet Configuration
+# Purpose: Node-local data collection (logs from /var/log, kubelet/cAdvisor metrics)
+# Deployment: Runs on every node for host-level observability
+---
+fullnameOverride: alloy-ds
+
+controller:
+  type: daemonset
+  # Host network access for kubelet metrics
+  hostNetwork: false
+  # DNS policy for proper service discovery
+  dnsPolicy: ClusterFirst
+
+alloy:
+  mounts:
+    # Enable /var/log mount for pod log collection
+    varlog: true
+    # Enable /var/lib/docker/containers mount for container log access
+    dockercontainers: true
+  
+  # Security context for accessing host paths
+  securityContext:
+    privileged: false
+    runAsUser: 0
+    runAsGroup: 0
+    capabilities:
+      add:
+      - SYS_PTRACE
+  
+  # Stability level for production components
+  stabilityLevel: "generally-available"
+  
+  # Storage path for WAL and other state
+  storagePath: /tmp/alloy
+
+  configMap:
+    create: true
+    content: |-
+      // Grafana Alloy DaemonSet Configuration
+      // Collects logs and node-level metrics from each Kubernetes node
+      
+      //
+      // Logs Collection
+      //
+      
+      // Discover and collect pod logs from all namespaces
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+      
+      // Filter out mesh proxy logs to reduce noise
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pods.targets
+        
+        // Drop linkerd proxy logs
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          regex         = "^linkerd-proxy$"
+          action        = "drop"
+        }
+        
+        // Drop istio proxy logs
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          regex         = "^istio-proxy$"
+          action        = "drop"
+        }
+        
+        // Keep standard labels
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
+      
+      // Collect logs using loki.source.kubernetes
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.process.add_cluster_label.receiver]
+      }
+      
+      // Add cluster identifier to all logs
+      loki.process "add_cluster_label" {
+        // Add static cluster label
+        stage.static_labels {
+          values = {
+            cluster = "remote-alloy",
+          }
+        }
+        
+        forward_to = [loki.write.central.receiver]
+      }
+      
+      // Write logs to central Loki
+      loki.write "central" {
+        endpoint {
+          url = "http://loki-write-lgtm-central.loki.svc.cluster.local:3100/loki/api/v1/push"
+          
+          tenant_id = "remote-alloy"
+          
+          // Retry configuration
+          max_backoff_period = "30s"
+          min_backoff_period = "1s"
+          max_backoff_retries = 10
+        }
+        
+        // External labels applied to all log streams
+        external_labels = {
+          cluster = "remote-alloy",
+        }
+      }
+      
+      //
+      // Metrics Collection - Node Level
+      //
+      
+      // Discover kubelet endpoints
+      discovery.kubernetes "nodes" {
+        role = "node"
+      }
+      
+      // Scrape kubelet metrics
+      discovery.relabel "kubelet" {
+        targets = discovery.kubernetes.nodes.targets
+        
+        rule {
+          target_label = "__address__"
+          replacement  = "kubernetes.default.svc:443"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          regex         = "(.+)"
+          replacement   = "/api/v1/nodes/$1/proxy/metrics"
+          target_label  = "__metrics_path__"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+      }
+      
+      prometheus.scrape "kubelet" {
+        targets    = discovery.relabel.kubelet.output
+        forward_to = [prometheus.relabel.kubelet.receiver]
+        
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        
+        tls_config {
+          ca_file              = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          insecure_skip_verify = false
+        }
+        
+        scrape_interval = "30s"
+        scrape_timeout  = "10s"
+      }
+      
+      // Add cluster label to kubelet metrics
+      prometheus.relabel "kubelet" {
+        forward_to = [prometheus.remote_write.central.receiver]
+        
+        rule {
+          target_label = "cluster"
+          replacement  = "remote-alloy"
+        }
+      }
+      
+      // Scrape cAdvisor metrics
+      discovery.relabel "cadvisor" {
+        targets = discovery.kubernetes.nodes.targets
+        
+        rule {
+          target_label = "__address__"
+          replacement  = "kubernetes.default.svc:443"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          regex         = "(.+)"
+          replacement   = "/api/v1/nodes/$1/proxy/metrics/cadvisor"
+          target_label  = "__metrics_path__"
+        }
+        
+        rule {
+          source_labels = ["__meta_kubernetes_node_name"]
+          target_label  = "node"
+        }
+      }
+      
+      prometheus.scrape "cadvisor" {
+        targets    = discovery.relabel.cadvisor.output
+        forward_to = [prometheus.relabel.cadvisor.receiver]
+        
+        bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        
+        tls_config {
+          ca_file              = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          insecure_skip_verify = false
+        }
+        
+        scrape_interval = "30s"
+        scrape_timeout  = "10s"
+      }
+      
+      // Add cluster label to cAdvisor metrics
+      prometheus.relabel "cadvisor" {
+        forward_to = [prometheus.remote_write.central.receiver]
+        
+        rule {
+          target_label = "cluster"
+          replacement  = "remote-alloy"
+        }
+      }
+      
+      // Remote write to central Mimir
+      prometheus.remote_write "central" {
+        endpoint {
+          url = "http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push"
+          
+          headers = {
+            "X-Scope-OrgID" = "remote-alloy",
+          }
+          
+          queue_config {
+            capacity          = 10000
+            max_shards        = 50
+            min_shards        = 1
+            max_samples_per_send = 5000
+            batch_send_deadline  = "5s"
+            retry_on_http_429 = true
+          }
+        }
+        
+        // External labels applied to all metrics
+        external_labels = {
+          cluster = "remote-alloy",
+        }
+      }
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: grafana-alloy-daemonset
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: monitor
+  interval: 30s
