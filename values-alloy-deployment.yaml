@@ -1,6 +1,6 @@
 # Warning: there won't be any resource requests/limits for any grafana alloy-related container
 ---
-fullnameOverride: alloy
+fullnameOverride: grafana-alloy
 
 controller:
   type: deployment
