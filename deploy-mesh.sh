@@ -50,21 +50,8 @@ else
   fi
 fi
 
-echo "Setting up namespaces"
-ISTIO_LABEL="istio-injection: enabled"
-if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
-  ISTIO_LABEL="istio.io/dataplane-mode: ambient"
-fi
-for ns in observability mimir tempo loki $APP_NS; do
-  cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $ns
-  labels:
-    $ISTIO_LABEL
-EOF
-done
+NAMESPACES="observability mimir tempo loki $APP_NS"
+. deploy-namespaces.sh
 
 declare -a SERVICES=( \
   "service/mimir-distributor -n mimir" \

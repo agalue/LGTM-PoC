@@ -52,21 +52,8 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
   fi
 fi
 
-echo "Setting up namespaces"
-ISTIO_LABEL="istio-injection: enabled"
-if [[ "$ISTIO_PROFILE" == "ambient" ]]; then
-  ISTIO_LABEL="istio.io/dataplane-mode: ambient"
-fi
-for ns in observability storage tempo loki mimir; do
-  cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $ns
-  labels:
-    $ISTIO_LABEL
-EOF
-done
+NAMESPACES="observability storage tempo loki mimir"
+. deploy-namespaces.sh
 
 echo "Deploying Prometheus (for Local Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
