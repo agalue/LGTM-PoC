@@ -156,6 +156,12 @@ Hybrid approach combining cloud-native standards:
 | **[Istio](https://istio.io/)** | [Istio CLI](https://istio.io/latest/docs/setup/install/istioctl/) | Advanced traffic management, enterprise features |
 | **[Cilium](https://cilium.io/)** | [Cilium CLI](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli) | eBPF-based networking, kernel-level performance |
 
+> ⚠️ **Important for Linkerd Users**: Always use the latest edge release to avoid multicluster regressions:
+> ```bash
+> curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install-edge | sh
+> export PATH=$HOME/.linkerd2/bin:$PATH
+> ```
+
 ## 🚀 Quick Start
 
 ### Choose Your Service Mesh
@@ -738,6 +744,7 @@ Checking cluster remote-otel
 | **High resource usage** | Deploy only central + one remote cluster, or increase system resources |
 | **Certificate errors** | Regenerate with `./deploy-certs.sh` and redeploy affected clusters |
 | **Service mesh connectivity issues** | Check validation commands in respective service mesh sections |
+| **Istio Ambient: Metrics not flowing** | Restart ztunnel: `kubectl rollout restart daemonset/ztunnel -n istio-system` |
 | **Kind cluster creation fails** | Ensure Docker has sufficient resources allocated (8GB+ recommended) |
 | **Pods stuck in Pending state** | Check node resources with `kubectl top nodes --context <cluster-context>` |
 
