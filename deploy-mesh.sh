@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This script sets up service mesh connectivity between clusters
+# For Linkerd: Requires edge-25.12.x or later (version 2.18.x+) for new multicluster approach
+# The new approach uses 'linkerd mc link-gen' + Helm chart instead of deprecated 'linkerd mc link'
+
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
@@ -22,6 +26,10 @@ FILES=${FILES:-}
 # Application Namespace
 APP_NS=${APP_NS:-}
 
+# Patches configuration files for Istio/Cilium ClusterMesh by removing Linkerd's cluster suffix
+# Linkerd: mimir-distributor-lgtm-central.mimir.svc (mirrored service with cluster suffix)
+# Istio/Cilium: mimir-distributor.mimir.svc (original service name, no suffix)
+# This function transforms Linkerd service URLs to work with Istio and Cilium ClusterMesh
 patch_files() {
   for FILE in "${FILES[@]}"; do
     sed "s/-${CENTRAL}//" "${FILE}" > "/tmp/${FILE}"
@@ -94,8 +102,45 @@ else
       done
     fi
   else
-    linkerd mc link --context ${CENTRAL_CTX} --cluster-name ${CENTRAL} \
+    # Generate Link CR and credentials using link-gen
+    echo "Generating Link CR and credentials for cluster: ${CENTRAL}"
+    linkerd --context ${CENTRAL_CTX} mc link-gen \
+      --cluster-name ${CENTRAL} \
       --api-server-address="https://${API_SERVER}:6443" \
-      | kubectl --context ${REMOTE_CTX} apply -f -
+      > /tmp/link-${CENTRAL}.yaml
+
+    echo "Applying Link CR to remote cluster (${REMOTE_CTX})"
+    kubectl --context ${REMOTE_CTX} apply -f /tmp/link-${CENTRAL}.yaml
+
+    echo "Configuring linkerd-multicluster to manage service-mirror controller"
+
+    cat <<EOF > /tmp/multicluster-controllers.yaml
+controllers:
+- link:
+    ref:
+      name: ${CENTRAL}
+
+controllersDefaults:
+  logLevel: info
+  logFormat: plain
+EOF
+
+    # Upgrade multicluster installation with controller config
+    echo "Upgrading linkerd-multicluster with controller configuration"
+    helm upgrade linkerd-multicluster linkerd-edge/linkerd-multicluster \
+      --namespace linkerd-multicluster \
+      --kube-context ${REMOTE_CTX} \
+      -f /tmp/multicluster-controllers.yaml \
+      --reuse-values \
+      --wait
+
+    echo "Waiting for service-mirror controller to be ready"
+    kubectl --context ${REMOTE_CTX} -n linkerd-multicluster rollout status \
+      deployment/controller-${CENTRAL} --timeout=5m || {
+        echo "Warning: Controller deployment not ready yet, checking pods..."
+        kubectl --context ${REMOTE_CTX} -n linkerd-multicluster get pods -l linkerd.io/control-plane-component=controller
+      }
+
+    echo "Multicluster linking complete!"
   fi
 fi
