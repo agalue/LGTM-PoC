@@ -132,7 +132,7 @@ Hybrid approach combining cloud-native standards:
 
 ### System Requirements
 - **CPU**: 8 cores minimum (tested on Intel i3-8350K @ 4.00GHz, Intel i9 @ 2.4GHz, and Apple M1 Pro)
-- **RAM**: 32GB recommended (16GB minimum for central + one remote cluster)
+- **RAM**: 32GB recommended (16GB minimum for central + one remote cluster on Intel; **32GB minimum required for Apple Silicon**)
 - **OS**: macOS or Linux (tested on Intel-based MBP with OrbStack, Apple Silicon M1 Pro with Docker Desktop, and [Rocky Linux](https://rockylinux.org/) 9/10)
 
 > 💡 **Performance Tip**: [OrbStack](https://orbstack.dev/) significantly outperforms Docker Desktop on macOS and provides native IP access to containers.
