@@ -448,9 +448,21 @@ kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafan
 
 ![Linkerd MC Architecture](architecture-1.png)
 
-Linkerd creates a mirrored service automatically when linking clusters, appending the name of the target service to it. For instance, in `lgtm-central`, accessing Mimir locally would be `mimir-distributor.mimir.svc`, whereas accessing it from the `lgtm-remote` cluster would be `mimir-distributor-lgtm-central.mimir.svc`.
+Linkerd creates a mirrored service automatically when linking clusters, appending the cluster name as a suffix to the service name. For instance, in `lgtm-central`, accessing Mimir locally would be `mimir-distributor.mimir.svc`, whereas accessing it from the `lgtm-remote` cluster would be `mimir-distributor-lgtm-central.mimir.svc`.
+
+**Service Naming Comparison:**
+
+| Service Mesh | Service Discovery Pattern | Example |
+|--------------|---------------------------|----------|
+| **Linkerd** | Mirrored service with cluster suffix | `mimir-distributor-lgtm-central.mimir.svc` |
+| **Istio** | Original service name, cross-cluster DNS | `mimir-distributor.mimir.svc` |
+| **Cilium ClusterMesh** | Original service name, shared services | `mimir-distributor.mimir.svc` |
+
+> 💡 **Note**: The deployment scripts automatically patch configuration files when using Istio or Cilium ClusterMesh, removing the `-lgtm-central` suffix from service URLs to match their respective service discovery patterns.
 
 Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-announcement) introduced by Buoyant about the Linkerd artifacts, the latest `stable` version available via Helm charts is 2.14 (even if the actual latest version is newer). Because of that, we'll be using the `edge` release by default.
+
+> ⚠️ **Version Requirement**: This PoC requires Linkerd edge-25.12.x or later (stable 2.18.x+) for multicluster functionality. Earlier versions used a deprecated linking approach that no longer works correctly.
 
 ### Istio Multi Cluster
 
@@ -468,10 +480,15 @@ When using Cilium ClusterMesh, the user is responsible for creating the service 
 
 ### Linkerd Multi-Cluster
 
-The `linkerd` CLI can help to verify if the inter-cluster communication is working. From the `lgtm-remote` cluster, you can do the following:
+The `linkerd` CLI can help to verify if the inter-cluster communication is working. From the `lgtm-remote` cluster, you can run:
 
+**Check multicluster status:**
 ```bash
-➜  linkerd mc check --context kind-lgtm-remote
+linkerd mc check --context kind-lgtm-remote
+```
+
+Expected output:
+```
 linkerd-multicluster
 --------------------
 √ Link CRD exists
@@ -496,60 +513,26 @@ linkerd-multicluster
 Status check results are √
 ```
 
+**Check gateway connectivity:**
 ```bash
-➜  linkerd mc gateways --context kind-lgtm-remote
+linkerd mc gateways --context kind-lgtm-remote
+```
+
+Expected output:
+```
 CLUSTER       ALIVE    NUM_SVC      LATENCY
 lgtm-central  True           4          2ms
 ```
 
-When linking `lgtm-remote` to `lgtm-central` via Linkerd Multi-Cluster, the CLI will use the Kubeconfig from the `lgtm-central` to configure the service mirror controller on the `lgtm-remote` cluster.
-
-You can inspect the runtime kubeconfig as follows:
-
+**Verify mirrored services:**
 ```bash
-kubectl get secret --context kind-lgtm-remote \
-  -n linkerd-multicluster cluster-credentials-lgtm-central \
-  -o jsonpath='{.data.kubeconfig}' | base64 -d; echo
+# List mirrored services from the central cluster
+kubectl get svc --context kind-lgtm-remote -A | grep lgtm-central
 ```
 
-To see the permissions associated with the `ServiceAccount` on the central cluster:
+You should see services like `mimir-distributor-lgtm-central`, `tempo-distributor-lgtm-central`, etc.
 
-```bash
-➜  kubectl describe clusterrole linkerd-service-mirror-remote-access-default --context kind-lgtm-central
-Name:         linkerd-service-mirror-remote-access-default
-Labels:       app.kubernetes.io/managed-by=Helm
-              linkerd.io/extension=multicluster
-Annotations:  linkerd.io/created-by: linkerd/helm stable-2.14.10
-              meta.helm.sh/release-name: linkerd-multicluster
-              meta.helm.sh/release-namespace: linkerd-multicluster
-PolicyRule:
-  Resources                        Non-Resource URLs  Resource Names    Verbs
-  ---------                        -----------------  --------------    -----
-  events                           []                 []                [create patch]
-  configmaps                       []                 [linkerd-config]  [get]
-  endpoints                        []                 []                [list get watch]
-  pods                             []                 []                [list get watch]
-  services                         []                 []                [list get watch]
-  replicasets.apps                 []                 []                [list get watch]
-  jobs.batch                       []                 []                [list get watch]
-  endpointslices.discovery.k8s.io  []                 []                [list get watch]
-  servers.policy.linkerd.io        []                 []                [list get watch]
-  ```
-
-> Note that the `ServiceAccount` exists on both cluster.
-
-In other words, to create a link from `lgtm-remote` to `lgtm-central`, we run the following assuming the current context is assigned to `lgtm-remote`:
-```bash
-linkerd mc link --context kind-lgtm-central --cluster-name lgtm-central | kubectl apply --context kind-lgtm-remote -f -
-```
-
-With the `--context` parameter, we specify the "target" cluster and assign a name to it (which will be part of the exposed service names in the remote cluster). If we inspect the YAML file generated by the above command, we can see a secret that contains `kubeconfig`; that's how to reach the `lgtm-central` cluster, and that will be taken from your local kubeconfig, but using a user called `linkerd-service-mirror-remote-access-default` (a service account in the `linkerd-multicluster` namespace that exists in both clusters).
-
-Another service account called `linkerd-service-mirror-lgtm-central` for the mirror service will be created.
-
-So, the Linkerd Gateway runs in both clusters, but the Mirror Service runs in the remote cluster (where you created the link from).
-
-> If you're using the OpenTelemetry Demo cluster, replace `lgtm-remote` with `lgtm-remote-otel`.
+> 💡 **Note**: If you're using the OpenTelemetry Demo cluster, replace `lgtm-remote` with `lgtm-remote-otel`.
 
 ### Istio Multi-Cluster
 
