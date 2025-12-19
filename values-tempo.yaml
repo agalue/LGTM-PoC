@@ -19,17 +19,26 @@ multitenancyEnabled: true
 compactor:
   config:
     compaction:
-      block_retention: 48h # Global Metrics TTL
+      # Increased from 48h to 7 days to match Loki/Mimir retention
+      block_retention: 168h # Global Traces TTL (7 days)
 
 traces:
   otlp:
     grpc:
       enabled: true
+    http:
+      enabled: true
 
-global_overrides: # Legacy mode
-  metrics_generator_processors:
-  - service-graphs
-  - span-metrics
+# Updated metrics generator configuration using overrides instead of global_overrides
+# This provides better per-tenant control
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+      - service-graphs
+      - span-metrics
+      # Optional: local-blocks processor for additional metrics
+      # - local-blocks
 
 gateway:
   enabled: false
@@ -59,11 +68,18 @@ queryFrontend:
       # The following are defaults but show how to control where to query
       query_backend_after: 15m
       query_ingesters_until: 30m
+      # Add max_duration to prevent expensive queries
+      max_duration: 168h  # 7 days max search window
+    # Add query timeout configuration
+    query_timeout: 5m
 
 querier:
   replicas: 3
   appProtocol:
     grpc: tcp
+  config:
+    # Add max concurrent queries per tenant
+    max_concurrent_queries: 20
 
 metricsGenerator:
   enabled: true
@@ -75,18 +91,29 @@ metricsGenerator:
       service_graphs:
         dimensions:
         - user
+        # Add histogram buckets for latency metrics
+        histogram_buckets: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
       span_metrics:
         dimensions:
         - user
         intrinsic_dimensions:
           span_name: false
           status_message: false
+        # Add histogram buckets for duration metrics
+        histogram_buckets: [0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192, 16.384]
     storage:
       remote_write:
       - url: http://mimir-distributor.mimir.svc:8080/api/v1/push
         send_exemplars: true
         headers:
           X-Scope-OrgID: _local
+        # Add queue configuration for better reliability
+        queue_config:
+          capacity: 10000
+          max_shards: 50
+          min_shards: 1
+          max_samples_per_send: 5000
+          batch_send_deadline: 5s
 
 memcached:
   replicas: 2
@@ -111,6 +138,14 @@ storage:
 
 metaMonitoring:
   serviceMonitor:
+    enabled: true
+    labels:
+      release: monitor
+  dashboards:
+    enabled: true
+    labels:
+      release: monitor
+  prometheusRule:
     enabled: true
     labels:
       release: monitor

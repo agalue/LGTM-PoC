@@ -7,15 +7,15 @@ for cmd in "docker" "kind" "cilium" "kubectl" "jq" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CONTEXT=${CONTEXT-kind} # Kubeconfig profile
-WORKERS=${WORKERS-2} # Number of worker nodes in the clusters
-SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
-CLUSTER_ID=${CLUSTER_ID-1}
-POD_CIDR=${POD_CIDR-10.244.0.0/16} # Pod subnet for the cluster (when using Cilium, it must be under 10.0.0.0/8 for ipv4NativeRoutingCIDR)
-SVC_CIDR=${SVC_CIDR-10.96.0.0/16} # Must differ from Kind's Docker Network
-HOST_IP=${HOST_IP-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using Docker-based solutions)
-CILIUM_ENABLED=${CILIUM_ENABLED-yes} # Set to 'yes' to use Cilium as CNI or 'no' to use default CNI plus MetalLB
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no}
+CONTEXT=${CONTEXT:-kind} # Kubeconfig profile
+WORKERS=${WORKERS:-2} # Number of worker nodes in the clusters
+SUBNET=${SUBNET:-248} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
+CLUSTER_ID=${CLUSTER_ID:-1}
+POD_CIDR=${POD_CIDR:-10.244.0.0/16} # Pod subnet for the cluster (when using Cilium, it must be under 10.0.0.0/8 for ipv4NativeRoutingCIDR)
+SVC_CIDR=${SVC_CIDR:-10.96.0.0/16} # Must differ from Kind's Docker Network
+HOST_IP=${HOST_IP:-127.0.0.1} # The IP address of your machine to expose API Server (don't change when using Docker-based solutions)
+CILIUM_ENABLED=${CILIUM_ENABLED:-yes} # Set to 'yes' to use Cilium as CNI or 'no' to use default CNI plus MetalLB
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no}
 
 HUBBLE_ENABLED="false"
 ENCRYPTION_ENABLED="false"

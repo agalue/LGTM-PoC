@@ -3,7 +3,7 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-CERT_EXPIRY_HOURS=${CERT_EXPIRY_HOURS-8760}
+CERT_EXPIRY_HOURS=${CERT_EXPIRY_HOURS:-8760}
 if [[ $OSTYPE == 'darwin'* ]]; then
   CERT_EXPIRY_DATE=$(date -u -v+${CERT_EXPIRY_HOURS}H +"%Y-%m-%dT%H:%M:%SZ") # For macOS Only
 else

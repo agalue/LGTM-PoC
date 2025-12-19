@@ -7,11 +7,11 @@ for cmd in "istioctl" "kubectl"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CONTEXT=${CONTEXT-}
-CERT_ISSUER_ID=${CERT_ISSUER_ID-}
-SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
-SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
-ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
+CONTEXT=${CONTEXT:-}
+CERT_ISSUER_ID=${CERT_ISSUER_ID:-}
+SERVICE_MESH_HA=${SERVICE_MESH_HA:-no}
+SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED:-no}
+ISTIO_PROFILE=${ISTIO_PROFILE:-default} # default or ambient
 
 PILOT_REPLICAS="1"
 if [[ "${SERVICE_MESH_HA}" == "yes" ]]; then

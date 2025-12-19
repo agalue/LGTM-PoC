@@ -7,12 +7,12 @@ for cmd in "helm" "kubectl"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CERT_ISSUER_ID=${CERT_ISSUER_ID-}
-SERVICE_MESH_HA=${SERVICE_MESH_HA-no}
-SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED-no}
-LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED-yes}
-LINKERD_REPO=${LINKERD_REPO-edge} # Either stable (2.14) or edge
-LINKERD_REMOTE=${LINKERD_REMOTE-false} # true for remote clusters, false for central cluster
+CERT_ISSUER_ID=${CERT_ISSUER_ID:-}
+SERVICE_MESH_HA=${SERVICE_MESH_HA:-no}
+SERVICE_MESH_TRACES_ENABLED=${SERVICE_MESH_TRACES_ENABLED:-no}
+LINKERD_VIZ_ENABLED=${LINKERD_VIZ_ENABLED:-yes}
+LINKERD_REPO=${LINKERD_REPO:-edge} # Either stable (2.14) or edge
+LINKERD_REMOTE=${LINKERD_REMOTE:-false} # true for remote clusters, false for central cluster
 
 REPOSITORY_NAME="linkerd"
 if [[ "$LINKERD_REPO" == "edge" ]]; then

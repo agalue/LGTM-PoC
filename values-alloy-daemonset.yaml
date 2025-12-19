@@ -26,6 +26,8 @@ alloy:
       - SYS_PTRACE
   
   # Stability level for production components
+  # Options: "generally-available" (default), "public-preview", "experimental"
+  # Using "generally-available" for production stability
   stabilityLevel: "generally-available"
   
   # Storage path for WAL and other state
