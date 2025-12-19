@@ -7,16 +7,16 @@ for cmd in "kubectl" "helm" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CENTRAL=${CENTRAL-lgtm-central}
-CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-remote}
-CONTEXT=${CONTEXT-lgtm-remote}
-SUBNET=${SUBNET-240} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
-WORKERS=${WORKERS-1}
-CLUSTER_ID=${CLUSTER_ID-2} # Unique on each cluster
-POD_CIDR=${POD_CIDR-10.21.0.0/16} # Unique on each cluster
-SVC_CIDR=${SVC_CIDR-10.22.0.0/16} # Unique on each cluster
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
-ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
+CENTRAL=${CENTRAL:-lgtm-central}
+CERT_ISSUER_ID=${CERT_ISSUER_ID:-issuer-remote}
+CONTEXT=${CONTEXT:-lgtm-remote}
+SUBNET=${SUBNET:-240} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
+WORKERS=${WORKERS:-1}
+CLUSTER_ID=${CLUSTER_ID:-2} # Unique on each cluster
+POD_CIDR=${POD_CIDR:-10.21.0.0/16} # Unique on each cluster
+SVC_CIDR=${SVC_CIDR:-10.22.0.0/16} # Unique on each cluster
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED:-no} # no for Linkerd, yes for Istio
 APP_NS="tns"  # Used by deploy-mesh.sh
 
 echo "Deploying Kubernetes"

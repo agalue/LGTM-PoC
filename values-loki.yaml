@@ -54,11 +54,26 @@ loki:
         prefix: loki_index_
   limits_config:
     ingestion_rate_mb: 10
-    retention_period: 7d # Global Metrics TTL
+    retention_period: 7d # Global Logs TTL
+    # Enable structured metadata support (Loki 3.0+)
+    allow_structured_metadata: true
+    # Maximum size of structured metadata per log line (default: 64KB)
+    max_structured_metadata_size: 65536
+    # Maximum number of structured metadata entries per log line
+    max_structured_metadata_entries_count: 128
+    # Add query timeout to prevent long-running queries (must be in limits_config)
+    query_timeout: 5m
   ingester:
     max_chunk_age: 1h
   querier:
     query_ingesters_within: 2h
+  query_range:
+    # Enable result caching for better performance
+    results_cache:
+      cache:
+        embedded_cache:
+          enabled: true
+          max_size_mb: 100
   compactor:
     working_directory: /var/loki/compactor
     delete_request_store: s3
@@ -80,27 +95,16 @@ chunksCache:
     requests:
       cpu: 25m
 
-# The following section is marked as deprecated
-monitoring:
-  selfMonitoring:
-    enabled: false
-    grafanaAgent:
-      installOperator: false
+metaMonitoring:
   serviceMonitor:
-    enabled: true
-    metricsInstance:
-      enabled: false
-    labels:
-      release: monitor
-  rules:
-    enabled: true
-    labels:
-      release: monitor
-  alerts:
     enabled: true
     labels:
       release: monitor
   dashboards:
+    enabled: true
+    labels:
+      release: monitor
+  prometheusRule:
     enabled: true
     labels:
       release: monitor

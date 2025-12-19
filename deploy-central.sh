@@ -7,17 +7,17 @@ for cmd in "kubectl" "helm"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
-CERT_ISSUER_ID=${CERT_ISSUER_ID-issuer-central}
-CONTEXT=${CONTEXT-lgtm-central}
-SUBNET=${SUBNET-248} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
-WORKERS=${WORKERS-3}
-CLUSTER_ID=${CLUSTER_ID-1} # Unique on each cluster
-POD_CIDR=${POD_CIDR-10.11.0.0/16} # Unique on each cluster
-SVC_CIDR=${SVC_CIDR-10.12.0.0/16} # Unique on each cluster
-SERVICE_MESH_HA=${SERVICE_MESH_HA-yes}
-CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED-no} # no for Linkerd or Istio, yes for Cilium CM
-ISTIO_ENABLED=${ISTIO_ENABLED-no} # no for Linkerd, yes for Istio
-ISTIO_PROFILE=${ISTIO_PROFILE-default} # default or ambient
+CERT_ISSUER_ID=${CERT_ISSUER_ID:-issuer-central}
+CONTEXT=${CONTEXT:-lgtm-central}
+SUBNET=${SUBNET:-248} # Last octet from the /29 CIDR subnet to use for LoadBalancer IPs
+WORKERS=${WORKERS:-3}
+CLUSTER_ID=${CLUSTER_ID:-1} # Unique on each cluster
+POD_CIDR=${POD_CIDR:-10.11.0.0/16} # Unique on each cluster
+SVC_CIDR=${SVC_CIDR:-10.12.0.0/16} # Unique on each cluster
+SERVICE_MESH_HA=${SERVICE_MESH_HA:-yes}
+CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no} # no for Linkerd or Istio, yes for Cilium CM
+ISTIO_ENABLED=${ISTIO_ENABLED:-no} # no for Linkerd, yes for Istio
+ISTIO_PROFILE=${ISTIO_PROFILE:-default} # default or ambient
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io

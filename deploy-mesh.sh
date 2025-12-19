@@ -7,7 +7,8 @@
 set -euo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
-for cmd in "kubectl" "linkerd" "istioctl" "jq"; do
+# Check for required tools
+for cmd in "kubectl" "jq"; do
   type $cmd >/dev/null 2>&1 || { echo >&2 "$cmd required but it's not installed; aborting."; exit 1; }
 done
 
@@ -20,7 +21,14 @@ CENTRAL_CTX=kind-${CENTRAL}
 REMOTE_CTX=kind-${CONTEXT}
 LINKERD_REMOTE=true
 
-# Configuration files designed for Linkerd MC that requires alterations to work with Istio or Cilium CM
+# Check for mesh-specific required tools
+if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
+  type cilium >/dev/null 2>&1 || { echo >&2 "cilium required but it's not installed; aborting."; exit 1; }
+elif [[ "${ISTIO_ENABLED}" == "yes" ]]; then
+  type istioctl >/dev/null 2>&1 || { echo >&2 "istioctl required but it's not installed; aborting."; exit 1; }
+else
+  type linkerd >/dev/null 2>&1 || { echo >&2 "linkerd required but it's not installed; aborting."; exit 1; }
+fi
 FILES=${FILES:-}
 
 # Application Namespace

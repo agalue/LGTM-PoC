@@ -6,6 +6,13 @@ rbac:
   create: false
 
 alloy:
+  # Options: "generally-available" (default), "public-preview", "experimental"
+  # Using "generally-available" for production stability
+  stabilityLevel: "generally-available"
+
+  # Storage path for WAL and other state
+  storagePath: /tmp/alloy
+
   extraPorts:
   - name: thrift-compact
     port: 6831
