@@ -1,0 +1,12 @@
+---
+config:
+  outputs: |
+    [OUTPUT]
+        Name loki
+        Match kube.*
+        Host loki-write.loki.svc.cluster.local
+        Port 3100
+        Labels job=fluentbit, cluster=lgtm-central
+        Label_keys $kubernetes['namespace_name'],$kubernetes['pod_name'],$kubernetes['container_name']
+        Tenant_ID _local
+        Line_Format json

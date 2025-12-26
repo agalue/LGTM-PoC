@@ -196,6 +196,20 @@ export CILIUM_ENABLED=no
 
 > 💡 **Note**: All scripts automatically handle these configurations. The above commands disable conflicting service mesh options as needed.
 
+### Choose Your Log Shipper
+
+**Default (Vector)** - Lightweight, fast log processor:
+```bash
+# No additional setup required - Vector is the default
+```
+
+**Fluent Bit** - CNCF-graduated lightweight log processor:
+```bash
+export LOG_SHIPPER=fluentbit
+```
+
+> 💡 **Note**: Both Vector and Fluent Bit collect logs from all pods and forward them to Loki. Choose based on your preference or organizational standards.
+
 ### Deploy the Stack
 
 1. **Generate certificates**:

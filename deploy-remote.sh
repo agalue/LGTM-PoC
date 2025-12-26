@@ -17,6 +17,7 @@ POD_CIDR=${POD_CIDR:-10.21.0.0/16} # Unique on each cluster
 SVC_CIDR=${SVC_CIDR:-10.22.0.0/16} # Unique on each cluster
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED:-no} # no for Linkerd, yes for Istio
+LOG_SHIPPER=${LOG_SHIPPER:-vector} # vector or fluentbit
 APP_NS="tns"  # Used by deploy-mesh.sh
 
 echo "Deploying Kubernetes"
@@ -26,16 +27,26 @@ echo "Deploying Prometheus CRDs"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
 echo "Deploying Mesh"
-FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-vector-remote.yaml")
+if [[ "${LOG_SHIPPER}" == "fluentbit" ]]; then
+  FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-fluentbit-remote.yaml")
+else
+  FILES=("grafana-remote-config.alloy" "values-prometheus-remote.yaml" "values-vector-remote.yaml")
+fi
 . deploy-mesh.sh
 
 echo "Deploying Prometheus (for Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote.yaml --wait
 
-echo "Deploying Vector (for Logs)"
-helm upgrade --install vector vector/vector \
-  -n observability -f values-vector-common.yaml -f /tmp/values-vector-remote.yaml --wait
+if [[ "${LOG_SHIPPER}" == "fluentbit" ]]; then
+  echo "Deploying Fluent Bit (for Logs)"
+  helm upgrade --install fluent-bit fluent/fluent-bit \
+    -n observability -f values-fluentbit-common.yaml -f /tmp/values-fluentbit-remote.yaml --wait
+else
+  echo "Deploying Vector (for Logs)"
+  helm upgrade --install vector vector/vector \
+    -n observability -f values-vector-common.yaml -f /tmp/values-vector-remote.yaml --wait
+fi
 
 echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \
