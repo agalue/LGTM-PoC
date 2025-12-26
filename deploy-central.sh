@@ -18,6 +18,7 @@ SERVICE_MESH_HA=${SERVICE_MESH_HA:-yes}
 CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no} # no for Linkerd or Istio, yes for Cilium CM
 ISTIO_ENABLED=${ISTIO_ENABLED:-no} # no for Linkerd, yes for Istio
 ISTIO_PROFILE=${ISTIO_PROFILE:-default} # default or ambient
+LOG_SHIPPER=${LOG_SHIPPER:-vector} # vector or fluentbit
 
 echo "Updating Helm Repositories"
 helm repo add jetstack https://charts.jetstack.io
@@ -27,6 +28,7 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add vector https://helm.vector.dev
+helm repo add fluent https://fluent.github.io/helm-charts
 helm repo add minio https://charts.min.io/
 helm repo add metallb https://metallb.github.io/metallb
 helm repo update &> /dev/null
@@ -72,9 +74,15 @@ echo "Deploying Grafana Loki"
 helm upgrade --install loki grafana/loki \
   -n loki -f values-loki.yaml --wait
 
-echo "Deploying Vector (for Logs)"
-helm upgrade --install vector vector/vector \
-  -n observability -f values-vector-common.yaml -f values-vector-central.yaml --wait
+if [[ "${LOG_SHIPPER}" == "fluentbit" ]]; then
+  echo "Deploying Fluent Bit (for Logs)"
+  helm upgrade --install fluent-bit fluent/fluent-bit \
+    -n observability -f values-fluentbit-common.yaml -f values-fluentbit-central.yaml --wait
+else
+  echo "Deploying Vector (for Logs)"
+  helm upgrade --install vector vector/vector \
+    -n observability -f values-vector-common.yaml -f values-vector-central.yaml --wait
+fi
 
 echo "Deploying Grafana Alloy (for Traces)"
 helm upgrade --install alloy -n observability grafana/alloy \
