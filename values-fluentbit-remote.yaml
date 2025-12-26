@@ -6,7 +6,7 @@ config:
         Match kube.*
         Host loki-write-lgtm-central.loki.svc.cluster.local
         Port 3100
-        Labels job=fluent-bit, cluster=lgtm-remote
+        Labels job=fluentbit, cluster=lgtm-remote
         Label_keys $kubernetes['namespace_name'],$kubernetes['pod_name'],$kubernetes['container_name']
         Tenant_ID remote01
         Line_Format json
