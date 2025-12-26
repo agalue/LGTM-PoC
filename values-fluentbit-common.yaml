@@ -2,11 +2,10 @@
 kind: DaemonSet
 
 service:
-  enabled: false
-
-podMonitor:
   enabled: true
-  port: metrics
+
+serviceMonitor:
+  enabled: true
   additionalLabels:
     release: monitor
 
