@@ -66,7 +66,7 @@ spec:
       prometheus:
         config:
           scrape_configs:
-          # Empty config - Target Allocator will populate this dynamically
+          # Empty config - Target Allocator will populate this dynamically.
           # The Operator adds HTTP SD config pointing to Target Allocator service
     exporters:
       # Forward traces to central Tempo
