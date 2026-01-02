@@ -1,0 +1,185 @@
+# OpenTelemetryCollector CRD for DaemonSet mode
+# Deploys one collector per node for:
+# - Container/Pod logs collection (filelog receiver)
+# - Node-level OTLP receiver for application telemetry
+# - Node and kubelet metrics
+#
+# NOTE: The OpenTelemetry Operator automatically creates the ServiceAccount
+# and grants appropriate RBAC permissions based on the receivers/processors used.
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-daemonset
+  namespace: observability
+spec:
+  mode: daemonset
+  image: otel/opentelemetry-collector-contrib:0.142.0
+  serviceAccount: otel-daemonset
+  volumeMounts:
+  - name: varlogpods
+    mountPath: /var/log/pods
+    readOnly: true
+  - name: varlibdockercontainers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: hostfs
+    mountPath: /hostfs
+    readOnly: true
+  volumes:
+  - name: varlogpods
+    hostPath:
+      path: /var/log/pods
+  - name: varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: hostfs
+    hostPath:
+      path: /
+  env:
+  - name: MY_POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+  - name: K8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  config:
+    receivers:
+      # OTLP receiver for applications running on same node
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      # Collect container/pod logs
+      filelog:
+        include:
+        - /var/log/pods/*/*/*.log
+        exclude:
+        - /var/log/pods/*/otel-collector-container/*.log
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        operators:
+        - type: container
+          id: container-parser
+      # Host metrics
+      hostmetrics:
+        root_path: /hostfs
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          load: {}
+          memory: {}
+          disk: {}
+          filesystem: {}
+          network: {}
+      # Kubelet metrics
+      kubeletstats:
+        collection_interval: 30s
+        auth_type: serviceAccount
+        endpoint: https://${env:K8S_NODE_NAME}:10250
+        insecure_skip_verify: true
+        metric_groups:
+        - node
+        - pod
+        - container
+    exporters:
+      # Forward logs to central Loki via OTLP
+      otlphttp/loki:
+        endpoint: http://loki-write-lgtm-central.loki.svc:3100/otlp
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+      # Forward traces to Deployment collector for tail sampling
+      otlp/deployment:
+        endpoint: otel-deployment-collector.observability.svc:4317
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+      # Forward metrics to central Mimir
+      prometheusremotewrite:
+        endpoint: http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+    processors:
+      # Add Kubernetes attributes
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+          - k8s.namespace.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.pod.start_time
+          - k8s.deployment.name
+          - k8s.node.name
+        pod_association:
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+        - sources:
+          - from: connection
+      # Add cluster label
+      resource:
+        attributes:
+        - key: cluster
+          value: remote03
+          action: upsert
+      # Batch processor
+      batch:
+        timeout: 5s
+        send_batch_size: 1000
+      # Memory limiter
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+    service:
+      pipelines:
+        # Logs pipeline
+        logs:
+          receivers:
+          - filelog
+          - otlp
+          processors:
+          - memory_limiter
+          - k8sattributes
+          - resource
+          - batch
+          exporters:
+          - otlphttp/loki
+        # Metrics pipeline
+        metrics:
+          receivers:
+          - otlp
+          - hostmetrics
+          - kubeletstats
+          processors:
+          - memory_limiter
+          - resource
+          - batch
+          exporters:
+          - prometheusremotewrite
+        # Traces pipeline: forward to Deployment for tail sampling
+        traces:
+          receivers:
+          - otlp
+          processors:
+          - memory_limiter
+          - k8sattributes
+          - resource
+          - batch
+          exporters:
+          - otlp/deployment

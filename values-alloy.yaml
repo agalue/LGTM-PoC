@@ -3,7 +3,11 @@
 fullnameOverride: grafana-alloy
 
 rbac:
-  create: false
+  create: true
+  rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
 
 alloy:
   # Options: "generally-available" (default), "public-preview", "experimental"
