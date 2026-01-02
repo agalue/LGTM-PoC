@@ -80,6 +80,8 @@ loki:
     retention_enabled: true
     delete_request_cancel_period: 5m
     retention_delete_delay: 5m
+  distributor:
+    otlp_config: {}
 
 resultsCache:
   allocatedMemory: 512

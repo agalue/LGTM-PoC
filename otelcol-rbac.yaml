@@ -1,0 +1,127 @@
+# RBAC resources for OpenTelemetry Collectors
+# The OpenTelemetry Operator creates RBAC for Target Allocator when manager.createRbacPermissions=true
+# but the auto-created RBAC is incomplete - missing namespaces permissions
+# We create complete RBAC manually for collectors and supplement Target Allocator RBAC
+---
+# ServiceAccount for DaemonSet collector
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-daemonset
+  namespace: observability
+---
+# ServiceAccount for Deployment/StatefulSet collector
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-deployment
+  namespace: observability
+---
+# ClusterRole for DaemonSet collector
+# Requires access to: pods, nodes, nodes/stats for k8sattributes and kubeletstats
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-daemonset
+rules:
+- apiGroups: [""]
+  resources: [nodes, nodes/stats, pods]
+  verbs: [get, list, watch]
+---
+# ClusterRole for Deployment/StatefulSet collector
+# Requires access to: events, cluster resources for k8s_cluster and k8s_events receivers
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-deployment
+rules:
+# Core resources for k8sattributes processor
+- apiGroups: [""]
+  resources: [pods, nodes]
+  verbs: [get, list, watch]
+# Events for k8s_events receiver
+- apiGroups: [""]
+  resources: [events]
+  verbs: [get, list, watch]
+# Resources for k8s_cluster receiver (cluster-level metrics)
+- apiGroups: [""]
+  resources: [namespaces, services, endpoints, replicationcontrollers, resourcequotas, persistentvolumes, persistentvolumeclaims]
+  verbs: [get, list, watch]
+- apiGroups: [apps]
+  resources: [deployments, daemonsets, replicasets, statefulsets]
+  verbs: [get, list, watch]
+- apiGroups: [batch]
+  resources: [jobs, cronjobs]
+  verbs: [get, list, watch]
+- apiGroups: [autoscaling]
+  resources: [horizontalpodautoscalers]
+  verbs: [get, list, watch]
+---
+# ClusterRole for Target Allocator (supplements Operator-created RBAC)
+# The Operator creates RBAC but misses many required permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-targetallocator-supplement
+rules:
+# Kubernetes resources for service discovery
+- apiGroups: [""]
+  resources: [namespaces, nodes, nodes/metrics, services, endpoints, pods, configmaps]
+  verbs: [get, list, watch]
+# Prometheus Operator CRDs
+- apiGroups: [monitoring.coreos.com]
+  resources: [servicemonitors, podmonitors]
+  verbs: ["*"]
+# EndpointSlices for modern service discovery
+- apiGroups: [discovery.k8s.io]
+  resources: [endpointslices]
+  verbs: [get, list, watch]
+# Ingresses for discovering ingress metrics
+- apiGroups: [networking.k8s.io]
+  resources: [ingresses]
+  verbs: [get, list, watch]
+# Non-resource URLs for API discovery
+- nonResourceURLs: [/metrics, /api, /api/*, /apis, /apis/*]
+  verbs: [get]
+---
+# ClusterRoleBinding for DaemonSet collector
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-daemonset
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-daemonset
+subjects:
+- kind: ServiceAccount
+  name: otel-daemonset
+  namespace: observability
+---
+# ClusterRoleBinding for Deployment/StatefulSet collector
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-deployment
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-deployment
+subjects:
+- kind: ServiceAccount
+  name: otel-deployment
+  namespace: observability
+---
+# ClusterRoleBinding for Target Allocator supplement
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-targetallocator-supplement
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-targetallocator-supplement
+subjects:
+- kind: ServiceAccount
+  name: otel-deployment-targetallocator
+  namespace: observability

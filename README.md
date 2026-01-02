@@ -50,9 +50,10 @@ We demonstrate three different agent deployment patterns:
 - **Prometheus Compatibility**: Supports existing ServiceMonitor configurations
 
 #### Scenario 3: OpenTelemetry Native
-- **OTEL Collector**: Industry-standard telemetry pipeline
-- **OTLP Protocol**: Direct application instrumentation support
-- **Hybrid Approach**: Can coexist with Prometheus for cluster metrics
+- **OTEL Operator**: Manages collector lifecycle and RBAC automatically
+- **Dual Collectors**: DaemonSet for logs/node metrics + StatefulSet for cluster metrics/traces
+- **Target Allocator**: Discovers ServiceMonitor/PodMonitor CRDs for Prometheus compatibility
+- **OTLP Protocol**: Native OpenTelemetry end-to-end
 
 We have a central cluster running Grafana's LGTM stack on Kubernetes. Then, several client or remote clusters connected via "Cluster Mesh" to the central cluster to send metrics, logs, and traces to the LGTM stack.
 
@@ -81,9 +82,10 @@ Hybrid architecture using two Alloy installations:
 - Single agent type reduces operational complexity
 
 **Scenario 3: OpenTelemetry Native**
-Hybrid approach combining cloud-native standards:
-- **Prometheus** → **Central Mimir** (cluster metrics)
-- **OTEL Collector** → **Central LGTM Stack** (application telemetry via OTLP)
+Fully operator-managed OpenTelemetry architecture:
+- **OTEL Collector DaemonSet** → Pod logs, host metrics, kubelet metrics, application OTLP (node-local)
+- **OTEL Collector StatefulSet** → ServiceMonitor/PodMonitor discovery via Target Allocator, K8s events, cluster metrics, trace aggregation with tail sampling (cluster-wide)
+- **No Prometheus**: All metrics collected via native OTEL receivers
 
 #### Demo Clusters
 
@@ -338,8 +340,6 @@ Each service mesh approach provides different trade-offs:
 
 **Architecture**: Hybrid DaemonSet + Deployment with single agent type
 
-![Unified Alloy Architecture](https://grafana.com/docs/alloy/latest/shared/alloy-arch.png)
-
 **Why Hybrid?** The Grafana Alloy Helm chart supports only one `controller.type` per installation. To achieve complete observability coverage, we deploy two separate Helm releases:
 
 #### Alloy DaemonSet (`alloy-daemonset`)
@@ -435,26 +435,125 @@ kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafan
 
 ### Scenario 3: OpenTelemetry Native
 
-**Architecture**: Hybrid Prometheus + OTEL Collector
+**Architecture**: Operator-managed dual collector deployment (no Prometheus)
+
+**Why Dual Collectors?** Similar to Scenario 2, we separate concerns for optimal resource usage and functionality:
+
+#### OTEL Collector DaemonSet (`otel-daemonset`)
+**Purpose**: Node-local data collection with host access
+
+**Responsibilities**:
+- **Container Logs**: Collects logs from all pods via `filelog` receiver
+  - Mounts `/var/log/pods` for pod logs
+  - Automatic Kubernetes metadata enrichment
+  - Excludes OTEL collector's own logs
+- **Host Metrics**: System-level metrics via `hostmetrics` receiver
+  - CPU, memory, disk, filesystem, network per node
+  - Requires `/hostfs` mount for accurate readings
+- **Kubelet Metrics**: Container and pod metrics via `kubeletstats` receiver
+  - Per-pod resource usage
+  - Node-level aggregations
+- **Node-local OTLP Receiver**: Accepts telemetry from applications on the same node
+  - Reduces network hops for pod-to-collector communication
+  - gRPC (4317) and HTTP (4318) endpoints
+
+**Key Configuration**:
+```yaml
+spec:
+  mode: daemonset
+  volumes:
+  - name: varlogpods
+    hostPath:
+      path: /var/log/pods
+  - name: hostfs
+    hostPath:
+      path: /
+```
+
+#### OTEL Collector StatefulSet (`otel-deployment`)
+**Purpose**: Cluster-wide discovery and aggregation
+
+**Responsibilities**:
+- **Target Allocator Integration**: Native ServiceMonitor/PodMonitor discovery
+  - Discovers Prometheus Operator CRDs without requiring the Operator
+  - Automatic scrape target distribution across collector instances
+  - Supports `prometheus.io/*` annotations for backwards compatibility
+  - Consistent hashing for stable target allocation
+- **Kubernetes Events**: Captures cluster events via `k8s_events` receiver
+  - Forwards events as logs to Loki
+  - Enriched with cluster labels
+- **Cluster Metrics**: Kubernetes API-based metrics via `k8s_cluster` receiver
+  - Deployment, DaemonSet, StatefulSet status
+  - Node conditions and allocatable resources
+  - Replacement for kube-state-metrics
+- **Trace Aggregation**: Receives traces from DaemonSet collectors
+  - **Tail Sampling**: Reduces trace volume intelligently
+    - Keeps 100% of error traces
+    - Samples 30% of successful traces over 50ms latency
+  - Requires single instance for consistent sampling decisions
+- **OTLP Receiver**: Central collection point for traces from DaemonSet
+
+**Target Allocator Architecture**:
+```yaml
+targetAllocator:
+  enabled: true
+  prometheusCR:
+    enabled: true
+    serviceMonitorSelector: {}  # Discover all ServiceMonitors
+    podMonitorSelector: {}      # Discover all PodMonitors
+  allocationStrategy: consistent-hashing
+```
+
+**Why StatefulSet?** Target Allocator requires stable network identity and is only compatible with StatefulSet mode.
 
 **Components**:
-- **Prometheus**: Cluster-level metrics (kubelet, cAdvisor, node-exporter)
-- **OpenTelemetry Collector**: Application telemetry via OTLP protocol
-- **OTEL Demo App**: Pre-instrumented microservices showing OTLP in action
+- **OpenTelemetry Operator**: Manages collector lifecycle, RBAC, and Target Allocator
+- **OTEL Collector DaemonSet**: Node-local logs, host metrics, and OTLP ingestion
+- **OTEL Collector StatefulSet**: ServiceMonitor discovery, cluster metrics, events, and trace sampling
+- **OTEL Demo App**: 15+ pre-instrumented microservices in 8 languages
 
 **Pros**:
-- Industry-standard OTLP protocol
-- Rich application instrumentation libraries
-- Vendor-neutral approach
+- ✅ **100% OpenTelemetry**: No Prometheus dependency, true cloud-native standard
+- ✅ **Operator Management**: Automatic RBAC, service accounts, and collector lifecycle
+- ✅ **ServiceMonitor Compatibility**: Existing Prometheus monitoring configs work unchanged
+- ✅ **Tail Sampling**: Intelligent trace reduction at the collector level
+- ✅ **Vendor Neutral**: CNCF project with broad ecosystem support
+- ✅ **Built-in Kubernetes Enrichment**: Automatic pod/namespace/deployment labels
 
 **Cons**:
-- Dual collection stack (Prometheus + OTEL)
-- ServiceMonitor support requires OTEL Collector configuration
-- Learning curve for OTLP instrumentation
+- ⚠️ **More Complex**: Requires understanding of OTEL Collector pipeline architecture
+- ⚠️ **Operator Dependency**: Additional component to manage and troubleshoot
+- ⚠️ **RBAC Gaps**: Operator-generated RBAC incomplete, requires manual supplement
+- ⚠️ **Dual Collectors**: More moving parts than single-agent approaches
+
+**Migration Path**: Deploy alongside existing Prometheus for gradual migration. Target Allocator supports both ServiceMonitor CRDs and `prometheus.io` annotations.
 
 **Deployment**: `./deploy-remote-otel.sh`
 
 **Tenant ID**: `remote03`
+
+**Verification**:
+```bash
+# Check OpenTelemetry Operator
+kubectl --context kind-lgtm-remote-otel -n observability get deployment opentelemetry-operator
+
+# Check DaemonSet collector (one pod per node)
+kubectl --context kind-lgtm-remote-otel -n observability get ds otel-daemonset-collector
+
+# Check StatefulSet collector with Target Allocator
+kubectl --context kind-lgtm-remote-otel -n observability get statefulset otel-deployment-collector
+kubectl --context kind-lgtm-remote-otel -n observability get deployment otel-deployment-targetallocator
+
+# View discovered Prometheus scrape targets
+kubectl --context kind-lgtm-remote-otel -n observability port-forward deployment/otel-deployment-targetallocator 8080:80
+# Visit http://localhost:8080/jobs to see discovered ServiceMonitors/PodMonitors
+
+# Check DaemonSet logs (log and metric collection)
+kubectl --context kind-lgtm-remote-otel -n observability logs ds/otel-daemonset-collector
+
+# Check StatefulSet logs (trace aggregation and Prometheus discovery)
+kubectl --context kind-lgtm-remote-otel -n observability logs statefulset/otel-deployment-collector
+```
 
 ---
 

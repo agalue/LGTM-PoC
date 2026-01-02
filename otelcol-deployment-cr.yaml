@@ -1,0 +1,185 @@
+# OpenTelemetryCollector CRD for StatefulSet mode (required for Target Allocator)
+# Deploys single collector instance with Target Allocator for:
+# - Kubernetes Events collection (k8s_events receiver)
+# - Kubernetes cluster metrics (k8s_cluster receiver)
+# - Prometheus metrics discovery via Target Allocator (ServiceMonitor/PodMonitor CRDs)
+# - Trace aggregation and tail sampling
+# - Receives traces from DaemonSet collectors
+#
+# NOTE: Target Allocator REQUIRES mode: statefulset (not deployment)
+# NOTE: The OpenTelemetry Operator automatically creates the ServiceAccount
+# and grants appropriate RBAC permissions based on the receivers/processors used,
+# including access to ServiceMonitor/PodMonitor CRDs when Target Allocator is enabled.
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-deployment
+  namespace: observability
+spec:
+  mode: statefulset
+  image: otel/opentelemetry-collector-contrib:0.142.0
+  replicas: 1
+  serviceAccount: otel-deployment
+  # Target Allocator for Prometheus service discovery
+  # Discovers ServiceMonitor/PodMonitor CRDs and prometheus.io annotations
+  targetAllocator:
+    enabled: true
+    # Enable Prometheus Operator CRD support
+    prometheusCR:
+      enabled: true
+      # Discover all ServiceMonitors in all namespaces
+      serviceMonitorSelector: {}
+      # Discover all PodMonitors in all namespaces
+      podMonitorSelector: {}
+    # Allocate prometheus scrape jobs across collector instances
+    allocationStrategy: consistent-hashing
+    image: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:0.141.0
+    resources:
+      limits:
+        memory: 128Mi
+  config:
+    receivers:
+      # Kubernetes Events receiver
+      k8s_events:
+        auth_type: serviceAccount
+        namespaces: [all]
+      # Kubernetes cluster metrics (like kube-state-metrics)
+      k8s_cluster:
+        auth_type: serviceAccount
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure, NetworkUnavailable]
+        allocatable_types_to_report: [cpu, memory, storage, ephemeral-storage]
+        collection_interval: 30s
+      # OTLP receiver for traces from DaemonSet collectors
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      # Prometheus receiver with Target Allocator integration
+      # The Operator automatically injects target_allocator config when enabled
+      # Target Allocator discovers:
+      # 1. ServiceMonitor CRDs (via prometheusCR)
+      # 2. PodMonitor CRDs (via prometheusCR)
+      # 3. Services/Pods with prometheus.io annotations
+      prometheus:
+        config:
+          scrape_configs:
+          # Empty config - Target Allocator will populate this dynamically
+          # The Operator adds HTTP SD config pointing to Target Allocator service
+    exporters:
+      # Forward traces to central Tempo
+      otlp:
+        endpoint: http://tempo-distributor-lgtm-central.tempo.svc:4317
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+      # Forward metrics to central Mimir
+      prometheusremotewrite:
+        endpoint: http://mimir-distributor-lgtm-central.mimir.svc:8080/api/v1/push
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+      # Forward K8s events to central Loki via OTLP
+      otlphttp/loki:
+        endpoint: http://loki-write-lgtm-central.loki.svc:3100/otlp
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: remote03
+    processors:
+      # Add Kubernetes attributes to traces
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+          - k8s.namespace.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.pod.start_time
+          - k8s.deployment.name
+          - k8s.node.name
+        pod_association:
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+        - sources:
+          - from: connection
+      # Add cluster label to all telemetry
+      resource:
+        attributes:
+        - key: cluster
+          value: remote03
+          action: upsert
+      # Tail sampling for trace reduction (requires single instance)
+      tail_sampling:
+        policies:
+        # Forward all traces with errors
+        - name: errors-policy
+          type: status_code
+          status_code:
+            status_codes: [ERROR]
+        # Forward 30% of successful traces with latency over 50ms
+        - name: long-traces-policy
+          type: and
+          and:
+            and_sub_policy:
+            - name: latency-policy
+              type: latency
+              latency:
+                threshold_ms: 50
+            - name: randomized-policy
+              type: probabilistic
+              probabilistic:
+                sampling_percentage: 30
+      # Batch processor
+      batch:
+        timeout: 5s
+        send_batch_size: 1000
+      # Memory limiter
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+    service:
+      pipelines:
+        # Metrics pipeline: cluster metrics + prometheus scrapes -> Mimir
+        metrics:
+          receivers:
+          - otlp
+          - prometheus
+          - k8s_cluster
+          processors:
+          - memory_limiter
+          - resource
+          - batch
+          exporters:
+          - prometheusremotewrite
+        # Logs pipeline: K8s events -> Loki
+        logs:
+          receivers:
+          - k8s_events
+          processors:
+          - resource
+          - batch
+          exporters:
+          - otlphttp/loki
+        # Traces pipeline: OTLP -> tail sampling -> Tempo
+        traces:
+          receivers:
+          - otlp
+          processors:
+          - memory_limiter
+          - k8sattributes
+          - tail_sampling
+          - resource
+          - batch
+          exporters:
+          - otlp

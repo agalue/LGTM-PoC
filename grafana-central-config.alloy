@@ -45,3 +45,29 @@ otelcol.exporter.otlp "default_0" {
 		}
 	}
 }
+
+// Kubernetes Events Collection
+loki.source.kubernetes_events "cluster_events" {
+	job_name   = "integrations/kubernetes/eventhandler"
+	log_format = "logfmt"
+	forward_to = [loki.process.events.receiver]
+}
+
+// Add cluster label to events
+loki.process "events" {
+	forward_to = [loki.write.local.receiver]
+}
+
+// Write events to local Loki
+loki.write "local" {
+	endpoint {
+		url = "http://loki-write.loki.svc:3100/loki/api/v1/push"
+
+		tenant_id = "_local"
+
+		// Retry configuration
+		max_backoff_period = "30s"
+		min_backoff_period = "1s"
+		max_backoff_retries = 10
+	}
+}

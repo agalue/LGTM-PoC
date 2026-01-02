@@ -22,17 +22,25 @@ APP_NS="otel" # Used by deploy-mesh.sh
 echo "Deploying Kubernetes"
 . deploy-kind.sh
 
-echo "Deploying Prometheus CRDs"
+echo "Deploying Prometheus CRDs (for ServiceMonitor/PodMonitor support)"
 helm upgrade --install prometheus-crds prometheus-community/prometheus-operator-crds
 
+echo "Deploying cert-manager (required by OpenTelemetry Operator)"
+helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace -f values-certmanager.yaml --wait
+
+echo "Deploying OpenTelemetry Operator (for Target Allocator)"
+helm upgrade --install opentelemetry-operator open-telemetry/opentelemetry-operator -n observability --create-namespace --wait
+kubectl apply -f otelcol-rbac.yaml
+
 echo "Deploying Mesh"
-FILES=("values-opentelemetry-demo.yaml" "values-prometheus-remote-otel.yaml")
+FILES=("otelcol-daemonset-cr.yaml" "otelcol-deployment-cr.yaml")
 . deploy-mesh.sh
 
-echo "Deploying Prometheus (for local Kubernetes Metrics)"
-helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
-  -n observability -f values-prometheus-common.yaml -f /tmp/values-prometheus-remote-otel.yaml --wait
+echo "Deploying OpenTelemetry Collector DaemonSet (for logs and node metrics)"
+kubectl apply -f /tmp/otelcol-daemonset-cr.yaml
+
+echo "Deploying OpenTelemetry Collector StatefulSet (with Target Allocator for ServiceMonitor/PodMonitor)"
+kubectl apply -f /tmp/otelcol-deployment-cr.yaml
 
 echo "Deploying OpenTelemetry Demo application"
-helm upgrade --install demo open-telemetry/opentelemetry-demo \
-  -n ${APP_NS} -f /tmp/values-opentelemetry-demo.yaml
+helm upgrade --install demo open-telemetry/opentelemetry-demo -n ${APP_NS} -f values-opentelemetry-demo.yaml
