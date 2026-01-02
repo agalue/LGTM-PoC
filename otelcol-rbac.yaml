@@ -71,7 +71,7 @@ rules:
 # Prometheus Operator CRDs
 - apiGroups: [monitoring.coreos.com]
   resources: [servicemonitors, podmonitors]
-  verbs: ["*"]
+  verbs: [get, list, watch]
 # EndpointSlices for modern service discovery
 - apiGroups: [discovery.k8s.io]
   resources: [endpointslices]
