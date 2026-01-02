@@ -53,7 +53,6 @@ loki.source.kubernetes_events "cluster_events" {
 	forward_to = [loki.process.events.receiver]
 }
 
-// Add cluster label to events
 loki.process "events" {
 	forward_to = [loki.write.local.receiver]
 }
