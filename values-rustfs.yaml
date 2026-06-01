@@ -1,0 +1,37 @@
+---
+# RustFS Helm values - replaces MinIO as the S3-compatible object store
+# Chart: rustfs/rustfs from https://charts.rustfs.com/
+#
+# NOTE: Bucket and user provisioning is NOT handled here.
+#       It is managed by a separate Kubernetes Job defined in rustfs-provisioning-job.yaml.
+
+image:
+  rustfs:
+    repository: rustfs/rustfs
+    tag: latest
+    pullPolicy: IfNotPresent
+
+secret:
+  rustfs:
+    access_key: root
+    secret_key: "I,@m,R00t;"
+
+# Standalone mode: one pod, one PVC
+mode:
+  standalone:
+    enabled: true
+  distributed:
+    enabled: false
+
+storageclass:
+  name: standard  # 'standard' works for Kind clusters; change to match your StorageClass if needed
+  dataStorageSize: 20Gi
+  logStorageSize: 1Gi
+
+resources:
+  requests:
+    memory: 512Mi
+
+# Ingress is not needed; RustFS is accessed internally by LGTM components
+ingress:
+  enabled: false

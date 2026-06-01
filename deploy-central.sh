@@ -30,7 +30,7 @@ helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add vector https://helm.vector.dev
 helm repo add fluent https://fluent.github.io/helm-charts
-helm repo add minio https://charts.min.io/
+helm repo add rustfs https://charts.rustfs.com/
 helm repo add metallb https://metallb.github.io/metallb
 helm repo update &> /dev/null
 
@@ -62,10 +62,19 @@ echo "Deploying Prometheus (for Local Metrics)"
 helm upgrade --install monitor prometheus-community/kube-prometheus-stack \
   -n observability -f values-prometheus-common.yaml -f values-prometheus-central.yaml --wait
 
-echo "Deploying MinIO for Loki, Tempo and Mimir"
-helm upgrade --install minio minio/minio \
-  -n storage -f values-minio.yaml --wait
-kubectl rollout status -n storage deployment/minio
+echo "Deploying RustFS for Loki, Tempo and Mimir"
+helm upgrade --install rustfs rustfs/rustfs \
+  -n storage -f values-rustfs.yaml --wait
+kubectl rollout status -n storage statefulset/rustfs 2>/dev/null || \
+  kubectl rollout status -n storage deployment/rustfs
+
+echo "Provisioning RustFS buckets and users"
+kubectl delete job rustfs-provisioning -n storage --ignore-not-found
+kubectl apply -f rustfs-provisioning-job.yaml
+kubectl wait job/rustfs-provisioning \
+  --namespace storage \
+  --for=condition=complete \
+  --timeout=5m
 
 echo "Deploying Grafana Tempo"
 helm upgrade --install tempo grafana/tempo-distributed \

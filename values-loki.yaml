@@ -26,7 +26,7 @@ loki:
   storage:
     type: s3
     s3:
-      endpoint: minio.storage.svc:9000
+      endpoint: rustfs-svc.storage.svc:9000
       accessKeyId: remote_user
       secretAccessKey: R3m0t3us3r
       insecure: true
