@@ -1,5 +1,11 @@
-// For Linkerd Jaeger when enabled (port 55678)
-otelcol.receiver.opencensus "default" {
+// For Linkerd tracing when enabled (OTLP gRPC port 4317, HTTP port 4318)
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
 	output {
 		metrics = []
 		traces  = [otelcol.processor.batch.default.input]

@@ -44,10 +44,6 @@ alloy:
     port: 14250
     targetPort: 14250
     protocol: TCP
-  - name: opencensus
-    port: 55678
-    targetPort: 55678
-    protocol: TCP
   
   # Stability level for production components
   # Options: "generally-available" (default), "public-preview", "experimental"
@@ -232,16 +228,6 @@ alloy:
         
         output {
           traces = [otelcol.processor.batch.default.input]
-        }
-      }
-      
-      // OpenCensus receiver (for Linkerd)
-      otelcol.receiver.opencensus "default" {
-        endpoint = "0.0.0.0:55678"
-        
-        output {
-          metrics = [otelcol.processor.batch.default.input]
-          traces  = [otelcol.processor.batch.default.input]
         }
       }
       
