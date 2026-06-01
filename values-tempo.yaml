@@ -129,7 +129,7 @@ storage:
   trace:
     backend: s3
     s3:
-      endpoint: minio.storage.svc:9000
+      endpoint: rustfs-svc.storage.svc:9000
       bucket: tempo-data
       access_key: remote_user
       secret_key: R3m0t3us3r

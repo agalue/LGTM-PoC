@@ -1,0 +1,74 @@
+---
+# Kubernetes Job to provision users and buckets in RustFS after it starts.
+# RustFS is deployed via Helm (release: rustfs) in the storage namespace.
+# Run: kubectl apply -f rustfs-provisioning-job.yaml
+# Re-run: kubectl delete job rustfs-provisioning -n storage && kubectl apply -f rustfs-provisioning-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rustfs-provisioning
+  namespace: storage
+spec:
+  # Retry on transient failures (e.g. RustFS not yet accepting connections)
+  backoffLimit: 10
+  template:
+    metadata:
+      annotations:
+        # Disable service mesh sidecars so the Job pod exits cleanly
+        linkerd.io/inject: "disabled"
+        sidecar.istio.io/inject: "false"
+        istio.io/dataplane-mode: "none"
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait for RustFS to report healthy before running mc commands
+        - name: wait-for-rustfs
+          image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for RustFS to become ready..."
+              until curl -sf http://rustfs-svc.storage.svc:9000/health/ready; do
+                echo "RustFS not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "RustFS is ready."
+      containers:
+        - name: mc
+          image: minio/mc:latest
+          env:
+            # Root credentials — hardcoded for PoC (matches values-rustfs.yaml)
+            - name: MC_ROOT_USER
+              value: "root"
+            - name: MC_ROOT_PASSWORD
+              value: "I,@m,R00t;"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "==> Setting mc alias for RustFS..."
+              mc alias set rustfs http://rustfs-svc.storage.svc:9000 "${MC_ROOT_USER}" "${MC_ROOT_PASSWORD}"
+
+              echo "==> Creating users..."
+              mc admin user add rustfs admin Adm1nAdm1n
+              mc admin user add rustfs remote_user R3m0t3us3r
+
+              echo "==> Attaching policies to users..."
+              mc admin policy attach rustfs consoleAdmin --user admin
+              mc admin policy attach rustfs readwrite --user remote_user
+
+              echo "==> Creating buckets (skip if already exist)..."
+              mc mb --ignore-existing rustfs/loki-data
+              mc mb --ignore-existing rustfs/loki-ruler
+              mc mb --ignore-existing rustfs/tempo-data
+              mc mb --ignore-existing rustfs/mimir-data
+              mc mb --ignore-existing rustfs/mimir-ruler
+              mc mb --ignore-existing rustfs/mimir-alerts
+
+              echo "==> Bucket listing (for log verification):"
+              mc ls rustfs
+
+              echo "==> Provisioning complete."
