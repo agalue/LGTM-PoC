@@ -19,6 +19,16 @@ CILIUM_CLUSTER_MESH_ENABLED=${CILIUM_CLUSTER_MESH_ENABLED:-no} # no for Linkerd 
 ISTIO_ENABLED=${ISTIO_ENABLED:-no} # no for Linkerd, yes for Istio
 APP_NS="tns"  # Used by deploy-mesh.sh
 
+echo "Updating Helm Repositories"
+helm repo add jetstack https://charts.jetstack.io
+helm repo add linkerd https://helm.linkerd.io/stable
+helm repo add linkerd-edge https://helm.linkerd.io/edge
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add metallb https://metallb.github.io/metallb
+helm repo update &> /dev/null
+
 echo "Deploying Kubernetes"
 . deploy-kind.sh
 

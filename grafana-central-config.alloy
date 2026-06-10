@@ -41,7 +41,7 @@ otelcol.exporter.otlp "default_0" {
 	}
 
 	client {
-		endpoint = "tempo-distributor.tempo.svc:55680"
+		endpoint = "tempo-distributor.tempo.svc:4317"
 
 		tls {
 			insecure = true

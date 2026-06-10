@@ -91,6 +91,9 @@ runtimeConfig:
 
 gateway:
   enabledNonEnterprise: true
+  service:
+    labels:
+      prometheus.io/service-monitor: 'false' # nginx exporter unavailable
 
 minio:
   enabled: false
@@ -122,13 +125,13 @@ ruler:
         "
       ]
   - name: wait-chunks
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-chunks-cache 11211; do echo waiting for memcached; sleep 1; done']
   - name: wait-metadata
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-metadata-cache 11211; do echo waiting for memcached; sleep 1; done']
 
 ruler_querier:
   resources:
@@ -217,9 +220,9 @@ querier:
         "
       ]
   - name: wait-metadata
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-metadata-cache 11211; do echo waiting for memcached; sleep 1; done']
 
 query_frontend:
   replicas: 2
@@ -227,9 +230,9 @@ query_frontend:
     <<: *no_resources
   initContainers:
   - name: wait-results
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-results-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-results-cache 11211; do echo waiting for memcached; sleep 1; done']
 
 query_scheduler:
   replicas: 2
@@ -246,13 +249,13 @@ store_gateway:
     enabled: false
   initContainers:
   - name: wait-metadata
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-metadata-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-metadata-cache 11211; do echo waiting for memcached; sleep 1; done']
   - name: wait-chunks
-    image: busybox:1.28
+    image: busybox:1.37
     imagePullPolicy: IfNotPresent
-    command: ['sh', '-c', 'until nslookup mimir-chunks-cache; do echo waiting for memcached; sleep 1; done']
+    command: ['sh', '-c', 'until nc -z mimir-chunks-cache 11211; do echo waiting for memcached; sleep 1; done']
 
 # Warning: the Helm chart doesn't properly support having more than one replica
 kafka:

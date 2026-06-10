@@ -367,7 +367,7 @@ alloy:
     dockercontainers: true
 ```
 
-**Resource Profile**: `100m CPU / 128Mi memory per node`
+**Resource Profile**: No resource requests or limits are set (PoC configuration)
 
 #### Alloy Deployment (`alloy-deployment`)
 **Purpose**: Cluster-wide discovery and trace collection
@@ -401,7 +401,7 @@ alloy:
       port: 6831
 ```
 
-**Resource Profile**: `200m CPU / 256Mi memory per replica`
+**Resource Profile**: No resource requests or limits are set (PoC configuration)
 
 **Benefits Over Traditional Stack**:
 - ✅ **Single Agent Type**: One component to learn, upgrade, and monitor
@@ -419,16 +419,16 @@ alloy:
 **Verification**:
 ```bash
 # Check DaemonSet (should have one pod per node)
-kubectl --context kind-lgtm-remote-alloy -n observability get ds grafana-alloy-daemonset
+kubectl --context kind-lgtm-remote-alloy -n observability get ds grafana-alloy-ds
 
 # Check Deployment (should have 2 replicas)
-kubectl --context kind-lgtm-remote-alloy -n observability get deployment grafana-alloy-deployment
+kubectl --context kind-lgtm-remote-alloy -n observability get deployment grafana-alloy
 
 # View DaemonSet logs (log collection)
-kubectl --context kind-lgtm-remote-alloy -n observability logs ds/grafana-alloy-daemonset
+kubectl --context kind-lgtm-remote-alloy -n observability logs ds/grafana-alloy-ds
 
 # View Deployment logs (metrics and traces)
-kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafana-alloy-deployment
+kubectl --context kind-lgtm-remote-alloy -n observability logs deployment/grafana-alloy
 ```
 
 ---
@@ -575,7 +575,7 @@ Linkerd creates a mirrored service automatically when linking clusters, appendin
 
 Due to a [change](https://buoyant.io/blog/clarifications-on-linkerd-2-15-stable-announcement) introduced by Buoyant about the Linkerd artifacts, the latest `stable` version available via Helm charts is 2.14 (even if the actual latest version is newer). Because of that, we'll be using the `edge` release by default.
 
-> ⚠️ **Version Requirement**: This PoC requires Linkerd edge-25.12.x or later (stable 2.18.x+) for multicluster functionality. Earlier versions used a deprecated linking approach that no longer works correctly.
+> ⚠️ **Version Requirement**: This PoC requires Linkerd edge-2026.x.x or later for multicluster functionality. Earlier versions used a deprecated linking approach that no longer works correctly.
 
 ### Istio Multi Cluster
 
@@ -871,6 +871,7 @@ cilium --context kind-lgtm-remote status
 ```bash
 kind delete cluster --name lgtm-central
 kind delete cluster --name lgtm-remote
+kind delete cluster --name lgtm-remote-alloy
 kind delete cluster --name lgtm-remote-otel
 ```
 

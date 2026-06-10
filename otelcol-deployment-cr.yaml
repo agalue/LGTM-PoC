@@ -1,15 +1,13 @@
-# OpenTelemetryCollector CRD for StatefulSet mode (required for Target Allocator)
-# Deploys single collector instance with Target Allocator for:
+# OpenTelemetryCollector CRD for StatefulSet mode
+# Deploys single collector instance for:
 # - Kubernetes Events collection (k8s_events receiver)
 # - Kubernetes cluster metrics (k8s_cluster receiver)
-# - Prometheus metrics discovery via Target Allocator (ServiceMonitor/PodMonitor CRDs)
+# - Prometheus metrics scraping via annotation-based discovery
 # - Trace aggregation and tail sampling
 # - Receives traces from DaemonSet collectors
 #
-# NOTE: Target Allocator REQUIRES mode: statefulset (not deployment)
 # NOTE: The OpenTelemetry Operator automatically creates the ServiceAccount
-# and grants appropriate RBAC permissions based on the receivers/processors used,
-# including access to ServiceMonitor/PodMonitor CRDs when Target Allocator is enabled.
+# and grants appropriate RBAC permissions based on the receivers/processors used.
 ---
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
@@ -18,26 +16,9 @@ metadata:
   namespace: observability
 spec:
   mode: statefulset
-  image: otel/opentelemetry-collector-contrib:0.142.0
+  image: otel/opentelemetry-collector-contrib:0.153.0
   replicas: 1
   serviceAccount: otel-deployment
-  # Target Allocator for Prometheus service discovery
-  # Discovers ServiceMonitor/PodMonitor CRDs and prometheus.io annotations
-  targetAllocator:
-    enabled: true
-    # Enable Prometheus Operator CRD support
-    prometheusCR:
-      enabled: true
-      # Discover all ServiceMonitors in all namespaces
-      serviceMonitorSelector: {}
-      # Discover all PodMonitors in all namespaces
-      podMonitorSelector: {}
-    # Allocate prometheus scrape jobs across collector instances
-    allocationStrategy: consistent-hashing
-    image: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:0.141.0
-    resources:
-      limits:
-        memory: 128Mi
   config:
     receivers:
       # Kubernetes Events receiver
@@ -57,21 +38,43 @@ spec:
             endpoint: 0.0.0.0:4317
           http:
             endpoint: 0.0.0.0:4318
-      # Prometheus receiver with Target Allocator integration
-      # The Operator automatically injects target_allocator config when enabled
-      # Target Allocator discovers:
-      # 1. ServiceMonitor CRDs (via prometheusCR)
-      # 2. PodMonitor CRDs (via prometheusCR)
-      # 3. Services/Pods with prometheus.io annotations
+      # Prometheus receiver: scrape pods with prometheus.io/scrape=true annotations
       prometheus:
         config:
           scrape_configs:
-          # Empty config - Target Allocator will populate this dynamically.
-          # The Operator adds HTTP SD config pointing to Target Allocator service
+          - job_name: kubernetes-pods
+            honor_labels: true
+            kubernetes_sd_configs:
+            - role: pod
+            relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: "true"
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+              action: replace
+              regex: (https?)
+              target_label: __scheme__
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+            - action: labelmap
+              regex: __meta_kubernetes_pod_label_(.+)
+            - source_labels: [__meta_kubernetes_namespace]
+              action: replace
+              target_label: kubernetes_namespace
+            - source_labels: [__meta_kubernetes_pod_name]
+              action: replace
+              target_label: kubernetes_pod_name
     exporters:
-      # Forward traces to central Tempo
-      otlp:
-        endpoint: http://tempo-distributor-lgtm-central.tempo.svc:4317
+      # Forward traces to central Tempo via gRPC (no http:// scheme for gRPC)
+      otlp_grpc/tempo:
+        endpoint: tempo-distributor-lgtm-central.tempo.svc:4317
         tls:
           insecure: true
         headers:
@@ -83,8 +86,8 @@ spec:
           insecure: true
         headers:
           X-Scope-OrgID: remote03
-      # Forward K8s events to central Loki via OTLP
-      otlphttp/loki:
+      # Forward K8s events to central Loki via OTLP HTTP
+      otlp_http/loki:
         endpoint: http://loki-write-lgtm-central.loki.svc:3100/otlp
         tls:
           insecure: true
@@ -92,7 +95,7 @@ spec:
           X-Scope-OrgID: remote03
     processors:
       # Add Kubernetes attributes to traces
-      k8sattributes:
+      k8s_attributes:
         auth_type: serviceAccount
         passthrough: false
         extract:
@@ -170,16 +173,16 @@ spec:
           - resource
           - batch
           exporters:
-          - otlphttp/loki
+          - otlp_http/loki
         # Traces pipeline: OTLP -> tail sampling -> Tempo
         traces:
           receivers:
           - otlp
           processors:
           - memory_limiter
-          - k8sattributes
+          - k8s_attributes
           - tail_sampling
           - resource
           - batch
           exporters:
-          - otlp
+          - otlp_grpc/tempo

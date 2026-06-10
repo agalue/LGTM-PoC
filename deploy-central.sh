@@ -28,6 +28,7 @@ helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add grafana-community https://grafana-community.github.io/helm-charts
 helm repo add vector https://helm.vector.dev
 helm repo add fluent https://fluent.github.io/helm-charts
 helm repo add rustfs https://charts.rustfs.com/
@@ -77,11 +78,11 @@ kubectl wait job/rustfs-provisioning \
   --timeout=5m
 
 echo "Deploying Grafana Tempo"
-helm upgrade --install tempo grafana/tempo-distributed \
+helm upgrade --install tempo grafana-community/tempo-distributed \
   -n tempo -f values-tempo.yaml --wait
 
 echo "Deploying Grafana Loki"
-helm upgrade --install loki grafana/loki \
+helm upgrade --install loki grafana-community/loki \
   -n loki -f values-loki.yaml --wait
 
 if [[ "${LOG_SHIPPER}" == "fluentbit" ]]; then

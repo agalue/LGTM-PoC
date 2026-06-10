@@ -30,6 +30,9 @@ prometheus:
       - sourceLabels: [namespace]
         regex: "^linkerd.*"
         action: drop
+      - sourceLabels: [__name__]
+        regex: ".*\\..*"  # drop OTel-style metric names with dots (invalid in Prometheus/Mimir)
+        action: drop
 
 grafana:
   enabled: true
