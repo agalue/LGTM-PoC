@@ -134,6 +134,9 @@ EOF
 else
   # https://github.com/istio/istio/blob/master/samples/multicluster/gen-eastwest-gateway.sh
   # https://istio.io/latest/docs/ops/configuration/traffic-management/dns-proxy/#sidecar-mode
+  # Pre-delete the ingress gateway Deployment if it exists. spec.selector is immutable, so a
+  # retry after a partial install (or any label change) would otherwise fail with server-side apply.
+  kubectl delete deployment lgtm-gateway -n istio-system --ignore-not-found=true 2>/dev/null || true
   cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -252,5 +255,6 @@ EOF
 fi
 
 # Istio Monitoring
-curl https://raw.githubusercontent.com/istio/istio/refs/heads/master/samples/addons/extras/prometheus-operator.yaml 2>/dev/null \
+ISTIO_VERSION=$(istioctl version --remote=false --short 2>/dev/null | awk '{print $NF}')
+curl -fsSL "https://raw.githubusercontent.com/istio/istio/refs/tags/${ISTIO_VERSION}/samples/addons/extras/prometheus-operator.yaml" \
   | sed '/release/s/istio/monitor/' | kubectl apply -f -

@@ -98,16 +98,16 @@ chunksCache:
     requests:
       cpu: 25m
 
-metaMonitoring:
-  serviceMonitor:
-    enabled: true
-    labels:
-      release: monitor
+monitoring:
   dashboards:
     enabled: true
     labels:
       release: monitor
-  prometheusRule:
+  rules:
+    enabled: true
+    labels:
+      release: monitor
+  serviceMonitor:
     enabled: true
     labels:
       release: monitor

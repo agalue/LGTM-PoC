@@ -83,8 +83,10 @@ if [[ "$CIDR" == "" ]]; then
 fi
 
 # Install Gateway API CRDs
+# Cilium 1.19.x supports Gateway API v1.4.1 and requires TLSRoute at v1alpha2 (experimental channel).
+# v1.5.x promoted TLSRoute to v1 and stopped serving v1alpha2, which crashes the cilium-operator.
 kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-  kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
+  kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/experimental-install.yaml
 
 if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
   echo "Installing Cilium CNI..."

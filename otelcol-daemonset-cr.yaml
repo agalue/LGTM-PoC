@@ -14,7 +14,7 @@ metadata:
   namespace: observability
 spec:
   mode: daemonset
-  image: otel/opentelemetry-collector-contrib:0.142.0
+  image: otel/opentelemetry-collector-contrib:0.153.0
   serviceAccount: otel-daemonset
   volumeMounts:
   - name: varlogpods
@@ -88,15 +88,15 @@ spec:
         - pod
         - container
     exporters:
-      # Forward logs to central Loki via OTLP
-      otlphttp/loki:
+      # Forward logs to central Loki via OTLP HTTP
+      otlp_http/loki:
         endpoint: http://loki-write-lgtm-central.loki.svc:3100/otlp
         tls:
           insecure: true
         headers:
           X-Scope-OrgID: remote03
       # Forward traces to Deployment collector for tail sampling
-      otlp/deployment:
+      otlp_grpc/deployment:
         endpoint: otel-deployment-collector.observability.svc:4317
         tls:
           insecure: true
@@ -111,7 +111,7 @@ spec:
           X-Scope-OrgID: remote03
     processors:
       # Add Kubernetes attributes
-      k8sattributes:
+      k8s_attributes:
         auth_type: serviceAccount
         passthrough: false
         extract:
@@ -137,6 +137,13 @@ spec:
         - key: cluster
           value: remote03
           action: upsert
+      # Rename OTel-semantic metric names (dots) to Prometheus-compatible names (underscores)
+      # so they are accepted by Mimir's Prometheus remote write endpoint.
+      transform/metrics:
+        metric_statements:
+        - context: metric
+          statements:
+          - set(name, replace_pattern(name, "\\.", "_"))
       # Batch processor
       batch:
         timeout: 5s
@@ -155,11 +162,11 @@ spec:
           - otlp
           processors:
           - memory_limiter
-          - k8sattributes
+          - k8s_attributes
           - resource
           - batch
           exporters:
-          - otlphttp/loki
+          - otlp_http/loki
         # Metrics pipeline
         metrics:
           receivers:
@@ -168,6 +175,7 @@ spec:
           - kubeletstats
           processors:
           - memory_limiter
+          - transform/metrics
           - resource
           - batch
           exporters:
@@ -178,8 +186,8 @@ spec:
           - otlp
           processors:
           - memory_limiter
-          - k8sattributes
+          - k8s_attributes
           - resource
           - batch
           exporters:
-          - otlp/deployment
+          - otlp_grpc/deployment
