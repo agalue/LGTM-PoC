@@ -4,6 +4,23 @@
 #
 # NOTE: Bucket and user provisioning is NOT handled here.
 #       It is managed by a separate Kubernetes Job defined in rustfs-provisioning-job.yaml.
+#
+# IMPORTANT: Several upstream chart defaults changed in chart 0.8.0 (appVersion 1.0.0-beta.8).
+# The explicit overrides below are REQUIRED to maintain correct standalone behaviour:
+#
+#   - ingress.enabled: upstream default flipped from false → TRUE. The explicit
+#     'enabled: false' below is essential; removing it would accidentally expose
+#     an ingress endpoint (default host: example.rustfs.com).
+#
+#   - mode.standalone / mode.distributed: upstream default flipped to distributed=true.
+#     The explicit standalone=true / distributed=false below is required for Kind clusters.
+#
+#   - storageclass.name: upstream default changed from 'standard' to 'local-path'.
+#     The explicit 'standard' below is correct for Kind clusters.
+#
+#   - secret.rustfs credentials: the chart now enforces a security guard that rejects
+#     empty or default ('rustfsadmin') credentials unless secret.allowInsecureDefaults=true.
+#     The non-default values below satisfy this guard as-is.
 
 image:
   rustfs:
