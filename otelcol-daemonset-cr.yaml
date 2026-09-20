@@ -90,7 +90,7 @@ spec:
     exporters:
       # Forward logs to central Loki via OTLP HTTP
       otlp_http/loki:
-        endpoint: http://loki-write-lgtm-central.loki.svc:3100/otlp
+        endpoint: http://loki-distributor-lgtm-central.loki.svc:3100/otlp
         tls:
           insecure: true
         headers:

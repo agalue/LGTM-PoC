@@ -36,7 +36,9 @@ spec:
               echo "RustFS is ready."
       containers:
         - name: mc
-          image: minio/mc:latest
+          # NOTE: MinIO no longer publishes minio/mc images to Docker Hub without
+          # a subscription (pull access denied). Use the Quay.io mirror instead.
+          image: quay.io/minio/mc:latest
           env:
             # Root credentials — hardcoded for PoC (matches values-rustfs.yaml)
             - name: MC_ROOT_USER

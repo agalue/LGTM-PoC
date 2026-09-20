@@ -65,14 +65,6 @@ spec:
 
 ---
 apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: cilium
-spec:
-  controllerName: io.cilium/gateway-controller
-
----
-apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: lgtm-external-gateway

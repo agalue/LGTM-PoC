@@ -170,7 +170,7 @@ alloy:
       // Write events to central Loki
       loki.write "central" {
         endpoint {
-          url = "http://loki-write-lgtm-central.loki.svc:3100/loki/api/v1/push"
+          url = "http://loki-distributor-lgtm-central.loki.svc:3100/loki/api/v1/push"
           
           tenant_id = "remote02"
           

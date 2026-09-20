@@ -126,7 +126,7 @@ if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
 
   cat <<EOF | kubectl apply -f -
 ---
-apiVersion: cilium.io/v2alpha1
+apiVersion: cilium.io/v2
 kind: CiliumLoadBalancerIPPool
 metadata:
   name: ${CONTEXT}-pool

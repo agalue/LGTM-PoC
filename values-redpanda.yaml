@@ -1,0 +1,56 @@
+# Minimal single-node Redpanda deployment used as the shared Kafka-API-
+# compatible broker required by:
+#  - Tempo 3.0+'s write path (block-builder/live-store)
+#  - Mimir's "ingest storage" architecture (replaces its bundled kafka-native)
+# Not meant for production: single broker, no persistence tuning, TLS/SASL
+# disabled since traffic stays inside the cluster.
+
+statefulset:
+  replicas: 1
+
+resources:
+  # Unlike every other chart in this repo, Redpanda's resources.* values
+  # aren't just Kubernetes scheduling hints: the chart uses them to compute
+  # the Seastar engine's --memory/--smp/--reserve-memory startup flags for
+  # the redpanda binary itself. Setting them to '0' (like the "no_resources"
+  # pattern used elsewhere) renders `--memory=0M`, which fails to start.
+  # The chart's formula (process memory = 80% of container memory, plus a
+  # small reserved amount) suggests ~1010Mi is the theoretical minimum, but
+  # that was observed to fail at runtime with "insufficient physical memory"
+  # (Seastar needs extra headroom beyond the formula). 1536Mi is the smallest
+  # value confirmed to actually start Redpanda in this cluster, well below
+  # the chart's default of 1 CPU core / 2.5Gi memory.
+  cpu:
+    cores: 250m
+  memory:
+    container:
+      max: 1536Mi
+    enable_memory_locking: false
+
+storage:
+  persistentVolume:
+    size: 2Gi
+
+tls:
+  enabled: false
+
+auth:
+  sasl:
+    enabled: false
+
+external:
+  enabled: false
+
+console:
+  enabled: false
+
+config:
+  cluster:
+    # Unlike Apache Kafka (default true), Redpanda defaults this to false.
+    # Tempo's ingest.kafka.auto_create_topic_enabled and Mimir's
+    # ingest_storage.kafka.auto_create_topic_enabled are only client-side
+    # request flags; the broker rejects auto-creation unless this cluster
+    # property also allows it. Without this, topics never get created and
+    # Tempo's block-builder/live-store/backend-scheduler get stuck waiting
+    # on a non-existent topic until their probes kill them.
+    auto_create_topics_enabled: true

@@ -33,6 +33,7 @@ helm repo add vector https://helm.vector.dev
 helm repo add fluent https://fluent.github.io/helm-charts
 helm repo add rustfs https://charts.rustfs.com/
 helm repo add metallb https://metallb.github.io/metallb
+helm repo add redpanda https://charts.redpanda.com/
 helm repo update &> /dev/null
 
 echo "Deploying Kubernetes"
@@ -56,7 +57,7 @@ if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" != "yes" ]]; then
   fi
 fi
 
-NAMESPACES="observability storage tempo loki mimir"
+NAMESPACES="observability storage kafka tempo loki mimir"
 . deploy-namespaces.sh
 
 echo "Deploying Prometheus (for Local Metrics)"
@@ -76,6 +77,15 @@ kubectl wait job/rustfs-provisioning \
   --namespace storage \
   --for=condition=complete \
   --timeout=5m
+
+echo "Deploying Redpanda"
+# Both Tempo 3.0+ (block-builder/live-store) and Mimir's "ingest storage"
+# architecture (ingester write path) require a Kafka-API-compatible broker.
+# A single, shared, lightweight Redpanda broker is deployed once here (in its
+# own namespace) instead of running one bundled Kafka per component.
+# See https://github.com/grafana/helm-charts/blob/main/charts/tempo-distributed/UPGRADE.md
+helm upgrade --install redpanda redpanda/redpanda \
+  -n kafka -f values-redpanda.yaml --wait
 
 echo "Deploying Grafana Tempo"
 helm upgrade --install tempo grafana-community/tempo-distributed \
@@ -113,7 +123,7 @@ kubectl apply -f ingress-central.yaml
 declare -a SERVICES=( \
   "service/mimir-distributor -n mimir" \
   "service/tempo-distributor -n tempo" \
-  "service/loki-write -n loki" \
+  "service/loki-distributor -n loki" \
   "service/monitor-alertmanager -n observability"
 )
 if [[ "${CILIUM_CLUSTER_MESH_ENABLED}" == "yes" ]]; then
