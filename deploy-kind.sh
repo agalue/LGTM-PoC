@@ -83,10 +83,18 @@ if [[ "$CIDR" == "" ]]; then
 fi
 
 # Install Gateway API CRDs
-# Cilium 1.19.x supports Gateway API v1.4.1 and requires TLSRoute at v1alpha2 (experimental channel).
-# v1.5.x promoted TLSRoute to v1 and stopped serving v1alpha2, which crashes the cilium-operator.
-kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-  kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/experimental-install.yaml
+# Since 'cilium install' below doesn't pin a Cilium version, it always tracks whatever the
+# installed cilium-cli considers "stable" at the time. Cilium's Gateway API support requires a
+# minimum Gateway API CRD version that moves forward with each Cilium release (e.g. Cilium 1.20.x
+# requires v1.6.x; TLSRoute/ReferenceGrant must be present at v1). Installing an older/pinned
+# Gateway API version here silently breaks the Cilium Gateway (GatewayClass never becomes
+# Accepted, the Gateway stays Programmed=Unknown, and no cilium-gateway-* LoadBalancer Service is
+# created) with no obvious error outside the cilium-operator logs. To avoid this drift, always
+# install the latest Gateway API release (experimental channel, required for TLSRoute) instead of
+# pinning to a fixed version.
+# See: https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/
+GATEWAY_API_VERSION=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/latest | jq -r '.tag_name')
+kubectl apply --server-side -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/experimental-install.yaml"
 
 if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
   echo "Installing Cilium CNI..."
@@ -123,6 +131,37 @@ if [[ "${CILIUM_ENABLED}" == "yes" ]]; then
     --set hubble.ui.enabled=${HUBBLE_ENABLED}
 
   cilium status --wait --ignore-warnings
+
+  # Verify Cilium's Gateway API controller actually accepted the GatewayClass. If the
+  # Gateway API CRDs were already present from a prior run (e.g. re-running this script against
+  # an existing cluster) and are older than what this Cilium version requires, the
+  # cilium-operator logs a one-time error at startup ("Required GatewayAPI resources are not
+  # found ... does not have version 'v1'") and never retries, silently leaving the "cilium"
+  # GatewayClass stuck at ACCEPTED=Unknown and every Gateway stuck at PROGRAMMED=Unknown (no
+  # cilium-gateway-* LoadBalancer Service gets created). Restarting the operator forces it to
+  # re-check the CRDs, which is enough since we always install the latest CRDs above.
+  echo "Verifying Cilium Gateway API controller status..."
+  for i in {1..10}; do
+    ACCEPTED=$(kubectl get gatewayclass cilium -o jsonpath='{.status.conditions[?(@.type=="Accepted")].status}' 2>/dev/null || echo "")
+    [[ "${ACCEPTED}" == "True" ]] && break
+    echo "Waiting for 'cilium' GatewayClass to be Accepted (attempt ${i}/10)..."
+    sleep 3
+  done
+  if [[ "${ACCEPTED}" != "True" ]]; then
+    echo "GatewayClass not Accepted yet; restarting cilium-operator to force a re-check of Gateway API CRDs..."
+    kubectl -n kube-system rollout restart deployment/cilium-operator
+    kubectl -n kube-system rollout status deployment/cilium-operator --timeout=90s
+    for i in {1..10}; do
+      ACCEPTED=$(kubectl get gatewayclass cilium -o jsonpath='{.status.conditions[?(@.type=="Accepted")].status}' 2>/dev/null || echo "")
+      [[ "${ACCEPTED}" == "True" ]] && break
+      sleep 3
+    done
+    if [[ "${ACCEPTED}" != "True" ]]; then
+      echo >&2 "'cilium' GatewayClass still not Accepted after restarting cilium-operator; check 'kubectl -n kube-system logs deployment/cilium-operator | grep -i gateway' for details."
+      exit 1
+    fi
+  fi
+  echo "Cilium Gateway API controller is ready."
 
   cat <<EOF | kubectl apply -f -
 ---
