@@ -6,7 +6,7 @@ service:
 
 serviceMonitor:
   enabled: true
-  additionalLabels:
+  selector:
     release: monitor
 
 resources: {}
