@@ -31,6 +31,12 @@ mimir:
       enabled: false
     server:
       grpc_server_max_concurrent_streams: 1000
+    ingest_storage:
+      kafka:
+        # Shared Redpanda broker (Kafka-API-compatible) deployed via
+        # values-redpanda.yaml in the "kafka" namespace; also used by Tempo.
+        # Replaces the chart's bundled kafka-native, disabled below.
+        address: redpanda.kafka.svc.cluster.local:9093
     common:
       storage:
         backend: s3
@@ -118,7 +124,7 @@ ruler:
         "
         trap 'echo Received SIGTERM; exit 0' TERM INT;
         while true; do
-          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
           echo 'waiting for kafka...';
           sleep 2;
         done
@@ -162,7 +168,7 @@ distributor:
         "
         trap 'echo Received SIGTERM; exit 0' TERM INT;
         while true; do
-          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
           echo 'waiting for kafka...';
           sleep 2;
         done
@@ -186,7 +192,7 @@ ingester:
         "
         trap 'echo Received SIGTERM; exit 0' TERM INT;
         while true; do
-          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
           echo 'waiting for kafka...';
           sleep 2;
         done
@@ -213,7 +219,7 @@ querier:
         "
         trap 'echo Received SIGTERM; exit 0' TERM INT;
         while true; do
-          kcat -b mimir-kafka:9092 -L >/dev/null 2>&1 && exit 0;
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
           echo 'waiting for kafka...';
           sleep 2;
         done
@@ -257,10 +263,10 @@ store_gateway:
     imagePullPolicy: IfNotPresent
     command: ['sh', '-c', 'until nc -z mimir-chunks-cache 11211; do echo waiting for memcached; sleep 1; done']
 
-# Warning: the Helm chart doesn't properly support having more than one replica
+# Bundled Kafka disabled: Mimir's ingest-storage architecture uses the shared
+# Redpanda broker instead (see mimir.structuredConfig.ingest_storage.kafka above).
 kafka:
-  resources:
-    <<: *no_resources
+  enabled: false
 
 memcachedExporter:
   resources:

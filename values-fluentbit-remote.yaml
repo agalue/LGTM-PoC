@@ -4,7 +4,7 @@ config:
     [OUTPUT]
         Name loki
         Match kube.*
-        Host loki-write-lgtm-central.loki.svc.cluster.local
+        Host loki-distributor-lgtm-central.loki.svc.cluster.local
         Port 3100
         Labels job=fluentbit, cluster=lgtm-remote
         Label_keys $kubernetes['namespace_name'],$kubernetes['pod_name'],$kubernetes['container_name']

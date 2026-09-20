@@ -64,7 +64,7 @@ NAMESPACES="observability mimir tempo loki $APP_NS"
 declare -a SERVICES=( \
   "service/mimir-distributor -n mimir" \
   "service/tempo-distributor -n tempo" \
-  "service/loki-write -n loki" \
+  "service/loki-distributor -n loki" \
   "service/monitor-alertmanager -n observability"
 )
 

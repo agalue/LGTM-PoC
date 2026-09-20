@@ -16,11 +16,85 @@ tempo:
 
 multitenancyEnabled: true
 
-compactor:
+# Tempo 3.0 replaced the ingester/compactor write path with a Kafka-backed
+# pipeline (distributor -> Kafka -> block-builder/live-store). The compactor
+# component is gone; block retention now lives under backendScheduler.
+backendScheduler:
   config:
-    compaction:
-      # Increased from 48h to 7 days to match Loki/Mimir retention
-      block_retention: 168h # Global Traces TTL (7 days)
+    provider:
+      compaction:
+        compaction:
+          # Increased from 48h to 7 days to match Loki/Mimir retention
+          block_retention: 168h # Global Traces TTL (7 days)
+
+# Points Tempo at the shared single-node Redpanda broker (Kafka-API-compatible)
+# deployed via values-redpanda.yaml in the "kafka" namespace (also used by Mimir).
+ingest:
+  kafka:
+    address: redpanda.kafka.svc.cluster.local:9093
+    topic: tempo-traces
+    auto_create_topic_enabled: true
+    # Single-partition topic to match the single-broker, single-replica
+    # block-builder/live-store setup below (keeps this PoC lightweight).
+    auto_create_topic_default_partitions: 1
+
+blockBuilder:
+  replicas: 1
+  # block-builder doesn't expose a gRPC port via its Service, but the shared
+  # Tempo binary still opens the internal gRPC server (ring/health checks) on
+  # this port. Unlike distributor/querier/queryFrontend/metricsGenerator,
+  # this component has no "appProtocol" value in the chart, so the port-name
+  # convention is used instead: naming it "tcp-<x>" makes Istio's sidecar
+  # treat it as raw TCP passthrough (avoids HTTP/2 sniffing issues) in sidecar
+  # mode, and is a no-op in ambient mode (no waypoint = pure L4 passthrough
+  # already). This works regardless of Istio mode without needing appProtocol.
+  extraPorts:
+  - name: tcp-grpc
+    containerPort: 9095
+    protocol: TCP
+  # Consumes from Kafka; wait for the broker/topic to be reachable before
+  # starting, same pattern used for Mimir's Kafka-dependent components.
+  initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
+
+liveStore:
+  replicas: 1
+  # Same rationale as blockBuilder.extraPorts above: live-store serves
+  # recent-trace queries over the internal gRPC port, which also has no
+  # "appProtocol" value exposed by the chart.
+  extraPorts:
+  - name: tcp-grpc
+    containerPort: 9095
+    protocol: TCP
+  # Consumes from Kafka; same rationale as blockBuilder.initContainers above.
+  initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
 
 traces:
   otlp:
@@ -43,9 +117,6 @@ overrides:
 gateway:
   enabled: false
 
-minio:
-  enabled: false
-
 memberlist:
   rejoin_interval: 60s
   dead_node_reclaim_time: 60s
@@ -54,10 +125,23 @@ distributor:
   replicas: 2
   appProtocol:
     grpc: tcp
-
-ingester:
-  appProtocol:
-    grpc: tcp
+  # Produces to Kafka; wait for the broker to be reachable before starting,
+  # same pattern used for Mimir's Kafka-dependent components.
+  initContainers:
+  - name: wait-kafka
+    image: confluentinc/cp-kcat:8.1.0
+    command:
+      [
+        "sh", "-c",
+        "
+        trap 'echo Received SIGTERM; exit 0' TERM INT;
+        while true; do
+          kcat -b redpanda.kafka.svc.cluster.local:9093 -L >/dev/null 2>&1 && exit 0;
+          echo 'waiting for kafka...';
+          sleep 2;
+        done
+        "
+      ]
 
 queryFrontend:
   replicas: 2

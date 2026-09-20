@@ -72,11 +72,24 @@ spec:
     ztunnel:
       k8s:
         resources:
+          # ztunnel parses cpu requests/limits from the Downward API to size its worker-thread
+          # pool and rejects a value of '0' as invalid (see istio/ztunnel src/config.rs
+          # parse_cpu_quantity), unlike the Envoy-based proxies which don't self-parse these
+          # values. Use a minimal non-zero CPU quantity instead of '0' to avoid a crash loop.
+          #
+          # Unlike the other Envoy-based proxies in this file, ztunnel is a single shared
+          # per-node proxy carrying ALL ambient-mode pod-to-pod traffic on that node (not just
+          # one workload's sidecar). 10m (0.01 core) was observed to cause severe CPU
+          # throttling under real cross-pod traffic (e.g. Tempo's memberlist gossip), inflating
+          # simple TCP proxy round-trips from milliseconds to 6-18+ seconds. That is enough to
+          # blow through readiness/liveness probe timeouts and crash-loop workloads that rely on
+          # fast pod-to-pod communication. 250m keeps this in "no reserved resources for demo
+          # purposes" territory while giving ztunnel enough real CPU to proxy traffic promptly.
           limits:
-            cpu: '0'
+            cpu: 250m
             memory: '0'
           requests:
-            cpu: '0'
+            cpu: 250m
             memory: '0'
     pilot:
       k8s:

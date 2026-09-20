@@ -1,5 +1,13 @@
 # Warning: there won't be any resource requests/limits for any Loki-related container
 ---
+no_resources: &no_resources
+  requests:
+    cpu: '0'
+    memory: '0'
+  limits:
+    cpu: '0'
+    memory: '0'
+
 serviceAccount: # There is no way to set an account per component
   create: true
   name: loki-sa
@@ -18,6 +26,74 @@ gateway:
   service:
     labels:
       prometheus.io/service-monitor: 'false' # nginx exporter unavailable
+  resources:
+    <<: *no_resources
+
+# Full microservices mode, matching how Tempo and Mimir are deployed in this
+# repo. "SimpleScalable" (read/write/backend) is deprecated by the chart and
+# slated for removal in Loki 4, so it's not a viable long-term choice here.
+deploymentMode: Distributed
+
+# The chart's SimpleScalable-mode targets (write/read/backend) default to 3
+# replicas regardless of deploymentMode, and the chart's own validation fails
+# the render if both these and the Distributed-mode components below are
+# left non-zero at the same time. singleBinary already defaults to 0.
+write:
+  replicas: 0
+
+read:
+  replicas: 0
+
+backend:
+  replicas: 0
+
+# All Distributed-mode components default to 0 replicas (the chart just
+# renders the workloads; it doesn't pick a replica count for you), so every
+# component used here needs an explicit count.
+ingester:
+  replicas: 3
+  # Single Kind cluster with no real availability zones, same rationale as
+  # ingester.zoneAwareReplication.enabled: false in values-mimir.yaml.
+  zoneAwareReplication:
+    enabled: false
+  resources:
+    <<: *no_resources
+
+distributor:
+  replicas: 2
+  resources:
+    <<: *no_resources
+
+querier:
+  replicas: 3
+  resources:
+    <<: *no_resources
+
+queryFrontend:
+  replicas: 2
+  resources:
+    <<: *no_resources
+
+queryScheduler:
+  replicas: 2
+  resources:
+    <<: *no_resources
+
+indexGateway:
+  replicas: 2
+  resources:
+    <<: *no_resources
+
+compactor:
+  # Singleton: only one compactor should run retention/compaction at a time.
+  replicas: 1
+  resources:
+    <<: *no_resources
+
+ruler:
+  replicas: 2
+  resources:
+    <<: *no_resources
 
 loki:
   auth_enabled: true
@@ -87,16 +163,14 @@ loki:
 resultsCache:
   allocatedMemory: 512
   resources:
-    requests:
-      cpu: 25m
+    <<: *no_resources
 
 chunksCache:
   enabled: true
   replicas: 1
   allocatedMemory: 1024
   resources:
-    requests:
-      cpu: 25m
+    <<: *no_resources
 
 monitoring:
   dashboards:
