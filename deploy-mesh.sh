@@ -91,9 +91,17 @@ else
       --name=${CENTRAL} | \
       kubectl --context ${REMOTE_CTX} apply -f -
     if [[ "${ISTIO_PROFILE}" == "ambient" ]]; then
+      echo "Mirroring global Services into remote cluster for Istio Ambient Multicluster"
       for SVC in "${SERVICES[@]}"; do
         kubectl --context ${CENTRAL_CTX} get $SVC -o yaml | sed '/clusterIP:/,+6d' | \
           kubectl --context ${REMOTE_CTX} apply -f -
+        # The mirrored copy must carry the same istio.io/global label as the
+        # source Service for istiod to merge endpoints across networks. Rely
+        # on the central Service already being labeled (see deploy-central.sh),
+        # but re-assert it here too in case that Service was ever re-created
+        # (e.g. a standalone `helm upgrade`) without re-running that step.
+        kubectl --context ${CENTRAL_CTX} label ${SVC} istio.io/global="true" --overwrite
+        kubectl --context ${REMOTE_CTX} label ${SVC} istio.io/global="true" --overwrite
       done
     fi
   else
