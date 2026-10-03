@@ -120,6 +120,20 @@ kubectl rollout status -n mimir deployment/mimir-query-frontend
 echo "Create Ingress resources (using Gateway API via Cilium)"
 kubectl apply -f ingress-central.yaml
 
+echo "Waiting for Cilium Gateway Service..."
+kubectl wait \
+  --namespace observability \
+  --for=create \
+  service/cilium-gateway-lgtm-external-gateway \
+  --timeout=2m
+
+echo "Waiting for Gateway LoadBalancer IP..."
+kubectl wait \
+  --namespace observability \
+  --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' \
+  --timeout=2m \
+  service/cilium-gateway-lgtm-external-gateway
+
 declare -a SERVICES=( \
   "service/mimir-distributor -n mimir" \
   "service/tempo-distributor -n tempo" \

@@ -35,10 +35,8 @@ spec:
               done
               echo "RustFS is ready."
       containers:
-        - name: mc
-          # NOTE: MinIO no longer publishes minio/mc images to Docker Hub without
-          # a subscription (pull access denied). Use the Quay.io mirror instead.
-          image: quay.io/minio/mc:latest
+        - name: setup
+          image: rustfs/rc:latest
           env:
             # Root credentials — hardcoded for PoC (matches values-rustfs.yaml)
             - name: MC_ROOT_USER
@@ -51,26 +49,26 @@ spec:
             - |
               set -e
 
-              echo "==> Setting mc alias for RustFS..."
-              mc alias set rustfs http://rustfs-svc.storage.svc:9000 "${MC_ROOT_USER}" "${MC_ROOT_PASSWORD}"
+              echo "==> Setting rc alias for RustFS..."
+              rc alias set rustfs http://rustfs-svc.storage.svc:9000 "${MC_ROOT_USER}" "${MC_ROOT_PASSWORD}"
 
               echo "==> Creating users..."
-              mc admin user add rustfs admin Adm1nAdm1n
-              mc admin user add rustfs remote_user R3m0t3us3r
+              rc admin user add rustfs admin Adm1nAdm1n
+              rc admin user add rustfs remote_user R3m0t3us3r
 
               echo "==> Attaching policies to users..."
-              mc admin policy attach rustfs consoleAdmin --user admin
-              mc admin policy attach rustfs readwrite --user remote_user
+              rc admin policy attach rustfs consoleAdmin --user admin
+              rc admin policy attach rustfs readwrite --user remote_user
 
               echo "==> Creating buckets (skip if already exist)..."
-              mc mb --ignore-existing rustfs/loki-data
-              mc mb --ignore-existing rustfs/loki-ruler
-              mc mb --ignore-existing rustfs/tempo-data
-              mc mb --ignore-existing rustfs/mimir-data
-              mc mb --ignore-existing rustfs/mimir-ruler
-              mc mb --ignore-existing rustfs/mimir-alerts
+              rc mb --ignore-existing rustfs/loki-data
+              rc mb --ignore-existing rustfs/loki-ruler
+              rc mb --ignore-existing rustfs/tempo-data
+              rc mb --ignore-existing rustfs/mimir-data
+              rc mb --ignore-existing rustfs/mimir-ruler
+              rc mb --ignore-existing rustfs/mimir-alerts
 
               echo "==> Bucket listing (for log verification):"
-              mc ls rustfs
+              rc ls rustfs
 
               echo "==> Provisioning complete."
